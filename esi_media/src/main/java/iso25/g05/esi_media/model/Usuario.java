@@ -2,9 +2,13 @@ package iso25.g05.esi_media.model;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.annotation.Id;
 
-
+@Document(collection = "users")
 public class Usuario {
+    @Id
+    private String id;
 
     protected String _nombre;
     protected String _apellidos;

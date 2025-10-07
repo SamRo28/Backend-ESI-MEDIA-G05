@@ -1,9 +1,13 @@
 package iso25.g05.esi_media.model;
 import java.util.Date;
 import java.util.List;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.annotation.Id;
 
+@Document(collection = "contenidos")
 public class Contenido {
 
+	@Id
 	protected String id;
 	protected String _titulo;
 	protected String _descripcion;
