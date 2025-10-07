@@ -4,6 +4,7 @@ import java.util.List;
 
 public class Contenido {
 
+	protected String id;
 	protected String _titulo;
 	protected String _descripcion;
 	protected List<String> _tags;
@@ -18,9 +19,10 @@ public class Contenido {
 
 
 	
-	public Contenido(String _titulo, String _descripcion, List<String> _tags, double _duracion, boolean _vip,
+	public Contenido(String id, String _titulo, String _descripcion, List<String> _tags, double _duracion, boolean _vip,
 			boolean _estado, Date _fecha_estado_automatico, Date _fecha_disponible_hasta, int _edad_visualizacion,
 			Object _caratula, int _n_visualizaciones) {
+		this.id = id;
 		this._titulo = _titulo;
 		this._descripcion = _descripcion;
 		this._tags = _tags;
@@ -32,6 +34,14 @@ public class Contenido {
 		this._edad_visualizacion = _edad_visualizacion;
 		this._caratula = _caratula;
 		this._n_visualizaciones = _n_visualizaciones;
+	}
+
+	public String getId() {
+		return id;
+	}
+	
+	public void setId(String id) {
+		this.id = id;
 	}
 
 	public String get_titulo() {

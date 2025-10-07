@@ -4,17 +4,27 @@ import java.util.List;
 
 
 public class Lista {
+	protected String id;
 	private String _nombre;
 	private Usuario usuario;
 	public String publico;
 	public List<Contenido> contenidos = new ArrayList<>();
 
-	public Lista(String _nombre, Usuario usuario, String publico, List<Contenido> contenidos) {
+	public Lista(String id, String _nombre, Usuario usuario, String publico, List<Contenido> contenidos) {
+		this.id = id;
 		this._nombre = _nombre;
 		this.usuario = usuario;
 		this.publico = publico;
 		this.contenidos = contenidos;
 	}
+
+    public String getId() {
+        return id;
+    }
+    
+    public void setId(String id) {
+        this.id = id;
+    }
 
     public String getNombre() {
         return _nombre;

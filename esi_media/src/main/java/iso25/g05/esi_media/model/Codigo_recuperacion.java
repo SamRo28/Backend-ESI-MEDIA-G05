@@ -1,16 +1,24 @@
 package iso25.g05.esi_media.model;
 
 public class Codigo_recuperacion {
+	protected String id;
 	private String _codigo;
 	private String _fecha_expiracion;
 	public Usuario _unnamed_Usuario_;
 
-    public Codigo_recuperacion(String _codigo, String _fecha_expiracion, Usuario _unnamed_Usuario_) {
+    public Codigo_recuperacion(String id, String _codigo, String _fecha_expiracion, Usuario _unnamed_Usuario_) {
+        this.id = id;
         this._codigo = _codigo;
         this._fecha_expiracion = _fecha_expiracion;
         this._unnamed_Usuario_ = _unnamed_Usuario_;
     }
 
+	public String getId() {
+		return id;
+	}
+	public void setId(String id) {
+		this.id = id;
+	}
 	public String get_codigo() {
 		return _codigo;
 	}
