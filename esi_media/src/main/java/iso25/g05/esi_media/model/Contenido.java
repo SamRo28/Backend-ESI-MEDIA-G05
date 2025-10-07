@@ -1,5 +1,4 @@
 package iso25.g05.esi_media.model;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -16,13 +15,12 @@ public class Contenido {
 	protected int _edad_visualizacion;
 	protected Object _caratula;
 	protected int _n_visualizaciones;
-	public List<Lista> _unnamed_Lista_ = new ArrayList<>();
-	public List<Visualizador> _unnamed_Visualizador_ = new ArrayList<>();
+
+
 	
 	public Contenido(String _titulo, String _descripcion, List<String> _tags, double _duracion, boolean _vip,
 			boolean _estado, Date _fecha_estado_automatico, Date _fecha_disponible_hasta, int _edad_visualizacion,
-			Object _caratula, int _n_visualizaciones, List<Lista> _unnamed_Lista_,
-			List<Visualizador> _unnamed_Visualizador_) {
+			Object _caratula, int _n_visualizaciones) {
 		this._titulo = _titulo;
 		this._descripcion = _descripcion;
 		this._tags = _tags;
@@ -34,8 +32,6 @@ public class Contenido {
 		this._edad_visualizacion = _edad_visualizacion;
 		this._caratula = _caratula;
 		this._n_visualizaciones = _n_visualizaciones;
-		this._unnamed_Lista_ = _unnamed_Lista_;
-		this._unnamed_Visualizador_ = _unnamed_Visualizador_;
 	}
 
 	public String get_titulo() {
@@ -126,21 +122,7 @@ public class Contenido {
 		this._n_visualizaciones = _n_visualizaciones;
 	}
 
-	public List<Lista> get_unnamed_Lista_() {
-		return _unnamed_Lista_;
-	}
 
-	public void set_unnamed_Lista_(List<Lista> _unnamed_Lista_) {
-		this._unnamed_Lista_ = _unnamed_Lista_;
-	}
-
-	public List<Visualizador> get_unnamed_Visualizador_() {
-		return _unnamed_Visualizador_;
-	}
-
-	public void set_unnamed_Visualizador_(List<Visualizador> _unnamed_Visualizador_) {
-		this._unnamed_Visualizador_ = _unnamed_Visualizador_;
-	}
 
 	
 
