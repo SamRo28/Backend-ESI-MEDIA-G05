@@ -18,6 +18,10 @@ public class Usuario {
     public List<Codigo_recuperacion> _codigos_recuperacion_ = new ArrayList<>();
     public List<Token> sesions_token_ = new ArrayList<>();
     public Contrasenia _contrasenia;
+    private String secretkey;
+    private boolean _2FactorAutenticationEnabled;
+    private boolean _3FactorAutenticationEnabled;
+
 
     public Usuario(String _apellidos, boolean _bloqueado, Contrasenia _contrasenia, String _email, Object _foto, String _nombre) {
         this._apellidos = _apellidos;
