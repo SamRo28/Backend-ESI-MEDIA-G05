@@ -2,6 +2,7 @@ package iso25.g05.esi_media.model;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Date;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.annotation.Id;
 
@@ -18,18 +19,25 @@ public class Usuario {
     public List<Codigo_recuperacion> _codigos_recuperacion_ = new ArrayList<>();
     public List<Token> sesions_token_ = new ArrayList<>();
     public Contrasenia _contrasenia;
+    protected Date _fecha_registro;
     private String secretkey;
     private boolean _2FactorAutenticationEnabled;
     private boolean _3FactorAutenticationEnabled;
 
 
-    public Usuario(String _apellidos, boolean _bloqueado, Contrasenia _contrasenia, String _email, Object _foto, String _nombre) {
+    public Usuario(String _apellidos, boolean _bloqueado, Contrasenia _contrasenia, String _email, Object _foto, String _nombre, Date _fecha_registro) {
         this._apellidos = _apellidos;
         this._bloqueado = _bloqueado;
         this._contrasenia = _contrasenia;
         this._email = _email;
         this._foto = _foto;
         this._nombre = _nombre;
+        this._fecha_registro = _fecha_registro;
+    }
+
+    // Constructor sin fecha de registro (se asigna automáticamente)
+    public Usuario(String _apellidos, boolean _bloqueado, Contrasenia _contrasenia, String _email, Object _foto, String _nombre) {
+        this(_apellidos, _bloqueado, _contrasenia, _email, _foto, _nombre, new Date());
     }
 
 
@@ -64,5 +72,13 @@ public class Usuario {
 
     public void setBloqueado(boolean b) {
         _bloqueado = b;
+    }
+
+    public Date getFechaRegistro() {
+        return _fecha_registro;
+    }
+
+    public void setFechaRegistro(Date fecha) {
+        this._fecha_registro = fecha;
     }
 }
