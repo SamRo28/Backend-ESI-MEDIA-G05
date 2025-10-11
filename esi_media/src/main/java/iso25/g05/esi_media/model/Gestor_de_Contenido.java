@@ -2,7 +2,9 @@ package iso25.g05.esi_media.model;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.springframework.data.mongodb.core.mapping.Document;
 
+@Document(collection = "users")
 public class Gestor_de_Contenido extends Usuario {
 
 	private String _alias;
@@ -10,6 +12,12 @@ public class Gestor_de_Contenido extends Usuario {
 	private String _campo_especializacion;
 	private String _tipo_contenido_video_o_audio;
 	public List<Lista> listas_generadas ;
+
+	// Constructor vacío requerido por MongoDB
+	public Gestor_de_Contenido() {
+		super();
+		this.listas_generadas = new ArrayList<>();
+	}
 
 	public Gestor_de_Contenido(String _apellidos, boolean _bloqueado, Contrasenia _contrasenia, String _email,
 			Object _foto, String _nombre) {

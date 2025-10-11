@@ -3,8 +3,9 @@ package iso25.g05.esi_media.model;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import org.springframework.data.mongodb.core.mapping.Document;
 
-
+@Document(collection = "users")
 public class Visualizador extends Usuario {
 
     private String _alias;
@@ -12,6 +13,13 @@ public class Visualizador extends Usuario {
     private boolean _vip;
     public List<Lista> listas_privadas = new ArrayList<>();
     public List<Contenido> contenido_fav = new ArrayList<>();
+
+    // Constructor vacío requerido por MongoDB
+    public Visualizador() {
+        super();
+        this.listas_privadas = new ArrayList<>();
+        this.contenido_fav = new ArrayList<>();
+    }
 
     public Visualizador(String _apellidos, boolean _bloqueado, Contrasenia _contrasenia, String _email, Object _foto,
             String _nombre, String alias, Date fechaNac, boolean vip) {

@@ -11,12 +11,24 @@ public class Contrasenia {
     private List<String> _contrasenia_usadas;
     public Usuario _unnamed_Usuario_;
 
+    // Constructor vacío requerido por MongoDB
+    public Contrasenia() {
+    }
+
     public Contrasenia(String id, Date _fecha_expiracion, String _contrasenia_actual, List<String> _contrasenia_usadas, Usuario _unnamed_Usuario_) {
         this.id = id;
         this._fecha_expiracion = _fecha_expiracion;
         this._contrasenia_actual = _contrasenia_actual;
         this._contrasenia_usadas = _contrasenia_usadas;
         this._unnamed_Usuario_ = _unnamed_Usuario_;
+    }
+    
+    // Constructor simple para crear contraseñas
+    public Contrasenia(String contrasenia) {
+        this._contrasenia_actual = contrasenia;
+        this._fecha_expiracion = null;
+        this._contrasenia_usadas = null;
+        this._unnamed_Usuario_ = null;
     }
 
     public String getId() {

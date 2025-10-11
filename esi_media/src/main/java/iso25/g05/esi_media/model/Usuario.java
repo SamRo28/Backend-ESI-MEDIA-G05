@@ -22,8 +22,14 @@ public class Usuario {
     private boolean _2FactorAutenticationEnabled;
     private boolean _3FactorAutenticationEnabled;
 
+    // Constructor vacío requerido por MongoDB
+    public Usuario() {
+        this._codigos_recuperacion_ = new ArrayList<>();
+        this.sesions_token_ = new ArrayList<>();
+    }
 
     public Usuario(String _apellidos, boolean _bloqueado, Contrasenia _contrasenia, String _email, Object _foto, String _nombre) {
+        this();
         this._apellidos = _apellidos;
         this._bloqueado = _bloqueado;
         this._contrasenia = _contrasenia;
@@ -33,6 +39,14 @@ public class Usuario {
     }
 
 
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
 
     public String getNombre() {
         return _nombre;
