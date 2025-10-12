@@ -1,6 +1,7 @@
 package iso25.g05.esi_media.controller;
 
 import iso25.g05.esi_media.dto.CrearAdministradorRequest;
+import iso25.g05.esi_media.dto.CrearGestorRequest;
 import iso25.g05.esi_media.model.Administrador;
 import iso25.g05.esi_media.repository.AdministradorRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -136,6 +137,78 @@ public class AdministradorController {
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("mensaje", "Error al crear usuario: " + e.getMessage());
             errorResponse.put("solucion", "Contacte al administrador para resolver problemas de índice en MongoDB");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+    
+    /**
+     * Endpoint simplificado para crear Gestores de Contenido
+     * Utiliza inserción directa a MongoDB en la colección 'users'
+     */
+    @PostMapping("/crear-gestor")
+    public ResponseEntity<Map<String, Object>> crearGestorSimple(@RequestBody CrearGestorRequest request) {
+        System.out.println("=== CREACIÓN GESTOR DE CONTENIDO ===");
+        System.out.println("Datos recibidos: " + request);
+        
+        try {
+            System.out.println("Procesando Gestor: " + request.getNombre() + " " + request.getApellidos() + " - " + request.getEmail());
+            System.out.println("Alias: " + request.getAlias() + " | Especialidad: " + request.getEspecialidad());
+            
+            MongoCollection<Document> usersCollection = mongoTemplate.getCollection("users");
+            
+            // Crear documento para Gestor de Contenido
+            Document gestorDoc = new Document()
+                .append("_id", new ObjectId()) // ID explícito
+                .append("_nombre", request.getNombre())
+                .append("_apellidos", request.getApellidos())
+                .append("_email", request.getEmail())
+                .append("_bloqueado", false)
+                .append("sesions_token_", new ArrayList<>()) // Array vacío
+                .append("_contrasenia", new Document("_contrasenia_actual", request.getContrasenia()))
+                .append("_2FactorAutenticationEnabled", false)
+                .append("_3FactorAutenticationEnabled", false)
+                .append("_class", "iso25.g05.esi_media.model.Gestor_de_Contenido")
+                // Campos específicos del Gestor
+                .append("_alias", request.getAlias())
+                .append("_descripcion", request.getDescripcion())
+                .append("_campo_especializacion", request.getEspecialidad())
+                .append("_tipo_contenido_video_o_audio", request.getTipoContenido())
+                .append("listas_generadas", new ArrayList<>()); // Array vacío de listas
+            
+            // Crear la estructura que el índice _codigos_recuperacion_._unnamed_Usuario_._email espera
+            Document unnamedUsuario = new Document("_email", request.getEmail());
+            Document codigoRecuperacion = new Document("_unnamed_Usuario_", unnamedUsuario);
+            
+            // Agregar el array con la estructura que el índice espera
+            java.util.List<Document> codigosRecuperacion = new ArrayList<>();
+            codigosRecuperacion.add(codigoRecuperacion);
+            gestorDoc.append("_codigos_recuperacion_", codigosRecuperacion);
+            
+            System.out.println("Insertando Gestor directamente en colección users...");
+            
+            // Inserción en colección users
+            usersCollection.insertOne(gestorDoc);
+            System.out.println("✅ Gestor insertado exitosamente en colección USERS");
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("mensaje", "Gestor de Contenido creado exitosamente");
+            response.put("email", request.getEmail());
+            response.put("nombre", request.getNombre());
+            response.put("alias", request.getAlias());
+            response.put("especialidad", request.getEspecialidad());
+            response.put("tipoContenido", request.getTipoContenido());
+            response.put("coleccion", "users");
+            response.put("tipo", "Gestor_de_Contenido");
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            System.out.println("ERROR en creación de Gestor: " + e.getMessage());
+            e.printStackTrace();
+            
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("mensaje", "Error al crear Gestor: " + e.getMessage());
+            errorResponse.put("tipo", "Gestor_de_Contenido");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
