@@ -14,7 +14,7 @@ public class Contenido {
 	protected List<String> _tags;
 	protected double _duracion;
 	protected boolean _vip;
-	protected boolean _estado;
+	protected boolean _estado;	// ACLARACION: TRUE: Visible, FALSE: No visible
 	protected Date _fecha_estado_automatico;
 	protected Date _fecha_disponible_hasta;
 	protected int _edad_visualizacion;

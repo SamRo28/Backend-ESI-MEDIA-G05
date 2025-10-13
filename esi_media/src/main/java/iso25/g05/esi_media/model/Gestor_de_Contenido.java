@@ -10,6 +10,7 @@ public class Gestor_de_Contenido extends Usuario {
 	private String _campo_especializacion;
 	private String _tipo_contenido_video_o_audio;
 	public List<Lista> listas_generadas ;
+	private List<String> contenidosSubidos = new ArrayList<>();	// Lista de IDs de contenidos subidos por el gestor
 
 	public Gestor_de_Contenido(String _apellidos, boolean _bloqueado, Contrasenia _contrasenia, String _email,
 			Object _foto, String _nombre) {
@@ -80,6 +81,16 @@ public class Gestor_de_Contenido extends Usuario {
 	}
 
 
+
+	public List<String> getContenidosSubidos() {
+		return contenidosSubidos;
+	}
+
+	public void setContenidosSubidos(List<String> contenidosSubidos) {
+		this.contenidosSubidos = contenidosSubidos;
+	}
+
+	//TODO: Habria que meter un add y un remove para las listas generadas y los contenidos subidos
 
 	public void subir(Contenido aC) {
 		throw new UnsupportedOperationException();
