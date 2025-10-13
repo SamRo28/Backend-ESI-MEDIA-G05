@@ -1,10 +1,11 @@
 package iso25.g05.esi_media.model;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Date;
-import org.springframework.data.mongodb.core.mapping.Document;
+import java.util.List;
+
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 @Document(collection = "users")
 public class Usuario {
@@ -40,7 +41,12 @@ public class Usuario {
         this(_apellidos, _bloqueado, _contrasenia, _email, _foto, _nombre, new Date());
     }
 
-
+    public Contrasenia getContrasenia() {
+        return _contrasenia;
+    }
+    public void setContrasenia(Contrasenia c) {
+        _contrasenia = c;
+    }
 
     public String getNombre() {
         return _nombre;
@@ -80,5 +86,21 @@ public class Usuario {
 
     public void setFechaRegistro(Date fecha) {
         this._fecha_registro = fecha;
+    }
+
+    public boolean is2FactorAutenticationEnabled() {
+        return _2FactorAutenticationEnabled;
+    }
+
+    public void set2FactorAutenticationEnabled(boolean _2FactorAutenticationEnabled) {
+        this._2FactorAutenticationEnabled = _2FactorAutenticationEnabled;
+    }
+
+    public boolean is3FactorAutenticationEnabled() {
+        return _3FactorAutenticationEnabled;
+    }
+
+    public void set3FactorAutenticationEnabled(boolean _3FactorAutenticationEnabled) {
+        this._3FactorAutenticationEnabled = _3FactorAutenticationEnabled;
     }
 }

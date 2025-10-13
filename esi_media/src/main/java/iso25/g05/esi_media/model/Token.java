@@ -9,13 +9,12 @@ public class Token {
     private boolean _expirado;
     public Usuario _usuario;
 
-    public Token(boolean _expirado, Date _fecha_expiracion, String _token, Usuario _usuario) {
-        this._expirado = _expirado;
-        this._fecha_expiracion = _fecha_expiracion;
-        this._token = _token;
-        this._usuario = _usuario;
-    }
 
+    public Token() {
+        this._token = java.util.UUID.randomUUID().toString();
+        this._fecha_expiracion = new Date(System.currentTimeMillis() + 3600 * 1000);
+        this._expirado = false;
+    }
 	
 
     public String getToken() {

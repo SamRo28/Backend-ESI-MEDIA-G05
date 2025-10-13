@@ -9,14 +9,13 @@ public class Contrasenia {
     private Date _fecha_expiracion;
     private String _contrasenia_actual;
     private List<String> _contrasenia_usadas;
-    public Usuario _unnamed_Usuario_;
 
-    public Contrasenia(String id, Date _fecha_expiracion, String _contrasenia_actual, List<String> _contrasenia_usadas, Usuario _unnamed_Usuario_) {
+    public Contrasenia(String id, Date _fecha_expiracion, String _contrasenia_actual, List<String> _contrasenia_usadas) {
         this.id = id;
         this._fecha_expiracion = _fecha_expiracion;
         this._contrasenia_actual = _contrasenia_actual;
         this._contrasenia_usadas = _contrasenia_usadas;
-        this._unnamed_Usuario_ = _unnamed_Usuario_;
+
     }
 
     public String getId() {
