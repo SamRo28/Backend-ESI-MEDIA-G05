@@ -28,18 +28,19 @@ public class VideoController {
      * POST /api/contenido/video/subir
      * 
      * @param videoDTO Datos del video (JSON)
-     * @param gestorId ID del gestor que sube el contenido
+     * @param authHeader Token de autorización del gestor
      * @return Respuesta con el video creado o error
      */
     @PostMapping("/subir")
     public ResponseEntity<Map<String, Object>> subirVideo(
             @Valid @RequestBody VideoUploadDTO videoDTO,
-            @RequestParam String gestorId) {
+            @RequestHeader("Authorization") String authHeader) {
         
         Map<String, Object> response = new HashMap<>();
         
         try {
-            Video videoGuardado = videoService.subirVideo(videoDTO, gestorId);
+            // El service se encarga de validar el token y extraer el gestorId
+            Video videoGuardado = videoService.subirVideoConToken(videoDTO, authHeader);
             
             response.put("success", true);
             response.put("message", "Video subido exitosamente");
@@ -53,38 +54,6 @@ public class VideoController {
             response.put("success", false);
             response.put("message", "Error de validación: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-            
-        } catch (Exception e) {
-            response.put("success", false);
-            response.put("message", "Error interno del servidor");
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-        }
-    }
-    
-    /**
-     * Endpoint para obtener todos los videos de un gestor
-     * GET /api/contenido/video/gestor/{gestorId}
-     * 
-     * @param gestorId ID del gestor
-     * @return Lista de videos del gestor
-     */
-    @GetMapping("/gestor/{gestorId}")
-    public ResponseEntity<Map<String, Object>> obtenerVideosPorGestor(@PathVariable String gestorId) {
-        
-        Map<String, Object> response = new HashMap<>();
-        
-        try {
-            Iterable<Video> videos = videoService.obtenerVideosPorGestor(gestorId);
-            
-            response.put("success", true);
-            response.put("videos", videos);
-            
-            return ResponseEntity.ok(response);
-            
-        } catch (IllegalArgumentException e) {
-            response.put("success", false);
-            response.put("message", e.getMessage());
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
             
         } catch (Exception e) {
             response.put("success", false);

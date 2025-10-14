@@ -29,18 +29,19 @@ public class AudioController {
      * POST /api/contenido/audio/subir
      * 
      * @param audioDTO Datos del audio (form-data con archivo)
-     * @param gestorId ID del gestor que sube el contenido
+     * @param authHeader Token de autorización del gestor
      * @return Respuesta con el audio creado o error
      */
     @PostMapping("/subir")
     public ResponseEntity<Map<String, Object>> subirAudio(
             @Valid @ModelAttribute AudioUploadDTO audioDTO,
-            @RequestParam String gestorId) {
+            @RequestHeader("Authorization") String authHeader) {
         
         Map<String, Object> response = new HashMap<>();
         
         try {
-            Audio audioGuardado = audioService.subirAudio(audioDTO, gestorId);
+            // El service se encarga de validar el token y extraer el gestorId
+            Audio audioGuardado = audioService.subirAudioConToken(audioDTO, authHeader);
             
             response.put("success", true);
             response.put("message", "Audio subido exitosamente");
@@ -58,41 +59,6 @@ public class AudioController {
             response.put("success", false);
             response.put("message", "Error procesando el archivo: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-            
-        } catch (Exception e) {
-            response.put("success", false);
-            response.put("message", "Error interno del servidor");
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-        }
-    }
-    
-    /**
-     * Endpoint para obtener todos los audios de un gestor
-     * GET /api/audio/mis-contenidos
-     * Header: Authorization: Bearer token123
-     * 
-     * @return Lista de audios del gestor
-     */
-    @GetMapping("/mis-contenidos")
-    public ResponseEntity<Map<String, Object>> obtenerMisContenidos(@RequestHeader("Authorization") String authHeader) {
-        
-        Map<String, Object> response = new HashMap<>();
-        
-        try {
-            // Extraer el token del header
-            String token = authHeader.replace("Bearer ", "");
-            
-            Iterable<Audio> audios = audioService.obtenerAudiosPorToken(token);
-            
-            response.put("success", true);
-            response.put("audios", audios);
-            
-            return ResponseEntity.ok(response);
-            
-        } catch (IllegalArgumentException e) {
-            response.put("success", false);
-            response.put("message", e.getMessage());
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
             
         } catch (Exception e) {
             response.put("success", false);

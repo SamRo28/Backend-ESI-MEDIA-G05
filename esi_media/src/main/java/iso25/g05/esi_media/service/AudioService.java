@@ -3,14 +3,18 @@ package iso25.g05.esi_media.service;
 import iso25.g05.esi_media.dto.AudioUploadDTO;
 import iso25.g05.esi_media.model.Audio;
 import iso25.g05.esi_media.model.Gestor_de_Contenido;
+import iso25.g05.esi_media.model.Token;
+import iso25.g05.esi_media.model.Usuario;
 import iso25.g05.esi_media.repository.AudioRepository;
 import iso25.g05.esi_media.repository.GestorDeContenidoRepository;
+import iso25.g05.esi_media.repository.TokenRepository;
 import org.bson.types.Binary;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import java.util.Optional;
 import java.io.IOException;
+import java.util.Date;
 
 /**
  * Servicio para gestión de contenido de audio
@@ -27,6 +31,25 @@ public class AudioService {
     
     @Autowired
     private GestorDeContenidoRepository gestorRepository;
+    
+    @Autowired
+    private TokenRepository tokenRepository;
+    
+    /**
+     * Sube un nuevo archivo de audio validando el token de autorización
+     * @param audioDTO Datos del audio a subir
+     * @param authHeader Header de autorización con el token
+     * @return Audio guardado
+     * @throws IllegalArgumentException Si las validaciones fallan
+     * @throws IOException Si hay error procesando el archivo
+     */
+    public Audio subirAudioConToken(AudioUploadDTO audioDTO, String authHeader) throws IOException {
+        // 1. Validar token y extraer gestorId
+        String gestorId = validarTokenYObtenerGestorId(authHeader);
+        
+        // 2. Usar el método existente para subir el audio
+        return subirAudio(audioDTO, gestorId);
+    }
     
     /**
      * Sube un nuevo archivo de audio
@@ -147,5 +170,50 @@ public class AudioService {
         }
         
         return audioRepository.findAllById(gestorOpt.get().getContenidosSubidos());
+    }
+    
+    /**
+     * Valida el token de autorización y extrae el gestorId
+     * @param authHeader Header de autorización "Bearer token"
+     * @return ID del gestor autenticado
+     * @throws IllegalArgumentException Si el token es inválido
+     */
+    private String validarTokenYObtenerGestorId(String authHeader) {
+        // 1. Extraer token del header
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new IllegalArgumentException("Header de autorización inválido");
+        }
+        
+        String tokenValue = authHeader.replace("Bearer ", "").trim();
+        if (tokenValue.isEmpty()) {
+            throw new IllegalArgumentException("Token vacío");
+        }
+        
+        // 2. Buscar token en la base de datos
+        Optional<Token> tokenOpt = tokenRepository.findByToken(tokenValue);
+        if (tokenOpt.isEmpty()) {
+            throw new IllegalArgumentException("Token no válido");
+        }
+        
+        Token token = tokenOpt.get();
+        
+        // 3. Verificar que el token no ha expirado
+        if (token.getFechaExpiracion().before(new Date())) {
+            throw new IllegalArgumentException("Token expirado");
+        }
+        
+        // 4. Obtener el usuario asociado al token
+        Usuario usuario = token._usuario;
+        if (usuario == null) {
+            throw new IllegalArgumentException("Token sin usuario asociado");
+        }
+        
+        // 5. Verificar que el usuario es un gestor de contenido
+        Optional<Gestor_de_Contenido> gestorOpt = gestorRepository.findById(usuario.getId());
+        if (gestorOpt.isEmpty()) {
+            throw new IllegalArgumentException("El usuario no es un gestor de contenido");
+        }
+        
+        return usuario.getId();
     }
 }
