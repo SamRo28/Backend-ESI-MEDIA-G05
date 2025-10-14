@@ -7,20 +7,20 @@ import java.util.List;
 
 public class Visualizador extends Usuario {
 
-    private String _alias;
-    private Date _fecha_nac;
-    private boolean _vip;
-    public List<Lista> listas_privadas = new ArrayList<>();
-    public List<Contenido> contenido_fav = new ArrayList<>();
+    private String alias;
+    private Date fechanac;
+    private boolean vip;
+    public List<Lista> listasprivadas = new ArrayList<>();
+    public List<Contenido> contenidofav = new ArrayList<>();
 
-    public Visualizador(String _apellidos, boolean _bloqueado, Contrasenia _contrasenia, String _email, Object _foto,
-            String _nombre, String alias, Date fechaNac, boolean vip) {
-        super(_apellidos, _bloqueado, _contrasenia, _email, _foto, _nombre);
-        this._alias = alias;
-        this._fecha_nac = fechaNac;
-        this._vip = vip;
-        this.listas_privadas = new ArrayList<>();
-        this.contenido_fav = new ArrayList<>();
+    public Visualizador(String apellidos, boolean bloqueado, Contrasenia contrasenia, String email, Object foto,
+            String nombre, String alias, Date fechaNac, boolean vip) {
+        super(apellidos, bloqueado, contrasenia, email, foto, nombre);
+        this.alias = alias;
+        this.fechanac = fechaNac;
+        this.vip = vip;
+        this.listasprivadas = new ArrayList<>();
+        this.contenidofav = new ArrayList<>();
     }
 
     public void Visualizar(Contenido aC) {
@@ -28,26 +28,26 @@ public class Visualizador extends Usuario {
     }
 
     public String getAlias() {
-        return _alias;
+        return alias;
     }
 
     public void setAlias(String a) {
-        _alias = a;
+        alias = a;
     }
 
     public Date getFechaNac() {
-        return _fecha_nac;
+        return fechanac;
     }
 
     public void setFechaNac(Date d) {
-        _fecha_nac = d;
+        fechanac = d;
     }
 
     public boolean isVip() {
-        return _vip;
+        return vip;
     }
 
     public void setVip(boolean v) {
-        _vip = v;
+        vip = v;
     }
 }

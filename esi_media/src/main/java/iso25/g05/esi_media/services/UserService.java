@@ -25,7 +25,7 @@ public class UserService {
         Optional<Usuario> existingUser = this.usuarioRepository.findByEmail(email);
 
         if (existingUser.isPresent() && existingUser.get().getContrasenia().getContraseniaActual().equals(password) ) {
-        	if (!existingUser.get().is2FactorAutenticationEnabled()) {
+        	if (!existingUser.get().isTwoFactorAutenticationEnabled()) {
                 generateAndSaveToken(existingUser.get());
         	    return existingUser.get();
             }
@@ -39,8 +39,12 @@ public class UserService {
 
     private void generateAndSaveToken(Usuario user) {
         Token token = new Token();
-        user.sesions_token_.add(token);
+        user.sesionstoken.add(token);
         this.usuarioRepository.save(user);
+    }
+
+    public Usuario login3Auth(Map<String, String> loginData) {
+        throw new UnsupportedOperationException("Not supported yet.");
     }
     
 }

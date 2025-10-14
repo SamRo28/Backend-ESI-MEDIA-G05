@@ -4,40 +4,40 @@ import java.util.Date;
 
 public class Token {
 
-    private String _token;
-    private Date _fecha_expiracion;
-    private boolean _expirado;
-    public Usuario _usuario;
+    private String token;
+    private Date fechaexpiracion;
+    private boolean expirado;
+    public Usuario usuario;
 
 
     public Token() {
-        this._token = java.util.UUID.randomUUID().toString();
-        this._fecha_expiracion = new Date(System.currentTimeMillis() + 3600 * 1000);
-        this._expirado = false;
+        this.token = java.util.UUID.randomUUID().toString();
+        this.fechaexpiracion = new Date(System.currentTimeMillis() + 3600 * 1000);
+        this.expirado = false;
     }
 	
 
     public String getToken() {
-        return _token;
+        return token;
     }
 
     public void setToken(String t) {
-        _token = t;
+        token = t;
     }
 
     public Date getFechaExpiracion() {
-        return _fecha_expiracion;
+        return fechaexpiracion;
     }
 
     public void setFechaExpiracion(Date d) {
-        _fecha_expiracion = d;
+        fechaexpiracion = d;
     }
 
     public boolean isExpirado() {
-        return _expirado;
+        return expirado;
     }
 
     public void setExpirado(boolean e) {
-        _expirado = e;
+        expirado = e;
     }
 }
