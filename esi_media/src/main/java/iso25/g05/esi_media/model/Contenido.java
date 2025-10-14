@@ -11,7 +11,7 @@ public class Contenido {
 	protected String id;
 	protected String _titulo;
 	protected String _descripcion;
-	protected List<String> _tags;
+	protected List<String> _tags;	// Separados por comas
 	protected double _duracion;
 	protected boolean _vip;
 	protected boolean _estado;	// ACLARACION: TRUE: Visible, FALSE: No visible

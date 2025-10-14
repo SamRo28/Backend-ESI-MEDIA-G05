@@ -1,0 +1,135 @@
+package iso25.g05.esi_media.service;
+
+import iso25.g05.esi_media.dto.VideoUploadDTO;
+import iso25.g05.esi_media.model.Video;
+import iso25.g05.esi_media.model.Gestor_de_Contenido;
+import iso25.g05.esi_media.repository.VideoRepository;
+import iso25.g05.esi_media.repository.GestorDeContenidoRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import java.util.Optional;
+import java.net.URL;
+import java.net.MalformedURLException;
+
+/**
+ * Servicio para gestión de contenido de video
+ * Incluye validaciones de URL y lógica de negocio
+ */
+@Service
+public class VideoService {
+    
+    @Autowired
+    private VideoRepository videoRepository;
+    
+    @Autowired
+    private GestorDeContenidoRepository gestorRepository;
+    
+    /**
+     * Sube un nuevo video por URL
+     * @param videoDTO Datos del video a subir
+     * @param gestorId ID del gestor que sube el contenido
+     * @return Video guardado
+     * @throws IllegalArgumentException Si las validaciones fallan
+     */
+    public Video subirVideo(VideoUploadDTO videoDTO, String gestorId) {
+        // 1. Validar que el gestor existe y puede subir video
+        Gestor_de_Contenido gestor = validarGestorVideo(gestorId);
+        
+        // 2. Validar URL
+        validarUrl(videoDTO.getUrl());
+        
+        // 3. Crear entidad Video
+        Video video = crearVideoDesdeDTO(videoDTO);
+        
+        // 4. Guardar en base de datos
+        Video videoGuardado = videoRepository.save(video);
+        
+        // 5. Actualizar lista de contenidos del gestor
+        gestor.getContenidosSubidos().add(videoGuardado.getId());
+        gestorRepository.save(gestor);
+        
+        return videoGuardado;
+    }
+    
+    /**
+     * Valida que el gestor existe y está autorizado para subir video
+     */
+    private Gestor_de_Contenido validarGestorVideo(String gestorId) {
+        Optional<Gestor_de_Contenido> gestorOpt = gestorRepository.findById(gestorId);
+        
+        if (gestorOpt.isEmpty()) {
+            throw new IllegalArgumentException("Gestor no encontrado con ID: " + gestorId);
+        }
+        
+        Gestor_de_Contenido gestor = gestorOpt.get();
+        
+        // Verificar que el gestor puede subir video
+        if (!"video".equalsIgnoreCase(gestor.get_tipo_contenido_video_o_audio())) {
+            throw new IllegalArgumentException("El gestor no está autorizado para subir contenido de video");
+        }
+        
+        return gestor;
+    }
+    
+    /**
+     * Valida que la URL es accesible y tiene formato correcto
+     */
+    private void validarUrl(String urlString) {
+        if (urlString == null || urlString.trim().isEmpty()) {
+            throw new IllegalArgumentException("La URL del video es obligatoria");
+        }
+        
+        try {
+            URL url = new URL(urlString);
+            
+            // Verificar que el protocolo es HTTP o HTTPS
+            String protocol = url.getProtocol();
+            if (!"http".equals(protocol) && !"https".equals(protocol)) {
+                throw new IllegalArgumentException("La URL debe usar protocolo HTTP o HTTPS");  // En el futuro podría soportar solo HTTPS
+            }
+            
+            // Verificar que tiene host válido
+            if (url.getHost() == null || url.getHost().trim().isEmpty()) {
+                throw new IllegalArgumentException("La URL debe tener un host válido");
+            }
+            
+        } catch (MalformedURLException e) {
+            throw new IllegalArgumentException("La URL no tiene un formato válido: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Crea la entidad Video desde el DTO
+     */
+    private Video crearVideoDesdeDTO(VideoUploadDTO dto) {
+        return new Video(
+            null, // ID será generado por MongoDB
+            dto.getTitulo(),
+            dto.getDescripcion(),
+            dto.getTags(),
+            dto.getDuracion(),
+            dto.getVip(),
+            dto.getVisible(), // El usuario decide la visibilidad
+            null, // Fecha estado automático
+            dto.getFechaDisponibleHasta(),
+            dto.getEdadVisualizacion(),
+            dto.getCaratula(),
+            0, // Número de visualizaciones inicial
+            dto.getUrl(),
+            dto.getResolucion()
+        );
+    }
+    
+    /**
+     * Obtiene todos los videos subidos por un gestor específico
+     */
+    public Iterable<Video> obtenerVideosPorGestor(String gestorId) {
+        Optional<Gestor_de_Contenido> gestorOpt = gestorRepository.findById(gestorId);
+        
+        if (gestorOpt.isEmpty()) {
+            throw new IllegalArgumentException("Gestor no encontrado con ID: " + gestorId);
+        }
+        
+        return videoRepository.findAllById(gestorOpt.get().getContenidosSubidos());
+    }
+}
