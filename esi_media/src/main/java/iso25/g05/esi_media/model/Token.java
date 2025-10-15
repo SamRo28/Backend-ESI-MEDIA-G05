@@ -1,44 +1,68 @@
 package iso25.g05.esi_media.model;
 
 import java.util.Date;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 
+@Document(collection = "tokens")
 public class Token {
 
-    private String _token;
-    private Date _fecha_expiracion;
-    private boolean _expirado;
-    public Usuario _usuario;
+    @Id
+    private String id;
+    private String token;
+    private Date fechaexpiracion;
+    private boolean expirado;
+    
+    // DECISIÓN DEL EQUIPO: Sin referencia al usuario (consistente con Contrasenia)
+    // - Token NO conoce a su usuario
+    // - Usuario SÍ conoce sus tokens
+    // - Eliminación: primero tokens, luego usuario
 
-    public Token(boolean _expirado, Date _fecha_expiracion, String _token, Usuario _usuario) {
-        this._expirado = _expirado;
-        this._fecha_expiracion = _fecha_expiracion;
-        this._token = _token;
-        this._usuario = _usuario;
+    // Constructor vacío para MongoDB
+    public Token() {
+    }
+
+    // Constructor sin referencia a usuario - Consistente con decisión del equipo
+    public Token(boolean _expirado, Date _fecha_expiracion, String _token) {
+        this.expirado = _expirado;
+        this.fechaexpiracion = _fecha_expiracion;
+        this.token = _token;
     }
 
 	
 
     public String getToken() {
-        return _token;
+        return token;
     }
 
     public void setToken(String t) {
-        _token = t;
+        token = t;
     }
 
     public Date getFechaExpiracion() {
-        return _fecha_expiracion;
+        return fechaexpiracion;
     }
 
     public void setFechaExpiracion(Date d) {
-        _fecha_expiracion = d;
+        fechaexpiracion = d;
     }
 
     public boolean isExpirado() {
-        return _expirado;
+        return expirado;
     }
 
     public void setExpirado(boolean e) {
-        _expirado = e;
+        expirado = e;
     }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    // NOTA: Sin getters/setters de usuarioId - Decisión del equipo
+    // Token es independiente y no necesita conocer a su usuario
 }
