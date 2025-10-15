@@ -22,6 +22,7 @@ import java.util.List;
 public class Visualizador extends Usuario {
 
     private String alias;
+<<<<<<< HEAD
     private Date fecha_nac;
     private boolean vip;
     public List<Lista> listas_privadas = new ArrayList<>();
@@ -48,6 +49,28 @@ public class Visualizador extends Usuario {
         this.vip = vip;
         this.listas_privadas = new ArrayList<>();
         this.contenido_fav = new ArrayList<>();
+=======
+    private Date fechanac;
+    private boolean vip;
+    public List<Lista> listasprivadas = new ArrayList<>();
+    public List<Contenido> contenidofav = new ArrayList<>();
+
+    // Constructor vacío requerido por MongoDB
+    public Visualizador() {
+        super();
+        this.listasprivadas = new ArrayList<>();
+        this.contenidofav = new ArrayList<>();
+    }
+
+    public Visualizador(String apellidos, boolean bloqueado, Contrasenia contrasenia, String email, Object foto,
+            String nombre, String alias, Date fechaNac, boolean vip) {
+        super(apellidos, bloqueado, contrasenia, email, foto, nombre);
+        this.alias = alias;
+        this.fechanac = fechaNac;
+        this.vip = vip;
+        this.listasprivadas = new ArrayList<>();
+        this.contenidofav = new ArrayList<>();
+>>>>>>> alvaro
     }
 
     public void Visualizar(Contenido aC) {
@@ -63,11 +86,19 @@ public class Visualizador extends Usuario {
     }
 
     public Date getFechaNac() {
+<<<<<<< HEAD
         return fecha_nac;
     }
 
     public void setFechaNac(Date d) {
         fecha_nac = d;
+=======
+        return fechanac;
+    }
+
+    public void setFechaNac(Date d) {
+        fechanac = d;
+>>>>>>> alvaro
     }
 
     public boolean isVip() {
@@ -76,6 +107,7 @@ public class Visualizador extends Usuario {
 
     public void setVip(boolean v) {
         vip = v;
+<<<<<<< HEAD
     }
     
     // === GETTERS/SETTERS PARA LISTAS ===
@@ -94,5 +126,7 @@ public class Visualizador extends Usuario {
     
     public void setContenidoFav(List<Contenido> contenido) {
         this.contenido_fav = contenido != null ? contenido : new ArrayList<>();
+=======
+>>>>>>> alvaro
     }
 }

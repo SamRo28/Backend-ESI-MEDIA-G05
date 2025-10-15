@@ -3,6 +3,13 @@ package iso25.g05.esi_media.model;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+<<<<<<< HEAD
+=======
+
+import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Transient;
+import org.springframework.data.mongodb.core.mapping.Document;
+>>>>>>> alvaro
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Transient;
@@ -38,6 +45,7 @@ public class Usuario {
 
     protected String nombre;
     protected String apellidos;
+<<<<<<< HEAD
     
     /**
      * Email único para login y identificación
@@ -93,6 +101,34 @@ public class Usuario {
         // Inicializar listas para evitar NullPointerException
         this.codigos_recuperacion = new ArrayList<>();
         this.sesionstoken = new ArrayList<>();
+=======
+    protected String email;
+    protected Object foto;
+    protected boolean bloqueado;
+
+    @Transient
+    public List<Codigorecuperacion> codigosrecuperacion = new ArrayList<>();
+    
+    @Transient
+    public List<Token> sesionstoken = new ArrayList<>();
+
+    @org.springframework.data.mongodb.core.mapping.DBRef
+    public Contrasenia contrasenia;
+
+    protected Date fecharegistro;
+
+    @Transient
+    private String secretkey;
+    
+    private boolean twoFactorAutenticationEnabled;
+    private boolean threeFactorAutenticationEnabled;
+
+    // Constructor vacío requerido por MongoDB
+    public Usuario() {
+        this.codigosrecuperacion = new ArrayList<>();
+        this.sesionstoken = new ArrayList<>();
+        this.fecharegistro = new Date();
+>>>>>>> alvaro
     }
 
     public Usuario(String apellidos, boolean bloqueado, String email, Object foto, String nombre, Date fechaRegistro) {
@@ -113,6 +149,27 @@ public class Usuario {
         this(apellidos, bloqueado, email, foto, nombre, new Date());
     }
 
+    public Usuario(String apellidos, boolean bloqueado, Contrasenia contrasenia, String email, Object foto, String nombre, Date fecharegistro) {
+        this.apellidos = apellidos;
+        this.bloqueado = bloqueado;
+        this.contrasenia = contrasenia;
+        this.email = email;
+        this.foto = foto;
+        this.nombre = nombre;
+        this.fecharegistro = fecharegistro;
+    }
+
+    // Constructor sin fecha de registro (se asigna automáticamente)
+    public Usuario(String apellidos, boolean bloqueado, Contrasenia contrasenia, String email, Object foto, String nombre) {
+        this(apellidos, bloqueado, contrasenia, email, foto, nombre, new Date());
+    }
+
+    public Contrasenia getContrasenia() {
+        return contrasenia;
+    }
+    public void setContrasenia(Contrasenia c) {
+        contrasenia = c;
+    }
 
     public String getNombre() {
         return nombre;
@@ -140,6 +197,7 @@ public class Usuario {
 
     public boolean isBloqueado() {
         return bloqueado;
+<<<<<<< HEAD
     }
     
     public void setBloqueado(boolean b) {
@@ -240,6 +298,21 @@ public class Usuario {
     public void set3FactorAutenticationEnabled(boolean enabled) {
         this.threeFactorAutenticationEnabled = enabled;
     }
+=======
+    }
+
+    public void setBloqueado(boolean b) {
+        bloqueado = b;
+    }
+
+    public Date getFechaRegistro() {
+        return fecharegistro;
+    }
+
+    public void setFechaRegistro(Date fecha) {
+        this.fecharegistro = fecha;
+    }
+>>>>>>> alvaro
 public boolean isTwoFactorAutenticationEnabled() {
         return twoFactorAutenticationEnabled;
     }
@@ -256,4 +329,25 @@ public boolean isTwoFactorAutenticationEnabled() {
         this.threeFactorAutenticationEnabled = threeFactorAutenticationEnabled;
     }
 
+<<<<<<< HEAD
 }
+=======
+    // Getters faltantes para id y foto
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public Object getFoto() {
+        return foto;
+    }
+
+    public void setFoto(Object foto) {
+        this.foto = foto;
+    }
+
+}
+>>>>>>> alvaro

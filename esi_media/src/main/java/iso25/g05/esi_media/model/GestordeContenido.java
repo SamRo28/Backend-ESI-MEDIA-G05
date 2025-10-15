@@ -11,6 +11,16 @@ public class GestordeContenido extends Usuario {
 	private String tipocontenidovideooaudio;
 	public List<Lista> listasgeneradas ;
 
+<<<<<<< HEAD
+=======
+	// Constructor vacío requerido por MongoDB
+	public GestordeContenido() {
+		super("", false, null, "", null, "");
+		this.listasgeneradas = new ArrayList<>();
+		// MongoDB usará este constructor y luego los setters para poblar los campos
+	}
+
+>>>>>>> alvaro
 	public GestordeContenido(String apellidos, boolean bloqueado, Contrasenia contrasenia, String email,
 			Object foto, String nombre) {
 		super(apellidos, bloqueado, contrasenia, email, foto, nombre);

@@ -2,15 +2,22 @@ package iso25.g05.esi_media.model;
 
 import java.util.Date;
 import java.util.List;
+<<<<<<< HEAD
 import java.util.ArrayList;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
+=======
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
+>>>>>>> alvaro
 
 @Document(collection = "contrasenias")
 public class Contrasenia {
 
     @Id
     protected String id;
+<<<<<<< HEAD
     private Date fechaexpiracion;
     private String contraseniaactual;
     private List<String> contraseniausadas;
@@ -30,6 +37,28 @@ public class Contrasenia {
         this.fechaexpiracion = fecha_expiracion;
         this.contraseniaactual = contrasenia_actual;
         this.contraseniausadas = contrasenias_usadas != null ? contrasenias_usadas : new ArrayList<>();
+=======
+    
+    @Field("fecha_expiracion")
+    private Date fechaexpiracion;
+    
+    @Field("contrasenia_actual")
+    private String contraseniaactual;
+    
+    @Field("contrasenia_usadas")
+    private List<String> contraseniausadas;
+
+    // Constructor vacío requerido por MongoDB
+    public Contrasenia() {
+    }
+
+    public Contrasenia(String id, Date fechaexpiracion, String contraseniaactual, List<String> contraseniausadas) {
+        this.id = id;
+        this.fechaexpiracion = fechaexpiracion;
+        this.contraseniaactual = contraseniaactual;
+        this.contraseniausadas = contraseniausadas;
+
+>>>>>>> alvaro
     }
 
     public String getId() {

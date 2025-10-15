@@ -10,14 +10,21 @@ public class Token {
     private String token;
     private Date fechaexpiracion;
     private boolean expirado;
+<<<<<<< HEAD
 
 
 
+=======
+    public Usuario usuario;
+
+
+>>>>>>> alvaro
     public Token() {
         this.token = java.util.UUID.randomUUID().toString();
         this.fechaexpiracion = new Date(System.currentTimeMillis() + 3600 * 1000);
         this.expirado = false;
     }
+<<<<<<< HEAD
 
 
 
@@ -42,12 +49,31 @@ public class Token {
 
     public void setFechaexpiracion(Date fechaexpiracion) {
         this.fechaexpiracion = fechaexpiracion;
+=======
+	
+
+    public String getToken() {
+        return token;
+    }
+
+    public void setToken(String t) {
+        token = t;
+    }
+
+    public Date getFechaExpiracion() {
+        return fechaexpiracion;
+    }
+
+    public void setFechaExpiracion(Date d) {
+        fechaexpiracion = d;
+>>>>>>> alvaro
     }
 
 
 
     public boolean isExpirado() {
         return expirado;
+<<<<<<< HEAD
         return expirado;
     }
 
@@ -55,6 +81,12 @@ public class Token {
 
     public void setExpirado(boolean expirado) {
         this.expirado = expirado;
+=======
+    }
+
+    public void setExpirado(boolean e) {
+        expirado = e;
+>>>>>>> alvaro
     }
 	
 

@@ -1,3 +1,7 @@
 {
-    "java.configuration.updateBuildConfiguration": "interactive"
+    "java.configuration.updateBuildConfiguration": "interactive",
+    "sonarlint.connectedMode.project": {
+        "connectionId": "http-seralu4-esi-uclm-es-1521-",
+        "projectKey": "2025-g05-backend"
+    }
 }

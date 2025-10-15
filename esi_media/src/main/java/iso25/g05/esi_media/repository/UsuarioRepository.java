@@ -22,6 +22,7 @@ import java.util.List;
  */
 @Repository
 public interface UsuarioRepository extends MongoRepository<Usuario, String> {
+<<<<<<< HEAD
     
     /**
      * Busca un usuario por email (cualquier tipo: Visualizador, Admin, Gestor)
@@ -66,4 +67,11 @@ public interface UsuarioRepository extends MongoRepository<Usuario, String> {
      * @return Número total de usuarios en el sistema
      */
     long count();
+=======
+    @Query("{'email': ?0}")
+    Optional<Usuario> findByEmail(String email);
+    
+    @Query(value = "{'email': ?0}", exists = true)
+    boolean existsByEmail(String email);
+>>>>>>> alvaro
 }
