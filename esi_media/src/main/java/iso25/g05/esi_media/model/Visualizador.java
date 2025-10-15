@@ -27,12 +27,25 @@ public class Visualizador extends Usuario {
     public List<Lista> listas_privadas = new ArrayList<>();
     public List<Contenido> contenido_fav = new ArrayList<>();
 
-    public Visualizador(String _apellidos, boolean _bloqueado, Contrasenia _contrasenia, String _email, Object _foto,
+    /**
+     * Constructor vacío requerido por Spring Data MongoDB
+     * Spring Data necesita poder crear instancias sin parámetros para mapear desde la BD
+     */
+    public Visualizador() {
+        super();
+        this.listas_privadas = new ArrayList<>();
+        this.contenido_fav = new ArrayList<>();
+    }
+
+    /**
+     * Constructor completo para crear nuevos visualizadores (temporal sin Contrasenia)
+     */
+    public Visualizador(String _apellidos, boolean _bloqueado, String _email, Object _foto,
             String _nombre, String alias, Date fechaNac, boolean vip) {
-        super(_apellidos, _bloqueado, _contrasenia, _email, _foto, _nombre);
-        this._alias = alias;
-        this._fecha_nac = fechaNac;
-        this._vip = vip;
+        super(_apellidos, _bloqueado, _email, _foto, _nombre);
+        this.alias = alias;
+        this.fecha_nac = fechaNac;
+        this.vip = vip;
         this.listas_privadas = new ArrayList<>();
         this.contenido_fav = new ArrayList<>();
     }
@@ -50,11 +63,11 @@ public class Visualizador extends Usuario {
     }
 
     public Date getFechaNac() {
-        return _fecha_nac;
+        return fecha_nac;
     }
 
     public void setFechaNac(Date d) {
-        _fecha_nac = d;
+        fecha_nac = d;
     }
 
     public boolean isVip() {
@@ -62,6 +75,24 @@ public class Visualizador extends Usuario {
     }
 
     public void setVip(boolean v) {
-        _vip = v;
+        vip = v;
+    }
+    
+    // === GETTERS/SETTERS PARA LISTAS ===
+    
+    public List<Lista> getListasPrivadas() {
+        return listas_privadas;
+    }
+    
+    public void setListasPrivadas(List<Lista> listas) {
+        this.listas_privadas = listas != null ? listas : new ArrayList<>();
+    }
+    
+    public List<Contenido> getContenidoFav() {
+        return contenido_fav;
+    }
+    
+    public void setContenidoFav(List<Contenido> contenido) {
+        this.contenido_fav = contenido != null ? contenido : new ArrayList<>();
     }
 }
