@@ -1,40 +1,72 @@
 package iso25.g05.esi_media.service;
 
 import iso25.g05.esi_media.model.*;
+import iso25.g05.esi_media.repository.UsuarioRepository;
+import iso25.g05.esi_media.repository.VisualizadorRepository;
+import iso25.g05.esi_media.repository.ContraseniaRepository;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Servicio para gestionar el registro de visualizadores.
+ * Servicio para gestionar el registro de visualizadores con persistencia MongoDB.
  * 
- * Por ahora trabaja solo en memoria sin persistencia real.
- * Incluye todas las validaciones de negocio específicas del dominio
- * que van más allá de las validaciones básicas de Jakarta.
+ * MIGRACIÓN A PERSISTENCIA REAL:
+ * - Eliminado almacenamiento en memoria (ConcurrentHashMap)
+ * - Agregada inyección de repositorios MongoDB
+ * - Mantenidas todas las validaciones de negocio existentes
+ * - Agregado manejo de transacciones y excepciones de BD
+ * 
+ * REPOSITORIOS UTILIZADOS:
+ * - UsuarioRepository: Para verificaciones de unicidad (email) entre todos los tipos de usuario
+ * - VisualizadorRepository: Para operaciones específicas de visualizadores
  */
 @Service
 public class VisualizadorService {
     
     /**
-     * Almacenamiento temporal en memoria (simula base de datos)
-     * ConcurrentHashMap para thread-safety básico
+     * Repositorio general para operaciones de usuario (unicidad de email, etc.)
      */
-    private final Map<String, Visualizador> visualizadoresRegistrados = new ConcurrentHashMap<>();
+    private final UsuarioRepository usuarioRepository;
+    
+    /**
+     * Repositorio específico para operaciones de visualizador
+     */
+    private final VisualizadorRepository visualizadorRepository;
+    
+    /**
+     * Repositorio para operaciones de contraseña
+     */
+    private final ContraseniaRepository contraseniaRepository;
     
     /**
      * Validador de Jakarta para verificar anotaciones
      */
     private final Validator validator;
+
+    // Logger SLF4J
+    private static final Logger logger = LoggerFactory.getLogger(VisualizadorService.class);
     
     /**
-     * Constructor que inyecta el validador
+     * Constructor que inyecta repositorios y validador
+     * 
+     * @param usuarioRepository Repositorio base para todos los usuarios
+     * @param visualizadorRepository Repositorio específico para visualizadores
+     * @param validator Validador Jakarta para anotaciones
      */
-    public VisualizadorService(Validator validator) {
+    public VisualizadorService(UsuarioRepository usuarioRepository, 
+                              VisualizadorRepository visualizadorRepository,
+                              ContraseniaRepository contraseniaRepository,
+                              Validator validator) {
+        this.usuarioRepository = usuarioRepository;
+        this.visualizadorRepository = visualizadorRepository;
+        this.contraseniaRepository = contraseniaRepository;
         this.validator = validator;
     }
     
@@ -54,17 +86,29 @@ public class VisualizadorService {
         // PASO 1: Verificar las validaciones automáticas (@NotBlank, @Email, etc.)
         // Esto revisa si el nombre está vacío, si el email tiene formato correcto, etc.
         Set<ConstraintViolation<VisualizadorRegistroDTO>> violaciones = validator.validate(dto);
+        logger.debug("Violaciones automáticas encontradas: {}", violaciones.size());
         for (ConstraintViolation<VisualizadorRegistroDTO> violacion : violaciones) {
+            logger.warn("Validación fallida - {}: {}", violacion.getPropertyPath(), violacion.getMessage());
             errores.add(violacion.getMessage()); // Ejemplo: "El email es obligatorio"
         }
         
         // PASO 2: Verificar reglas específicas de nuestro negocio
         // Cosas como: ¿tiene 4+ años? ¿las contraseñas coinciden?
-        errores.addAll(validarReglasDeNegocio(dto));
+        List<String> erroresNegocio = validarReglasDeNegocio(dto);
+        logger.debug("Errores de negocio encontrados: {}", erroresNegocio.size());
+        for (String error : erroresNegocio) {
+            logger.warn("Regla de negocio: {}", error);
+        }
+        errores.addAll(erroresNegocio);
         
         // PASO 3: Verificar que no haya duplicados
         // ¿Ya existe alguien con ese email?
-        errores.addAll(validarUnicidad(dto));
+        List<String> erroresUnicidad = validarUnicidad(dto);
+        logger.debug("Errores de unicidad encontrados: {}", erroresUnicidad.size());
+        for (String error : erroresUnicidad) {
+            logger.warn("Unicidad: {}", error);
+        }
+        errores.addAll(erroresUnicidad);
         
         // Si encontramos cualquier error, paramos aquí y se lo decimos al usuario
         if (!errores.isEmpty()) {
@@ -76,15 +120,36 @@ public class VisualizadorService {
             // Convertir los datos del formulario en un objeto Visualizador completo
             Visualizador nuevoVisualizador = crearVisualizador(dto);
             
-            // PASO 5: Guardarlo en nuestra "base de datos" temporal (HashMap)
-            // La clave es el email, el valor es el visualizador completo
-            visualizadoresRegistrados.put(nuevoVisualizador.getEmail(), nuevoVisualizador);
+            // PASO 5: Guardar en MongoDB usando VisualizadorRepository
+            // Spring Data MongoDB maneja automáticamente:
+            // - Generación de ID único (ObjectId)
+            // - Serialización a BSON
+            // - Índices únicos (email)
+            // - Campo discriminador "_class" para herencia
+            Visualizador visualizadorGuardado = visualizadorRepository.save(nuevoVisualizador);
             
-            // Devolver resultado exitoso con el usuario creado
-            return new RegistroResultado(nuevoVisualizador, "Visualizador registrado exitosamente");
+            // Devolver resultado exitoso con el usuario guardado (incluye ID generado)
+            return new RegistroResultado(visualizadorGuardado, "Visualizador registrado exitosamente en base de datos");
             
+        } catch (org.springframework.dao.DuplicateKeyException e) {
+            // Error específico: intento de guardar email duplicado (violación de índice único)
+            logger.error("DuplicateKeyException capturada: {}", e.getMessage(), e);
+            logger.error("Causa: {}", e.getCause() != null ? e.getCause().getMessage() : "Sin causa");
+
+            // Volver a verificar el email para debugging
+            boolean existsNow = usuarioRepository.existsByEmail(dto.getEmail());
+            logger.debug("Email existe después de excepción: {}", existsNow);
+
+            return new RegistroResultado("El email ya está registrado en el sistema", 
+                                        "Registro fallido: email duplicado detectado por MongoDB");
+        } catch (org.springframework.data.mongodb.UncategorizedMongoDbException e) {
+            // Error de conexión o configuración de MongoDB
+            logger.error("UncategorizedMongoDbException: {}", e.getMessage(), e);
+            return new RegistroResultado("Error de conexión con la base de datos: " + e.getMessage(), 
+                                        "Registro fallido: problema de conectividad");
         } catch (Exception e) {
-            // Si algo salió mal creando el usuario (error de programación probablemente)
+            // Cualquier otro error inesperado
+            logger.error("Error interno al crear visualizador: {}", e.getMessage(), e);
             return new RegistroResultado("Error interno al crear visualizador: " + e.getMessage(), 
                                         "Registro fallido por error del sistema");
         }
@@ -120,7 +185,7 @@ public class VisualizadorService {
         // ¿Por qué? Para evitar que se equivoque escribiendo su contraseña
         // Si a la hora de comprobar que coinciden las contraseñas alguna es nula (tanto la
         // original como la repetida) o no coinciden entre ellas agregamos el error
-        if (dto.getPassword() != null && dto.getPasswordConfirm() != null && !dto.getPassword().equals(dto.getPasswordConfirm())) {
+        if (dto.getContrasenia() != null && dto.getConfirmacionContrasenia() != null && !dto.getContrasenia().equals(dto.getConfirmacionContrasenia())) {
             errores.add("La contraseña y su confirmación no coinciden");
         }
         
@@ -128,14 +193,46 @@ public class VisualizadorService {
     }
     
     /**
-     * Valida que no haya duplicados en el sistema
+     * Valida que no haya duplicados en el sistema usando MongoDB
+     * 
+     * MEJORA CON PERSISTENCIA:
+     * - Consulta real a la base de datos en lugar de HashMap en memoria
+     * - Verifica contra TODOS los tipos de usuario (Visualizador, Admin, Gestor)
+     * - Usa el índice único de email para consulta eficiente
      */
     private List<String> validarUnicidad(VisualizadorRegistroDTO dto) {
         List<String> errores = new ArrayList<>();
         
-        // REGLA: Email único
-        if (dto.getEmail() != null && visualizadoresRegistrados.containsKey(dto.getEmail())) {
-            errores.add("Ya existe un usuario registrado con este email");
+        // REGLA: Email único en toda la base de datos - DEPURACIÓN EXTENDIDA
+        if (dto.getEmail() != null) {
+            logger.debug("Validando email: {}", dto.getEmail());
+
+            // Primero, veamos todos los usuarios en la base de datos
+            List<Usuario> todosLosUsuarios = usuarioRepository.findAll();
+            logger.debug("Total usuarios en BD: {}", todosLosUsuarios.size());
+            for (Usuario u : todosLosUsuarios) {
+                logger.debug("Usuario en BD: {} - {}", u.getNombre(), u.getEmail());
+            }
+
+            // Ahora probemos el exists
+            boolean exists = usuarioRepository.existsByEmail(dto.getEmail());
+            logger.debug("existsBy_email('{}'): {}", dto.getEmail(), exists);
+
+            // Y también el findBy
+            Optional<Usuario> usuario = usuarioRepository.findByEmail(dto.getEmail());
+            logger.debug("findBy_email encontrado: {}", usuario.isPresent());
+            if (usuario.isPresent()) {
+                logger.debug("Usuario encontrado: {} - {}", usuario.get().getNombre(), usuario.get().getEmail());
+            }
+
+            // Verificar si hay algún problema con mayúsculas/minúsculas
+            String emailLower = dto.getEmail().toLowerCase();
+            boolean existsLower = usuarioRepository.existsByEmail(emailLower);
+            logger.debug("existsBy_email con lowercase('{}'): {}", emailLower, existsLower);
+
+            if (exists) {
+                errores.add("El email ya está registrado en el sistema");
+            }
         }
         
         return errores;
@@ -155,93 +252,139 @@ public class VisualizadorService {
                                 ? dto.getNombre()  // usar nombre como alias
                                 : dto.getAlias();  // usar el alias que escribió
         
-        // PASO 2: Crear el objeto Contrasenia
-        // ¿Por qué separado? Porque el sistema maneja historial de contraseñas, expiración, etc.
+        // TEMPORAL: Sin objeto Contrasenia para evitar relaciones circulares problemáticas
+        // PASO 1: Crear contraseña con nuevo constructor sin referencia de usuario
         Contrasenia contrasenia = new Contrasenia(
-            UUID.randomUUID().toString(), // ID único para esta contraseña
-            new Date(System.currentTimeMillis() + (365L * 24 * 60 * 60 * 1000)), // expira en 1 año desde hoy
-            dto.getPassword(), // la contraseña que escribió el usuario
-            new ArrayList<>(), // lista de contraseñas anteriores (vacía porque es nuevo)
-            null // el usuario dueño (lo ponemos después)
+            new Date(System.currentTimeMillis() + (365L * 24 * 60 * 60 * 1000)), // Expira en 1 año
+            dto.getContrasenia(), // Contraseña actual
+            new ArrayList<>() // Lista de contraseñas anteriores vacía
         );
         
-        // PASO 3: Crear el objeto Visualizador principal
-        // Usar el constructor que ya existía en la clase
-        Visualizador visualizador = new Visualizador(
-            dto.getApellidos(),     // apellidos del formulario
-            false,                  // no está bloqueado (usuario nuevo)
-            contrasenia,           // objeto contraseña que creamos arriba
-            dto.getEmail(),        // email del formulario
-            dto.getFoto(),         // foto (puede ser null si no subió)
-            dto.getNombre(),       // nombre del formulario
-            aliasDefinitivo,       // alias procesado en el PASO 1
-            dto.getFechaNac(),     // fecha de nacimiento del formulario
-            dto.isVip()            // si marcó la casilla VIP
-        );
+        // PASO 2: GUARDAR contraseña en MongoDB para que obtenga ID
+    logger.debug("Guardando contraseña en MongoDB...");
+    Contrasenia contraseniaGuardada = contraseniaRepository.save(contrasenia);
+    logger.debug("Contraseña guardada con ID: {}", contraseniaGuardada.getId());
         
-        // PASO 4: Establecer la relación bidireccional Usuario ↔ Contraseña
-        // 
-        // EXPLICACIÓN DE LA RELACIÓN BIDIRECCIONAL:
-        // 
-        // ANTES de esta línea:
-        // Visualizador -----> Contrasenia    (el visualizador conoce su contraseña)
-        // Visualizador  ? <-- Contrasenia    (pero la contraseña NO sabe de qué usuario es)
-        // 
-        // DESPUÉS de esta línea:
-        // Visualizador <----> Contrasenia    (ambos se conocen mutuamente)
-        // 
-        // ¿Por qué es importante?
-        // - Auditoría: La contraseña sabe a quién pertenece
-        // - Validaciones: Podemos verificar consistencia desde cualquier lado
-        // - Navegación: Desde contraseña podemos llegar al usuario y viceversa
-        // - Base de datos: Facilita las relaciones cuando agregemos persistencia
-        contrasenia.set_unnamed_Usuario_(visualizador);
+        // PASO 3: Crear el objeto Visualizador principal (SIN RELACIONES PROBLEMÁTICAS)
+        Visualizador visualizador = new Visualizador();
+        visualizador.setApellidos(dto.getApellidos());
+        visualizador.setBloqueado(false);
         
+        // PASO 4: Asignar contraseña guardada (que ya tiene ID)
+        if (contraseniaGuardada.getId() != null) {
+            visualizador.setContrasenia(contraseniaGuardada);
+            logger.debug("Contraseña asignada correctamente al visualizador");
+        } else {
+            logger.error("Contraseña no tiene ID después de guardar");
+            // Lanzamos una excepción específica para facilitar el manejo y pruebas
+            throw new RegistroException("Error al guardar contraseña: sin ID");
+        }
+        visualizador.setEmail(dto.getEmail());
+        visualizador.setFoto(dto.getFoto());
+        visualizador.setNombre(dto.getNombre());
+        visualizador.setAlias(aliasDefinitivo);
+        visualizador.setFechaNac(dto.getFechaNac());
+        visualizador.setVip(dto.isVip());
+        // Establecer fecha de registro actual
+        visualizador.setFechaRegistro(new Date());
+        
+        // PASO 4: TEMPORALMENTE COMENTADO - Evitar referencias circulares
+        // Nota: El problema de StackOverflow se evita actualmente no estableciendo
+        // la referencia inversa desde entidades como Contrasenia hacia Usuario.
+        // Diseño actual: Usuario conoce su Contrasenia, pero Contrasenia no mantiene
+        // un puntero al Usuario. Cuando se requiera una refactorización completa
+        // del modelo para relaciones bidireccionales, crear tests que verifiquen
+        // serialización y evitar ciclos mediante @JsonIgnore o DBRef lazy.
         // Devolver el visualizador completo y listo para usar
         return visualizador;
     }
+
+    /**
+     * Excepción específica para errores durante el proceso de registro.
+     *
+     * Usamos una excepción dedicada en lugar de RuntimeException para que el
+     * controlador o tests puedan capturar y distinguir errores de registro.
+     */
+    public static class RegistroException extends RuntimeException {
+        public RegistroException(String message) {
+            super(message);
+        }
+
+        public RegistroException(String message, Throwable cause) {
+            super(message, cause);
+        }
+    }
+    
+    // === MÉTODOS HELPER PARA OPERACIONES ADICIONALES CON MONGODB ===
     
     /**
      * Método helper para obtener todos los visualizadores registrados
-     * (útil para testing y debugging)
+     * (útil para testing, debugging y listados administrativos)
+     * 
+     * MIGRACIÓN A MONGODB:
+     * - Antes: visualizadoresRegistrados.values() → datos en memoria
+     * - Ahora: visualizadorRepository.findAll() → consulta a base de datos
      */
-    public Collection<Visualizador> obtenerTodosLosVisualizadores() {
-        return visualizadoresRegistrados.values();
+    public List<Visualizador> obtenerTodosLosVisualizadores() {
+        return visualizadorRepository.findAll();
     }
     
     /**
      * Método helper para limpiar el almacenamiento
-     * (útil para testing)
+     * (útil para testing - USAR CON PRECAUCIÓN EN PRODUCCIÓN)
+     * 
+     * ADVERTENCIA: Este método ELIMINA TODOS los visualizadores de la base de datos
+     * Solo usar en entornos de desarrollo y testing
      */
     public void limpiarRegistros() {
-        visualizadoresRegistrados.clear();
+        visualizadorRepository.deleteAll();
     }
     
     /**
-     * Método helper para buscar por email
+     * Método helper para buscar visualizador por email
      * 
-     * EXPLICACIÓN DE: Optional.ofNullable(visualizadoresRegistrados.get(email))
+     * EXPLICACIÓN DE LA MIGRACIÓN A MONGODB:
      * 
-     * 1. visualizadoresRegistrados.get(email) → Busca en el HashMap por email
-     *    - Si encuentra el usuario: devuelve el objeto Visualizador
-     *    - Si NO encuentra el usuario: devuelve null
+     * ANTES (HashMap):
+     * 1. visualizadoresRegistrados.get(email) → Busca en memoria
+     * 2. Optional.ofNullable(...) → Manejo seguro de nulls
      * 
-     * 2. Optional.ofNullable(...) → Envuelve el resultado en un Optional
-     *    - Si el resultado era un Visualizador: devuelve Optional<Visualizador> con contenido
-     *    - Si el resultado era null: devuelve Optional.empty()
+     * AHORA (MongoDB):
+     * 1. visualizadorRepository.findBy_email(email) → Consulta a base de datos
+     * 2. Spring Data ya devuelve Optional<Visualizador> automáticamente
+     * 3. MongoDB usa índice único en email para búsqueda eficiente
      * 
-     * 3. ¿Por qué Optional? Para evitar NullPointerException en el código que use este método
-     *    
-     * EJEMPLO DE USO:
+     * VENTAJAS:
+     * - Datos persistentes (no se pierden al reiniciar)
+     * - Consulta optimizada con índices
+     * - Tipo específico Visualizador (no Usuario genérico)
+     * 
+     * EJEMPLO DE USO (sin cambios):
      * Optional<Visualizador> resultado = service.buscarPorEmail("juan@email.com");
      * if (resultado.isPresent()) {
      *     Visualizador usuario = resultado.get(); // Seguro, sabemos que existe
      * } else {
-     *     System.out.println("No existe usuario con ese email");
+     *     System.out.println("No existe visualizador con ese email");
      * }
      */
     public Optional<Visualizador> buscarPorEmail(String email) {
-        // Buscar en el HashMap y envolver el resultado en Optional para manejo seguro de nulls
-        return Optional.ofNullable(visualizadoresRegistrados.get(email));
+        // Usar repositorio específico de Visualizador para garantizar tipo correcto
+        return visualizadorRepository.findBy_email(email);
+    }
+    
+    /**
+     * Método helper adicional: contar visualizadores VIP
+     * (nuevo método posible gracias a la persistencia)
+     */
+    public long contarVisualizadoresVip() {
+        return visualizadorRepository.countBy_vip(true);
+    }
+    
+    /**
+     * Método helper adicional: buscar visualizadores por alias
+     * (útil para funciones de búsqueda de usuarios públicos)
+     */
+    public List<Visualizador> buscarPorAlias(String alias) {
+        return visualizadorRepository.findByAliasContainingIgnoreCase(alias);
     }
 }

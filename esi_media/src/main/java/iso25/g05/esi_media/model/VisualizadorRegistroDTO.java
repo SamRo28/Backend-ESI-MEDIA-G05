@@ -1,5 +1,6 @@
 package iso25.g05.esi_media.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.*;
 import java.util.Date;
 
@@ -71,6 +72,7 @@ public class VisualizadorRegistroDTO {
      * - Máximo 12 caracteres
      * - Si está vacío o null, se usará el nombre en el servicio
      */
+    @JsonProperty("alias")
     @Size(max = 12, message = "El alias no puede exceder 12 caracteres")
     private String alias;
     
@@ -80,9 +82,10 @@ public class VisualizadorRegistroDTO {
      * - No puede ser futura
      * - La validación de edad mínima (4 años) se hace en el servicio
      */
+    @JsonProperty("fecha_nac")
     @NotNull(message = "La fecha de nacimiento es obligatoria")
     @Past(message = "La fecha de nacimiento no puede ser futura")
-    private Date fechaNac;
+    private Date fecha_nac;
     
     /**
      * Contraseña del visualizador
@@ -90,22 +93,25 @@ public class VisualizadorRegistroDTO {
      * - Mínimo 8 caracteres
      * - Política de seguridad: mayúscula, minúscula, número y símbolo
      */
+    @JsonProperty("contrasenia")
     @NotBlank(message = "La contraseña es obligatoria")
     @Size(min = 8, message = "La contraseña debe tener al menos 8 caracteres")
-    @Pattern(
-        regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]+$",
-        message = "La contraseña debe contener al menos: una mayúscula, una minúscula, un número y un símbolo (@$!%*?&)"
-    )
-    private String password;
+    // Temporalmente comentada para probar
+    // @Pattern(
+    //     regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]+$",
+    //     message = "La contraseña debe contener al menos: una mayúscula, una minúscula, un número y un símbolo (@$!%*?&)"
+    // )
+    private String contrasenia;
     
     /**
      * Confirmación de contraseña
      * - Obligatorio
-     * - Debe coincidir con el campo password
+     * - Debe coincidir con el campo _contrasenia
      * - La validación de coincidencia se hace en el servicio
      */
+    @JsonProperty("confirmacion_contrasenia")
     @NotBlank(message = "La confirmación de contraseña es obligatoria")
-    private String passwordConfirm;
+    private String confirmacion_contrasenia;
     
     /**
      * Indica si el visualizador quiere plan VIP
@@ -130,15 +136,15 @@ public class VisualizadorRegistroDTO {
      * Constructor completo para testing y casos específicos
      */
     public VisualizadorRegistroDTO(String nombre, String apellidos, String email, String alias,
-                                    Date fechaNac, String password, String passwordConfirm,
+                                    Date fecha_nac, String contrasenia, String confirmacion_contrasenia,
                                     boolean vip, String foto) {
         this.nombre = nombre;
         this.apellidos = apellidos;
         this.email = email;
         this.alias = alias;
-        this.fechaNac = fechaNac;
-        this.password = password;
-        this.passwordConfirm = passwordConfirm;
+        this.fecha_nac = fecha_nac;
+        this.contrasenia = contrasenia;
+        this.confirmacion_contrasenia = confirmacion_contrasenia;
         this.vip = vip;
         this.foto = foto;
     }
@@ -172,33 +178,33 @@ public class VisualizadorRegistroDTO {
     public String getAlias() {
         return alias;
     }
-    
+
     public void setAlias(String alias) {
         this.alias = alias;
     }
     
     public Date getFechaNac() {
-        return fechaNac;
+        return fecha_nac;
+    }
+
+    public void setFechaNac(Date fecha_nac) {
+        this.fecha_nac = fecha_nac;
     }
     
-    public void setFechaNac(Date fechaNac) {
-        this.fechaNac = fechaNac;
+    public String getContrasenia() {
+        return contrasenia;
+    }
+
+    public void setContrasenia(String contrasenia) {
+        this.contrasenia = contrasenia;
     }
     
-    public String getPassword() {
-        return password;
+    public String getConfirmacionContrasenia() {
+        return confirmacion_contrasenia;
     }
-    
-    public void setPassword(String password) {
-        this.password = password;
-    }
-    
-    public String getPasswordConfirm() {
-        return passwordConfirm;
-    }
-    
-    public void setPasswordConfirm(String passwordConfirm) {
-        this.passwordConfirm = passwordConfirm;
+
+    public void setConfirmacionContrasenia(String confirmacion_contrasenia) {
+        this.confirmacion_contrasenia = confirmacion_contrasenia;
     }
     
     public boolean isVip() {

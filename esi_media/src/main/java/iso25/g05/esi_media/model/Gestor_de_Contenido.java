@@ -5,77 +5,95 @@ import java.util.List;
 
 public class Gestor_de_Contenido extends Usuario {
 
-	private String _alias;
-	private String _descripcion;
-	private String _campo_especializacion;
-	private String _tipo_contenido_video_o_audio;
+	private String alias;
+	private String descripcion;
+	private String campo_especializacion;
+	private String tipo_contenido_video_o_audio;
 	public List<Lista> listas_generadas ;
 
-	public Gestor_de_Contenido(String _apellidos, boolean _bloqueado, Contrasenia _contrasenia, String _email,
-			Object _foto, String _nombre) {
-		super(_apellidos, _bloqueado, _contrasenia, _email, _foto, _nombre);
+	// Constructor sin parámetros para MongoDB (necesario para el registro)
+	public Gestor_de_Contenido() {
+		super();
 		this.listas_generadas = new ArrayList<>();
-		this._alias = null;
-		this._descripcion = null;
-		this._campo_especializacion = null;
-		this._tipo_contenido_video_o_audio = null;
-
 	}
 
-	public String get_alias() {
-		return _alias;
+	/**
+	 * Constructor original de tus compañeros.
+	 * 
+	 * NOTA SOBRE CONTRASENIA:
+	 * Este constructor no incluye Contrasenia como parámetro porque:
+	 * - Evita referencias circulares (Usuario -> Contrasenia -> Usuario)
+	 * - Las contraseñas se asignan después de crear el usuario
+	 * - Mantiene el código limpio y sin dependencias problemáticas
+	 * 
+	 * Si necesitas asignar una contraseña:
+	 * 1. Crea el Gestor_de_Contenido con este constructor
+	 * 2. Usa setContrasenia() para asignar la contraseña después
+	 */
+	public Gestor_de_Contenido(String apellidos, boolean bloqueado, String email,
+			Object foto, String nombre) {
+		super(apellidos, bloqueado, email, foto, nombre);
+		this.listas_generadas = new ArrayList<>();
+		this.alias = null;
+		this.descripcion = null;
+		this.campo_especializacion = null;
+		this.tipo_contenido_video_o_audio = null;
 	}
 
-
-	public void set_alias(String _alias) {
-		this._alias = _alias;
-	}
-
-
-
-	public String get_descripcion() {
-		return _descripcion;
-	}
-
-
-
-	public void set_descripcion(String _descripcion) {
-		this._descripcion = _descripcion;
-	}
-
-
-
-	public String get_campo_especializacion() {
-		return _campo_especializacion;
+	public String getAlias() {
+		return alias;
 	}
 
 
-
-	public void set_campo_especializacion(String _campo_especializacion) {
-		this._campo_especializacion = _campo_especializacion;
+	public void setAlias(String alias) {
+		this.alias = alias;
 	}
 
 
 
-	public String get_tipo_contenido_video_o_audio() {
-		return _tipo_contenido_video_o_audio;
+	public String getDescripcion() {
+		return descripcion;
 	}
 
 
 
-	public void set_tipo_contenido_video_o_audio(String _tipo_contenido_video_o_audio) {
-		this._tipo_contenido_video_o_audio = _tipo_contenido_video_o_audio;
+	public void setDescripcion(String descripcion) {
+		this.descripcion = descripcion;
 	}
 
 
 
-	public List<Lista> getListas_generadas() {
+	public String getCampoEspecializacion() {
+		return campo_especializacion;
+	}
+
+
+
+	public void setCampoEspecializacion(String campo_especializacion) {
+		this.campo_especializacion = campo_especializacion;
+	}
+
+
+
+	public String getTipoContenidoVideoOAudio() {
+		return tipo_contenido_video_o_audio;
+	}
+
+
+
+	public void setTipoContenidoVideoOAudio(String tipo_contenido_video_o_audio) {
+		this.tipo_contenido_video_o_audio = tipo_contenido_video_o_audio;
+	}
+
+
+
+	public List<Lista> getListasGeneradas() {
 		return listas_generadas;
 	}
 
 
 
-	public void setListas_generadas(List<Lista> listas_generadas) {
+	public void setListasGeneradas(List<Lista> listas_generadas) {
 		this.listas_generadas = listas_generadas;
 	}
 
