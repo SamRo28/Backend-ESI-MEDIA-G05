@@ -9,35 +9,35 @@ public class Contenido {
 
 	@Id
 	protected String id;
-	protected String _titulo;
-	protected String _descripcion;
-	protected List<String> _tags;
-	protected double _duracion;
-	protected boolean _vip;
-	protected boolean _estado;
-	protected Date _fecha_estado_automatico;
-	protected Date _fecha_disponible_hasta;
-	protected int _edad_visualizacion;
-	protected Object _caratula;
-	protected int _n_visualizaciones;
+	protected String titulo;
+	protected String descripcion;
+	protected List<String> tags;
+	protected double duracion;
+	protected boolean vip;
+	protected boolean estado;
+	protected Date fechaestadoautomatico;
+	protected Date fechadisponiblehasta;
+	protected int edadvisualizacion;
+	protected Object caratula;
+	protected int nvisualizaciones;
 
 
 	
-	public Contenido(String id, String _titulo, String _descripcion, List<String> _tags, double _duracion, boolean _vip,
-			boolean _estado, Date _fecha_estado_automatico, Date _fecha_disponible_hasta, int _edad_visualizacion,
-			Object _caratula, int _n_visualizaciones) {
+	public Contenido(String id, String titulo, String descripcion, List<String> tags, double duracion, boolean vip,
+			boolean estado, Date fechaestadoautomatico, Date fechadisponiblehasta, int edadvisualizacion,
+			Object caratula, int nvisualizaciones) {
 		this.id = id;
-		this._titulo = _titulo;
-		this._descripcion = _descripcion;
-		this._tags = _tags;
-		this._duracion = _duracion;
-		this._vip = _vip;
-		this._estado = _estado;
-		this._fecha_estado_automatico = _fecha_estado_automatico;
-		this._fecha_disponible_hasta = _fecha_disponible_hasta;
-		this._edad_visualizacion = _edad_visualizacion;
-		this._caratula = _caratula;
-		this._n_visualizaciones = _n_visualizaciones;
+		this.titulo = titulo;
+		this.descripcion = descripcion;
+		this.tags = tags;
+		this.duracion = duracion;
+		this.vip = vip;
+		this.estado = estado;
+		this.fechaestadoautomatico = fechaestadoautomatico;
+		this.fechadisponiblehasta = fechadisponiblehasta;
+		this.edadvisualizacion = edadvisualizacion;
+		this.caratula = caratula;
+		this.nvisualizaciones = nvisualizaciones;
 	}
 
 	public String getId() {
@@ -48,92 +48,92 @@ public class Contenido {
 		this.id = id;
 	}
 
-	public String get_titulo() {
-		return _titulo;
+	public String gettitulo() {
+		return titulo;
 	}
 
-	public void set_titulo(String _titulo) {
-		this._titulo = _titulo;
+	public void settitulo(String titulo) {
+		this.titulo = titulo;
 	}
 
-	public String get_descripcion() {
-		return _descripcion;
+	public String getdescripcion() {
+		return descripcion;
 	}
 
-	public void set_descripcion(String _descripcion) {
-		this._descripcion = _descripcion;
+	public void setdescripcion(String descripcion) {
+		this.descripcion = descripcion;
 	}
 
-	public List<String> get_tags() {
-		return _tags;
+	public List<String> gettags() {
+		return tags;
 	}
 
-	public void set_tags(List<String> _tags) {
-		this._tags = _tags;
+	public void settags(List<String> tags) {
+		this.tags = tags;
 	}
 
-	public double get_duracion() {
-		return _duracion;
+	public double getduracion() {
+		return duracion;
 	}
 
-	public void set_duracion(double _duracion) {
-		this._duracion = _duracion;
+	public void setduracion(double duracion) {
+		this.duracion = duracion;
 	}
 
-	public boolean is_vip() {
-		return _vip;
+	public boolean isvip() {
+		return vip;
 	}
 
-	public void set_vip(boolean _vip) {
-		this._vip = _vip;
+	public void setvip(boolean vip) {
+		this.vip = vip;
 	}
 
-	public boolean is_estado() {
-		return _estado;
+	public boolean isestado() {
+		return estado;
 	}
 
-	public void set_estado(boolean _estado) {
-		this._estado = _estado;
+	public void setestado(boolean estado) {
+		this.estado = estado;
 	}
 
-	public Date get_fecha_estado_automatico() {
-		return _fecha_estado_automatico;
+	public Date getfechaestadoautomatico() {
+		return fechaestadoautomatico;
 	}
 
-	public void set_fecha_estado_automatico(Date _fecha_estado_automatico) {
-		this._fecha_estado_automatico = _fecha_estado_automatico;
+	public void setfechaestadoautomatico(Date fechaestadoautomatico) {
+		this.fechaestadoautomatico = fechaestadoautomatico;
 	}
 
-	public Date get_fecha_disponible_hasta() {
-		return _fecha_disponible_hasta;
+	public Date getfechadisponiblehasta() {
+		return fechadisponiblehasta;
 	}
 
-	public void set_fecha_disponible_hasta(Date _fecha_disponible_hasta) {
-		this._fecha_disponible_hasta = _fecha_disponible_hasta;
+	public void setfechadisponiblehasta(Date fechadisponiblehasta) {
+		this.fechadisponiblehasta = fechadisponiblehasta;
 	}
 
-	public int get_edad_visualizacion() {
-		return _edad_visualizacion;
+	public int getedadvisualizacion() {
+		return edadvisualizacion;
 	}
 
-	public void set_edad_visualizacion(int _edad_visualizacion) {
-		this._edad_visualizacion = _edad_visualizacion;
+	public void setedadvisualizacion(int edadvisualizacion) {
+		this.edadvisualizacion = edadvisualizacion;
 	}
 
-	public Object get_caratula() {
-		return _caratula;
+	public Object getcaratula() {
+		return caratula;
 	}
 
-	public void set_caratula(Object _caratula) {
-		this._caratula = _caratula;
+	public void setcaratula(Object caratula) {
+		this.caratula = caratula;
 	}
 
-	public int get_n_visualizaciones() {
-		return _n_visualizaciones;
+	public int getnvisualizaciones() {
+		return nvisualizaciones;
 	}
 
-	public void set_n_visualizaciones(int _n_visualizaciones) {
-		this._n_visualizaciones = _n_visualizaciones;
+	public void setnvisualizaciones(int nvisualizaciones) {
+		this.nvisualizaciones = nvisualizaciones;
 	}
 
 

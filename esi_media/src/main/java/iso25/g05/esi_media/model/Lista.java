@@ -5,14 +5,14 @@ import java.util.List;
 
 public class Lista {
 	protected String id;
-	private String _nombre;
+	private String nombre;
 	private Usuario usuario;
 	public String publico;
 	public List<Contenido> contenidos = new ArrayList<>();
 
-	public Lista(String id, String _nombre, Usuario usuario, String publico, List<Contenido> contenidos) {
+	public Lista(String id, String nombre, Usuario usuario, String publico, List<Contenido> contenidos) {
 		this.id = id;
-		this._nombre = _nombre;
+		this.nombre = nombre;
 		this.usuario = usuario;
 		this.publico = publico;
 		this.contenidos = contenidos;
@@ -27,11 +27,11 @@ public class Lista {
     }
 
     public String getNombre() {
-        return _nombre;
+        return nombre;
     }
 
-    public void setNombre(String _nombre) {
-        this._nombre = _nombre;
+    public void setNombre(String nombre) {
+        this.nombre = nombre;
     }
 
     public Usuario getUsuario() {

@@ -5,29 +5,29 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @Document(collection = "videos")
 public class Video extends Contenido {
 
-    private String _url;
-    private String _resolucion;
+    private String url;
+    private String resolucion;
 
 	public Video(String id, String titulo, String descripcion, java.util.List<String> tags, double duracion, boolean vip,
             boolean estado, java.util.Date fechaEstadoAutomatico, java.util.Date fechaDisponibleHasta,
             int edadVisualizacion, Object caratula, int nVisualizaciones, String url, String resolucion) {
         super(id, titulo, descripcion, tags, duracion, vip, estado, fechaEstadoAutomatico, fechaDisponibleHasta,
                 edadVisualizacion, caratula, nVisualizaciones);
-        this._url = url;
-        this._resolucion = resolucion;
+        this.url = url;
+        this.resolucion = resolucion;
     }    public String getUrl() {
-        return _url;
+        return url;
     }
 
     public void setUrl(String u) {
-        _url = u;
+        url = u;
     }
 
     public String getResolucion() {
-        return _resolucion;
+        return resolucion;
     }
 
     public void setResolucion(String r) {
-        _resolucion = r;
+        resolucion = r;
     }
 }

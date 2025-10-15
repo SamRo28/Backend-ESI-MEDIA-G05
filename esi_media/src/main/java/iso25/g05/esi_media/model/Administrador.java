@@ -1,7 +1,7 @@
 package iso25.g05.esi_media.model;
 
 public class Administrador extends Usuario {
-	private String _departamento;
+	private String departamento;
 
 	// Constructor sin parámetros para MongoDB (necesario para el registro)
 	public Administrador() {
