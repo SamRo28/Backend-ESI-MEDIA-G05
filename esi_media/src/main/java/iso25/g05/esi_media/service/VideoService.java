@@ -61,7 +61,7 @@ public class VideoService {
         validarUrl(videoDTO.getUrl());
         
         // 3. Crear entidad Video
-        Video video = crearVideoDesdeDTO(videoDTO);
+        Video video = crearVideoDesdeDTO(videoDTO, gestorId);
         
         // 4. Guardar en base de datos
         Video videoGuardado = videoRepository.save(video);
@@ -123,7 +123,7 @@ public class VideoService {
     /**
      * Crea la entidad Video desde el DTO
      */
-    private Video crearVideoDesdeDTO(VideoUploadDTO dto) {
+    private Video crearVideoDesdeDTO(VideoUploadDTO dto, String gestorId) {
         return new Video(
             null, // ID será generado por MongoDB
             dto.getTitulo(),
@@ -138,7 +138,8 @@ public class VideoService {
             dto.getCaratula(),
             0, // Número de visualizaciones inicial
             dto.getUrl(),
-            dto.getResolucion()
+            dto.getResolucion(),
+            gestorId
         );
     }
     

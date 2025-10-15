@@ -10,9 +10,9 @@ public class Video extends Contenido {
 
 	public Video(String id, String titulo, String descripcion, java.util.List<String> tags, double duracion, boolean vip,
             boolean estado, java.util.Date fechaEstadoAutomatico, java.util.Date fechaDisponibleHasta,
-            int edadVisualizacion, Object caratula, int nVisualizaciones, String url, String resolucion) {
+            int edadVisualizacion, Object caratula, int nVisualizaciones, String url, String resolucion, String gestorId) {
         super(id, titulo, descripcion, tags, duracion, vip, estado, fechaEstadoAutomatico, fechaDisponibleHasta,
-                edadVisualizacion, caratula, nVisualizaciones);
+                edadVisualizacion, caratula, nVisualizaciones, gestorId);
         this._url = url;
         this._resolucion = resolucion;
     }    public String getUrl() {

@@ -13,9 +13,9 @@ public class Audio extends Contenido {
 
 	public Audio(String id, String titulo, String descripcion, List<String> etiquetas, double duracion, 
 				boolean vip, boolean estado, Date fechaEstadoAutomatico, Date fechaDisponibleHasta, int edadVisualizacion, 
-				Object caratula, int nVisualizaciones, Binary fichero, String mimeType, long tamanoBytes) {
+				Object caratula, int nVisualizaciones, Binary fichero, String mimeType, long tamanoBytes, String gestorId) {
 		super(id, titulo, descripcion, etiquetas, duracion, vip, estado, fechaEstadoAutomatico, fechaDisponibleHasta, 
-				edadVisualizacion, caratula, nVisualizaciones);
+				edadVisualizacion, caratula, nVisualizaciones, gestorId);
 		this._fichero = fichero;
 		this.mimeType = mimeType;
 		this.tamanoBytes = tamanoBytes;

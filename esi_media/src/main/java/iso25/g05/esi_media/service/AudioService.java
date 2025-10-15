@@ -68,7 +68,7 @@ public class AudioService {
         validarArchivo(archivo);
         
         // 3. Crear entidad Audio
-        Audio audio = crearAudioDesdeDTO(audioDTO, archivo);
+        Audio audio = crearAudioDesdeDTO(audioDTO, archivo, gestorId);
         
         // 4. Guardar en base de datos
         Audio audioGuardado = audioRepository.save(audio);
@@ -137,7 +137,7 @@ public class AudioService {
     /**
      * Crea la entidad Audio desde el DTO
      */
-    private Audio crearAudioDesdeDTO(AudioUploadDTO dto, MultipartFile archivo) throws IOException {
+    private Audio crearAudioDesdeDTO(AudioUploadDTO dto, MultipartFile archivo, String gestorId) throws IOException {
         Binary audioBinary = new Binary(archivo.getBytes());
         
         return new Audio(
@@ -147,15 +147,16 @@ public class AudioService {
             dto.getTags(),
             dto.getDuracion(),
             dto.getVip(),
-            dto.getVisible(), // El usuario decide la visibilidad
-            null, // Fecha estado automático
+            dto.getVisible(),
+            null,
             dto.getFechaDisponibleHasta(),
             dto.getEdadVisualizacion(),
             dto.getCaratula(),
             0, // Número de visualizaciones inicial
             audioBinary,
             archivo.getContentType(),
-            archivo.getSize()
+            archivo.getSize(),
+            gestorId
         );
     }
     

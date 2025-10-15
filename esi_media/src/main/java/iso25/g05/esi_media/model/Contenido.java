@@ -20,12 +20,13 @@ public class Contenido {
 	protected int _edad_visualizacion;
 	protected Object _caratula;
 	protected int _n_visualizaciones;
+	protected String _gestorId;	// ID del gestor que subió el contenido
 
 
 	
 	public Contenido(String id, String _titulo, String _descripcion, List<String> _tags, double _duracion, boolean _vip,
 			boolean _estado, Date _fecha_estado_automatico, Date _fecha_disponible_hasta, int _edad_visualizacion,
-			Object _caratula, int _n_visualizaciones) {
+			Object _caratula, int _n_visualizaciones, String _gestorId) {
 		this.id = id;
 		this._titulo = _titulo;
 		this._descripcion = _descripcion;
@@ -38,6 +39,7 @@ public class Contenido {
 		this._edad_visualizacion = _edad_visualizacion;
 		this._caratula = _caratula;
 		this._n_visualizaciones = _n_visualizaciones;
+		this._gestorId = _gestorId;
 	}
 
 	public String getId() {
@@ -136,8 +138,12 @@ public class Contenido {
 		this._n_visualizaciones = _n_visualizaciones;
 	}
 
+	public String get_gestorId() {
+		return _gestorId;
+	}
 
-
-	
+	public void set_gestorId(String _gestorId) {
+		this._gestorId = _gestorId;
+	}
 
 }

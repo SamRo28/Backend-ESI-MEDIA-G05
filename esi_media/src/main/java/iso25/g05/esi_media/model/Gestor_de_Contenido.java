@@ -90,7 +90,7 @@ public class Gestor_de_Contenido extends Usuario {
 		this.contenidosSubidos = contenidosSubidos;
 	}
 
-	//TODO: Habria que meter un add y un remove para las listas generadas y los contenidos subidos
+	//TODO: Habria que meter un add y un remove para las listas generadas y otro para los contenidos subidos
 
 	public void subir(Contenido aC) {
 		throw new UnsupportedOperationException();
