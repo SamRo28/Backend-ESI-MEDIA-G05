@@ -31,11 +31,8 @@ public class UserController {
 	}
 
 	@PostMapping("/login3Auth")
-	public Usuario login3Auth(@RequestBody Map<String, String> loginData) {
-		Usuario loggedInUser = this.userService.login3Auth(loginData);
-		if (loggedInUser == null)
-			throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid credentials");
-		return loggedInUser;
+	public void login3Auth(@RequestBody Map<String, String> loginData) {
+		this.userService.login3Auth(loginData);
 	}
 
 }

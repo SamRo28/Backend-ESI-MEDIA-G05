@@ -17,6 +17,9 @@ public class UserService {
     @Autowired
     private UsuarioRepository usuarioRepository;
 
+     @Autowired
+    private EmailService emailService;
+
 
      public Usuario login(Map<String, String> loginData) {
         String email = loginData.get("email");
@@ -43,8 +46,13 @@ public class UserService {
         this.usuarioRepository.save(user);
     }
 
-    public Usuario login3Auth(Map<String, String> loginData) {
-        throw new UnsupportedOperationException("Not supported yet.");
+    public void login3Auth(Map<String, String> loginData) {
+        String email = loginData.get("email");
+        Optional<Usuario> existingUser = this.usuarioRepository.findByEmail(email);
+        if (existingUser.isPresent()){
+            emailService.send3FAemail(email, existingUser.get());
+        }
+
     }
     
 }

@@ -1,15 +1,19 @@
 package iso25.g05.esi_media.model;
 
+import java.util.Date;
+import java.util.Random;
+import java.util.UUID;
+
 public class Codigorecuperacion {
 	protected String id;
 	private String codigo;
-	private String fechaexpiracion;
+	private Date fechaexpiracion;
 	public Usuario unnamedUsuario;
 
-    public Codigorecuperacion(String id, String codigo, String fechaexpiracion, Usuario unnamedUsuario) {
-        this.id = id;
-        this.codigo = codigo;
-        this.fechaexpiracion = fechaexpiracion;
+    public Codigorecuperacion(Usuario unnamedUsuario) {
+        this.id = UUID.randomUUID().toString();
+        this.codigo = ""+generarNumeroAleatorio6Cifras();
+        this.fechaexpiracion = new Date(System.currentTimeMillis() + 1 * 60 * 1000); // 1 minuto desde ahora
         this.unnamedUsuario = unnamedUsuario;
     }
 
@@ -25,10 +29,10 @@ public class Codigorecuperacion {
 	public void setcodigo(String codigo) {
 		this.codigo = codigo;
 	}
-	public String getfechaexpiracion() {
+	public Date getfechaexpiracion() {
 		return fechaexpiracion;
 	}
-	public void setfechaexpiracion(String fechaexpiracion) {
+	public void setfechaexpiracion(Date fechaexpiracion) {
 		this.fechaexpiracion = fechaexpiracion;
 	}
 	public Usuario getunnamedUsuario() {
@@ -37,6 +41,11 @@ public class Codigorecuperacion {
 	public void setunnamedUsuario(Usuario unnamedUsuario) {
 		this.unnamedUsuario = unnamedUsuario;
 	}
+
+	private int generarNumeroAleatorio6Cifras() {
+        Random random = new Random();
+        return 100000 + random.nextInt(900000);
+    }
 
 	
 }

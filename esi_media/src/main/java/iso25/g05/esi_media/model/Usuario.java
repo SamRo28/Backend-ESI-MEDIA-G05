@@ -19,8 +19,6 @@ public class Usuario {
     protected Object foto;
     protected boolean bloqueado;
 
-    @Transient
-    public List<Codigorecuperacion> codigosrecuperacion = new ArrayList<>();
     
     @Transient
     public List<Token> sesionstoken = new ArrayList<>();
@@ -36,6 +34,9 @@ public class Usuario {
     private boolean twoFactorAutenticationEnabled;
     private boolean threeFactorAutenticationEnabled;
 
+    public Usuario() {
+        // Constructor vacío necesario para frameworks como Spring
+    }
 
     public Usuario(String apellidos, boolean bloqueado, Contrasenia contrasenia, String email, Object foto, String nombre, Date fecharegistro) {
         this.apellidos = apellidos;

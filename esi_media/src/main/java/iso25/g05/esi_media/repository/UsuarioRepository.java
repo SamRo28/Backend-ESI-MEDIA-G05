@@ -10,9 +10,9 @@ import iso25.g05.esi_media.model.Usuario;
 
 @Repository
 public interface UsuarioRepository extends MongoRepository<Usuario, String> {
-    @Query("{ '_email' : ?0 }")
+    @Query("{ 'email' : ?0 }")
     Optional<Usuario> findByEmail(String email);
 
-    @Query("{ '_email' : ?0 }")
+    @Query("{ 'email' : ?0 }")
     boolean existsByEmail(String email);
 }

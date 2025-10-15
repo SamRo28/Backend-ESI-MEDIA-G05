@@ -7,7 +7,7 @@ public class Token {
     private String token;
     private Date fechaexpiracion;
     private boolean expirado;
-    public Usuario usuario;
+
 
 
     public Token() {
@@ -15,29 +15,43 @@ public class Token {
         this.fechaexpiracion = new Date(System.currentTimeMillis() + 3600 * 1000);
         this.expirado = false;
     }
-	
+
+
 
     public String getToken() {
         return token;
     }
 
-    public void setToken(String t) {
-        token = t;
+
+
+    public void setToken(String token) {
+        this.token = token;
     }
 
-    public Date getFechaExpiracion() {
+
+
+    public Date getFechaexpiracion() {
         return fechaexpiracion;
     }
 
-    public void setFechaExpiracion(Date d) {
-        fechaexpiracion = d;
+
+
+    public void setFechaexpiracion(Date fechaexpiracion) {
+        this.fechaexpiracion = fechaexpiracion;
     }
+
+
 
     public boolean isExpirado() {
         return expirado;
     }
 
-    public void setExpirado(boolean e) {
-        expirado = e;
+
+
+    public void setExpirado(boolean expirado) {
+        this.expirado = expirado;
     }
+	
+
+    
 }
