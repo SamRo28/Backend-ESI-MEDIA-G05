@@ -8,12 +8,12 @@ import java.util.List;
 
 @Repository
 public interface ContenidoRepository extends MongoRepository<Contenido, String> {
-    @Query("{'_titulo': {$regex: ?0, $options: 'i'}}")
+    @Query("{'titulo': {$regex: ?0, $options: 'i'}}")
     List<Contenido> findByTituloContainingIgnoreCase(String titulo);
     
-    @Query("{'_tags': {$in: [?0]}}")
+    @Query("{'tags': {$in: [?0]}}")
     List<Contenido> findByTagsContaining(String tag);
-    
-    @Query("{'_estado': true}")
+
+    @Query("{'estado': true}")
     List<Contenido> findByEstadoTrue();
 }

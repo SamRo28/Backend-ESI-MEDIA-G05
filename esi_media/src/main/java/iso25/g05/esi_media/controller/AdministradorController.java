@@ -1,7 +1,6 @@
 package iso25.g05.esi_media.controller;
 
 import iso25.g05.esi_media.dto.CrearAdministradorRequest;
-import iso25.g05.esi_media.dto.CrearGestorRequest;
 import iso25.g05.esi_media.model.Administrador;
 import iso25.g05.esi_media.repository.AdministradorRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,11 +12,13 @@ import org.bson.Document;
 import org.bson.types.ObjectId;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.MongoWriteException;
+import com.mongodb.DBRef;
 
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.ArrayList;
+import java.util.Calendar;
 import iso25.g05.esi_media.model.Administrador;
 import iso25.g05.esi_media.service.usersservice;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -86,35 +87,60 @@ public class AdministradorController {
         try {
             System.out.println("Procesando: " + request.getNombre() + " " + request.getApellidos() + " - " + request.getEmail());
             
-            // ESTRATEGIA 1: Usar insertOne directamente con la colección para evitar mapeo de objetos
+            // Paso 1: Crear documento de contraseña en la colección 'contrasenias'
+            MongoCollection<Document> contraseniasCollection = mongoTemplate.getCollection("contrasenias");
+            
+            // Calcular fecha de expiración (1 año desde ahora)
+            Calendar cal = Calendar.getInstance();
+            cal.add(Calendar.YEAR, 1);
+            Date fechaExpiracion = cal.getTime();
+            
+            Document contraseniaDoc = new Document()
+                .append("fecha_expiracion", fechaExpiracion)
+                .append("contrasenia_actual", request.getContrasenia())
+                .append("contrasenia_usadas", new ArrayList<>())
+                .append("_class", "iso25.g05.esi_media.model.Contrasenia");
+            
+            System.out.println("📝 Base de datos actual: " + mongoTemplate.getDb().getName());
+            System.out.println("📝 Colección: " + contraseniasCollection.getNamespace());
+            System.out.println("📝 Insertando contraseña: " + contraseniaDoc.toJson());
+            contraseniasCollection.insertOne(contraseniaDoc);
+            ObjectId contraseniaObjectId = contraseniaDoc.getObjectId("_id");
+            String contraseniaId = contraseniaObjectId.toString();
+            System.out.println("✅ Contraseña insertada en BD con _id: " + contraseniaObjectId);
+            System.out.println("✅ String ID para DBRef: " + contraseniaId);
+            
+            // Paso 2: Crear DBRef para la contraseña
+            com.mongodb.DBRef contraseniaRef = new com.mongodb.DBRef("contrasenias", new org.bson.types.ObjectId(contraseniaId));
+            
+            // Paso 3: Crear documento de usuario con referencia a contraseña
             MongoCollection<Document> usersCollection = mongoTemplate.getCollection("users");
             
-            // Crear documento con nombres de campos sin guiones bajos
             Document adminDoc = new Document()
                 .append("departamento", request.getDepartamento())
                 .append("nombre", request.getNombre())
                 .append("apellidos", request.getApellidos())
                 .append("email", request.getEmail())
-                .append("foto", request.getFoto()) // Campo foto añadido
+                .append("foto", request.getFoto())
                 .append("bloqueado", false)
-                .append("sesionstoken", new ArrayList<>()) // Array vacío (sin guiones bajos)
+                .append("contrasenia", contraseniaRef) // DBRef a la contraseña
+                .append("sesionstoken", new ArrayList<>())
                 .append("fecharegistro", new Date())
                 .append("twoFactorAutenticationEnabled", false)
                 .append("threeFactorAutenticationEnabled", false)
                 .append("_class", "iso25.g05.esi_media.model.Administrador");
             
-            System.out.println("Insertando directamente en colección...");
-            
-            // Inserción SOLO en colección users - sin alternativas
+            System.out.println("Insertando usuario con contraseña vinculada...");
             usersCollection.insertOne(adminDoc);
             System.out.println("✅ Usuario insertado exitosamente en colección USERS");
             
             Map<String, Object> response = new HashMap<>();
-            response.put("mensaje", "Administrador creado exitosamente en colección users");
+            response.put("mensaje", "Administrador creado exitosamente con contraseña");
             response.put("email", request.getEmail());
             response.put("nombre", request.getNombre());
+            response.put("departamento", request.getDepartamento());
+            response.put("contraseniaId", contraseniaId);
             response.put("coleccion", "users");
-            response.put("estructura", "compatible con documentos existentes");
             
             return ResponseEntity.ok(response);
             
@@ -125,69 +151,6 @@ public class AdministradorController {
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("mensaje", "Error al crear usuario: " + e.getMessage());
             errorResponse.put("solucion", "Contacte al administrador para resolver problemas de índice en MongoDB");
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
-        }
-    }
-    
-    /**
-     * Endpoint simplificado para crear Gestores de Contenido
-     * Utiliza inserción directa a MongoDB en la colección 'users'
-     */
-    @PostMapping("/crear-gestor")
-    public ResponseEntity<Map<String, Object>> crearGestorSimple(@RequestBody CrearGestorRequest request) {
-        System.out.println("=== CREACIÓN GESTOR DE CONTENIDO ===");
-        System.out.println("Datos recibidos: " + request);
-        
-        try {
-            System.out.println("Procesando Gestor: " + request.getNombre() + " " + request.getApellidos() + " - " + request.getEmail());
-            System.out.println("Alias: " + request.getAlias() + " | Especialidad: " + request.getEspecialidad());
-            
-            MongoCollection<Document> usersCollection = mongoTemplate.getCollection("users");
-            
-            // Crear documento para Gestor de Contenido
-            Document gestorDoc = new Document()
-                .append("nombre", request.getNombre())
-                .append("apellidos", request.getApellidos())
-                .append("email", request.getEmail())
-                .append("foto", request.getFoto()) // Campo foto añadido
-                .append("bloqueado", false)
-                .append("sesionstoken", new ArrayList<>()) // Array vacío (sin guiones bajos)
-                .append("fecharegistro", new Date())
-                .append("twoFactorAutenticationEnabled", false)
-                .append("threeFactorAutenticationEnabled", false)
-                .append("_class", "iso25.g05.esi_media.model.GestordeContenido")
-                // Campos específicos del Gestor (nuevos nombres sin guiones bajos)
-                .append("alias", request.getAlias())
-                .append("descripcion", request.getDescripcion())
-                .append("campoespecializacion", request.getEspecialidad())
-                .append("tipocontenidovideooaudio", request.getTipoContenido())
-                .append("listasgeneradas", new ArrayList<>()); // Array vacío de listas
-            
-            System.out.println("Insertando Gestor directamente en colección users...");
-            
-            // Inserción en colección users
-            usersCollection.insertOne(gestorDoc);
-            System.out.println("✅ Gestor insertado exitosamente en colección USERS");
-            
-            Map<String, Object> response = new HashMap<>();
-            response.put("mensaje", "Gestor de Contenido creado exitosamente");
-            response.put("email", request.getEmail());
-            response.put("nombre", request.getNombre());
-            response.put("alias", request.getAlias());
-            response.put("especialidad", request.getEspecialidad());
-            response.put("tipoContenido", request.getTipoContenido());
-            response.put("coleccion", "users");
-            response.put("tipo", "GestordeContenido");
-            
-            return ResponseEntity.ok(response);
-            
-        } catch (Exception e) {
-            System.out.println("ERROR en creación de Gestor: " + e.getMessage());
-            e.printStackTrace();
-            
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("mensaje", "Error al crear Gestor: " + e.getMessage());
-            errorResponse.put("tipo", "GestordeContenido");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }

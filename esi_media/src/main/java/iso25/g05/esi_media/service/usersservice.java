@@ -45,7 +45,7 @@ public class usersservice {
             false, // No bloqueado por defecto
             contrasenia,
             request.getEmail(),
-            request.getFoto(), // Foto del request
+            request.getFoto(),
             request.getNombre(),
             request.getDepartamento()
         );
@@ -63,9 +63,6 @@ public class usersservice {
         if (adminActual.isEmpty()) {
             throw new RuntimeException("Administrador no encontrado");
         }
-        
-        // Por ahora permitimos que cualquier administrador cree otros administradores
-        // TODO: Implementar lógica de permisos según el tipo de administrador
     }
     
     /**

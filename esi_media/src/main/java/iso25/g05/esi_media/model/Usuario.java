@@ -25,7 +25,7 @@ public class Usuario {
     @Transient
     public List<Token> sesionstoken = new ArrayList<>();
 
-    @Transient
+    @org.springframework.data.mongodb.core.mapping.DBRef
     public Contrasenia contrasenia;
 
     protected Date fecharegistro;
