@@ -8,17 +8,19 @@ public class CrearAdministradorRequest {
     private String departamento;
     private String contrasenia;
     private String rol;
+    private String foto;
     
     // Constructors
     public CrearAdministradorRequest() {}
     
-    public CrearAdministradorRequest(String nombre, String apellidos, String email, String departamento, String contrasenia, String rol) {
+    public CrearAdministradorRequest(String nombre, String apellidos, String email, String departamento, String contrasenia, String rol, String foto) {
         this.nombre = nombre;
         this.apellidos = apellidos;
         this.email = email;
         this.departamento = departamento;
         this.contrasenia = contrasenia;
         this.rol = rol;
+        this.foto = foto;
     }
     
     // Getters and Setters
@@ -68,5 +70,13 @@ public class CrearAdministradorRequest {
     
     public void setRol(String rol) {
         this.rol = rol;
+    }
+    
+    public String getFoto() {
+        return foto;
+    }
+    
+    public void setFoto(String foto) {
+        this.foto = foto;
     }
 }

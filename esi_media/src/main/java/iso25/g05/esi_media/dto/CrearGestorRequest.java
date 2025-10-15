@@ -11,12 +11,13 @@ public class CrearGestorRequest {
     private String descripcion;
     private String especialidad;
     private String tipoContenido;
+    private String foto;
     
     // Constructors
     public CrearGestorRequest() {}
     
     public CrearGestorRequest(String nombre, String apellidos, String email, String contrasenia, 
-                            String rol, String alias, String descripcion, String especialidad, String tipoContenido) {
+                            String rol, String alias, String descripcion, String especialidad, String tipoContenido, String foto) {
         this.nombre = nombre;
         this.apellidos = apellidos;
         this.email = email;
@@ -26,6 +27,7 @@ public class CrearGestorRequest {
         this.descripcion = descripcion;
         this.especialidad = especialidad;
         this.tipoContenido = tipoContenido;
+        this.foto = foto;
     }
     
     // Getters and Setters
@@ -99,6 +101,14 @@ public class CrearGestorRequest {
     
     public void setTipoContenido(String tipoContenido) {
         this.tipoContenido = tipoContenido;
+    }
+    
+    public String getFoto() {
+        return foto;
+    }
+    
+    public void setFoto(String foto) {
+        this.foto = foto;
     }
     
     @Override

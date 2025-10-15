@@ -6,10 +6,10 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;
 
-import iso25.g05.esi_media.model.Codigo_recuperacion;
+import iso25.g05.esi_media.model.Codigorecuperacion;
 
 @Repository
-public interface CodigoRecuperacionRepository extends MongoRepository<Codigo_recuperacion, String> {
-    @Query("{'_codigo': ?0}")
-    Optional<Codigo_recuperacion> findByCodigo(String codigo);
+public interface CodigoRecuperacionRepository extends MongoRepository<Codigorecuperacion, String> {
+    @Query("{'codigo': ?0}")
+    Optional<Codigorecuperacion> findByCodigo(String codigo);
 }

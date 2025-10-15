@@ -8,9 +8,9 @@ import iso25.g05.esi_media.model.Administrador;
 
 @Repository
 public interface AdministradorRepository extends MongoRepository<Administrador, String> {
-    @Query(value = "{'_email': ?0}", exists = true)
+    @Query(value = "{'email': ?0}", exists = true)
     boolean existsByEmail(String email);
     
-    @Query("{'_email': ?0}")
+    @Query("{'email': ?0}")
     java.util.Optional<Administrador> findByEmail(String email);
 }

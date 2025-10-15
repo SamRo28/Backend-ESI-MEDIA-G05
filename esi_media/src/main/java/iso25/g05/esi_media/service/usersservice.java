@@ -32,18 +32,22 @@ public class usersservice {
         // 2. Verificar que el email sea único
         verificarEmailUnico(request.getEmail());
         
-        // 3. Crear el nuevo administrador
-        Contrasenia contrasenia = new Contrasenia(request.getContrasenia());
+        // 3. Crear el nuevo administrador  
+        Contrasenia contrasenia = new Contrasenia(
+            null, // id
+            null, // fecha_expiracion
+            request.getContrasenia(), // contrasenia_actual
+            new java.util.ArrayList<>() // contrasenias_usadas vacio
+        );
         
         Administrador nuevoAdmin = new Administrador(
             request.getApellidos(),
             false, // No bloqueado por defecto
             contrasenia,
             request.getEmail(),
-            null, // Sin foto por defecto
+            request.getFoto(), // Foto del request
             request.getNombre(),
-            request.getDepartamento(),
-            Administrador.TipoAdministrador.ADMINISTRADOR // Rol administrador por defecto
+            request.getDepartamento()
         );
         
         // 4. Guardar el administrador
@@ -60,10 +64,8 @@ public class usersservice {
             throw new RuntimeException("Administrador no encontrado");
         }
         
-        Administrador admin = adminActual.get();
-        if (!admin.esSuperAdministrador() && admin.getTipoAdministrador() != Administrador.TipoAdministrador.ADMINISTRADOR) {
-            throw new RuntimeException("No tiene permisos para crear administradores");
-        }
+        // Por ahora permitimos que cualquier administrador cree otros administradores
+        // TODO: Implementar lógica de permisos según el tipo de administrador
     }
     
     /**

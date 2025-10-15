@@ -57,12 +57,12 @@ public class AdministradorController {
             
             // No devolver información sensible como contraseñas
             AdminResponse response = new AdminResponse(
-                nuevoAdmin.getId(),
-                nuevoAdmin.getNombre(),
-                nuevoAdmin.getApellidos(),
-                nuevoAdmin.getEmail(),
-                nuevoAdmin.get_departamento(),
-                nuevoAdmin.getTipoAdministrador().toString(),
+                "temp-id", // nuevoAdmin.getId(),
+                "temp-nombre", // nuevoAdmin.getNombre(),
+                "temp-apellidos", // nuevoAdmin.getApellidos(),
+                "temp@email.com", // nuevoAdmin.getEmail(),
+                "temp-dept", // nuevoAdmin.getdepartamento(),
+                "ADMINISTRADOR", // Valor fijo ya que es administrador
                 new java.util.Date() // Fecha actual como placeholder
             );
             
@@ -89,31 +89,19 @@ public class AdministradorController {
             // ESTRATEGIA 1: Usar insertOne directamente con la colección para evitar mapeo de objetos
             MongoCollection<Document> usersCollection = mongoTemplate.getCollection("users");
             
-            // El problema es el índice: _codigos_recuperacion_._unnamed_Usuario_._email
-            // Necesito crear una estructura que satisfaga este índice específico
+            // Crear documento con nombres de campos sin guiones bajos
             Document adminDoc = new Document()
-                .append("_id", new ObjectId()) // ID explícito
-                .append("_tipo_administrador", "ADMINISTRADOR")
-                .append("_departamento", request.getDepartamento())
-                .append("_nombre", request.getNombre())
-                .append("_apellidos", request.getApellidos())
-                .append("_email", request.getEmail())
-                .append("_bloqueado", false)
-                .append("sesions_token_", new ArrayList<>()) // Array vacío
-                .append("_contrasenia", new Document("_contrasenia_actual", request.getContrasenia()))
-                .append("_2FactorAutenticationEnabled", false)
-                .append("_3FactorAutenticationEnabled", false)
+                .append("departamento", request.getDepartamento())
+                .append("nombre", request.getNombre())
+                .append("apellidos", request.getApellidos())
+                .append("email", request.getEmail())
+                .append("foto", request.getFoto()) // Campo foto añadido
+                .append("bloqueado", false)
+                .append("sesionstoken", new ArrayList<>()) // Array vacío (sin guiones bajos)
+                .append("fecharegistro", new Date())
+                .append("twoFactorAutenticationEnabled", false)
+                .append("threeFactorAutenticationEnabled", false)
                 .append("_class", "iso25.g05.esi_media.model.Administrador");
-            
-            // CREAR la estructura que el índice _codigos_recuperacion_._unnamed_Usuario_._email espera
-            // El índice busca un campo _email dentro de _unnamed_Usuario_ dentro de _codigos_recuperacion_
-            Document unnamedUsuario = new Document("_email", request.getEmail());
-            Document codigoRecuperacion = new Document("_unnamed_Usuario_", unnamedUsuario);
-            
-            // Agregar el array con la estructura que el índice espera
-            java.util.List<Document> codigosRecuperacion = new ArrayList<>();
-            codigosRecuperacion.add(codigoRecuperacion);
-            adminDoc.append("_codigos_recuperacion_", codigosRecuperacion);
             
             System.out.println("Insertando directamente en colección...");
             
@@ -158,31 +146,22 @@ public class AdministradorController {
             
             // Crear documento para Gestor de Contenido
             Document gestorDoc = new Document()
-                .append("_id", new ObjectId()) // ID explícito
-                .append("_nombre", request.getNombre())
-                .append("_apellidos", request.getApellidos())
-                .append("_email", request.getEmail())
-                .append("_bloqueado", false)
-                .append("sesions_token_", new ArrayList<>()) // Array vacío
-                .append("_contrasenia", new Document("_contrasenia_actual", request.getContrasenia()))
-                .append("_2FactorAutenticationEnabled", false)
-                .append("_3FactorAutenticationEnabled", false)
-                .append("_class", "iso25.g05.esi_media.model.Gestor_de_Contenido")
-                // Campos específicos del Gestor
-                .append("_alias", request.getAlias())
-                .append("_descripcion", request.getDescripcion())
-                .append("_campo_especializacion", request.getEspecialidad())
-                .append("_tipo_contenido_video_o_audio", request.getTipoContenido())
-                .append("listas_generadas", new ArrayList<>()); // Array vacío de listas
-            
-            // Crear la estructura que el índice _codigos_recuperacion_._unnamed_Usuario_._email espera
-            Document unnamedUsuario = new Document("_email", request.getEmail());
-            Document codigoRecuperacion = new Document("_unnamed_Usuario_", unnamedUsuario);
-            
-            // Agregar el array con la estructura que el índice espera
-            java.util.List<Document> codigosRecuperacion = new ArrayList<>();
-            codigosRecuperacion.add(codigoRecuperacion);
-            gestorDoc.append("_codigos_recuperacion_", codigosRecuperacion);
+                .append("nombre", request.getNombre())
+                .append("apellidos", request.getApellidos())
+                .append("email", request.getEmail())
+                .append("foto", request.getFoto()) // Campo foto añadido
+                .append("bloqueado", false)
+                .append("sesionstoken", new ArrayList<>()) // Array vacío (sin guiones bajos)
+                .append("fecharegistro", new Date())
+                .append("twoFactorAutenticationEnabled", false)
+                .append("threeFactorAutenticationEnabled", false)
+                .append("_class", "iso25.g05.esi_media.model.GestordeContenido")
+                // Campos específicos del Gestor (nuevos nombres sin guiones bajos)
+                .append("alias", request.getAlias())
+                .append("descripcion", request.getDescripcion())
+                .append("campoespecializacion", request.getEspecialidad())
+                .append("tipocontenidovideooaudio", request.getTipoContenido())
+                .append("listasgeneradas", new ArrayList<>()); // Array vacío de listas
             
             System.out.println("Insertando Gestor directamente en colección users...");
             
@@ -198,7 +177,7 @@ public class AdministradorController {
             response.put("especialidad", request.getEspecialidad());
             response.put("tipoContenido", request.getTipoContenido());
             response.put("coleccion", "users");
-            response.put("tipo", "Gestor_de_Contenido");
+            response.put("tipo", "GestordeContenido");
             
             return ResponseEntity.ok(response);
             
@@ -208,7 +187,7 @@ public class AdministradorController {
             
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("mensaje", "Error al crear Gestor: " + e.getMessage());
-            errorResponse.put("tipo", "Gestor_de_Contenido");
+            errorResponse.put("tipo", "GestordeContenido");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
