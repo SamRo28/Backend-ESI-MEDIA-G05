@@ -1,7 +1,10 @@
 package iso25.g05.esi_media.model;
 
 import java.util.Date;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 
+@Document(collection = "tokens")
 public class Token {
 
     private String token;
@@ -19,6 +22,7 @@ public class Token {
 
 
     public String getToken() {
+        return token;
         return token;
     }
 
@@ -43,6 +47,7 @@ public class Token {
 
 
     public boolean isExpirado() {
+        return expirado;
         return expirado;
     }
 
