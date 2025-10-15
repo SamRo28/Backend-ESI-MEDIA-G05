@@ -12,11 +12,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Controlador REST para gestión de contenido de video
+ * Controlador REST para gestión de contenido de video por gestores
  * Endpoints para subir y consultar videos
  */
 @RestController
-@RequestMapping("/api/contenido/video")
+@RequestMapping("/api/gestor/video")
 @CrossOrigin(origins = "*") // Configuración básica de CORS
 public class VideoController {
     
@@ -25,7 +25,7 @@ public class VideoController {
     
     /**
      * Endpoint para subir un nuevo video por URL
-     * POST /api/contenido/video/subir
+     * POST /api/gestor/video/subir
      * 
      * @param videoDTO Datos del video (JSON)
      * @param authHeader Token de autorización del gestor
@@ -64,7 +64,7 @@ public class VideoController {
     
     /**
      * Endpoint para verificar que el servicio está funcionando
-     * GET /api/contenido/video/estado
+     * GET /api/gestor/video/estado
      */
     @GetMapping("/estado")
     public ResponseEntity<Map<String, String>> estado() {

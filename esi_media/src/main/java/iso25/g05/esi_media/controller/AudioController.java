@@ -13,11 +13,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Controlador REST para gestión de contenido de audio
+ * Controlador REST para gestión de contenido de audio por gestores
  * Endpoints para subir y consultar audios
  */
 @RestController
-@RequestMapping("/api/contenido/audio")
+@RequestMapping("/api/gestor/audio")
 @CrossOrigin(origins = "*") // Configuración básica de CORS
 public class AudioController {
     
@@ -26,7 +26,7 @@ public class AudioController {
     
     /**
      * Endpoint para subir un nuevo archivo de audio
-     * POST /api/contenido/audio/subir
+     * POST /api/gestor/audio/subir
      * 
      * @param audioDTO Datos del audio (form-data con archivo)
      * @param authHeader Token de autorización del gestor
@@ -69,7 +69,7 @@ public class AudioController {
     
     /**
      * Endpoint para verificar que el servicio está funcionando
-     * GET /api/contenido/audio/estado
+     * GET /api/gestor/audio/estado
      */
     @GetMapping("/estado")
     public ResponseEntity<Map<String, String>> estado() {
