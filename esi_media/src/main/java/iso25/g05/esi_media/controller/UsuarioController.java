@@ -64,8 +64,23 @@ public class UsuarioController {
      * Login con autenticación de 3 factores
      */
     @PostMapping("/login3Auth")
-    public void login3Auth(@RequestBody Map<String, String> loginData) {
-        userService.login3Auth(loginData);
+    public Map<String, Object> login3Auth(@RequestBody Map<String, String> loginData) {
+        String codigoRecuperacionId = userService.login3Auth(loginData);
+        Map<String, Object> response = new HashMap<>();
+        response.put("codigoRecuperacionId", codigoRecuperacionId);
+        return response;
+    }
+
+
+    /**
+     * Login con autenticación de 3 factores
+     */
+    @PostMapping("/confirm3Auth")
+    public Map<String, Object> confirm3Auth(@RequestBody Map<String, String> loginData) {
+        String codigoRecuperacionId = userService.login3Auth(loginData);
+        Map<String, Object> response = new HashMap<>();
+        response.put("codigoRecuperacionId", codigoRecuperacionId);
+        return response;
     }
     
     // ==================== ENDPOINTS DE USUARIOS (/api/usuarios) ====================
@@ -95,6 +110,11 @@ public class UsuarioController {
             error.put("mensaje", "Error al obtener usuarios: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
+    }
+
+    @PostMapping("/confirm2faCode")
+    public boolean confirm2faCode(@RequestBody Map<String, String> data) {
+        return userService.confirm2faCode(data);
     }
     
     /**

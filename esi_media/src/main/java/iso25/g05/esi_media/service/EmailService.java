@@ -1,10 +1,8 @@
 package iso25.g05.esi_media.service;
 
-import java.util.UUID;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-
-import jakarta.mail.internet.MimeMessage;
+import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
@@ -12,10 +10,11 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
-import iso25.g05.esi_media.repository.UsuarioRepository;
+import iso25.g05.esi_media.model.Codigorecuperacion;
 import iso25.g05.esi_media.model.Usuario;
 import iso25.g05.esi_media.repository.CodigoRecuperacionRepository;
-import iso25.g05.esi_media.model.Codigorecuperacion;
+import iso25.g05.esi_media.repository.UsuarioRepository;
+import jakarta.mail.internet.MimeMessage;
 
 @Service
 public class EmailService {
@@ -33,7 +32,7 @@ public class EmailService {
         return UUID.randomUUID().toString();
     }
 
-    public void send3FAemail(String email, Usuario user) {
+    public Codigorecuperacion send3FAemail(String email, Usuario user) {
         try {
             MimeMessage mimeMessage = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true);
@@ -51,6 +50,7 @@ public class EmailService {
             helper.setText(emailContent, true);
 
             mailSender.send(mimeMessage);
+            return codigoRecuperacion;
 
         } catch (Exception e) {
             throw new RuntimeException("Error al enviar el correo de confirmación", e);
