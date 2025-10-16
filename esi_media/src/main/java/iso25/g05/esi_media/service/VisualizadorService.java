@@ -12,6 +12,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import com.warrenstrange.googleauth.GoogleAuthenticator;
+import com.warrenstrange.googleauth.GoogleAuthenticatorKey;
+import com.warrenstrange.googleauth.GoogleAuthenticatorQRGenerator;
+
 import iso25.g05.esi_media.dto.VisualizadorRegistroDTO;
 import iso25.g05.esi_media.model.Contrasenia;
 import iso25.g05.esi_media.model.Usuario;
@@ -396,4 +400,27 @@ public class VisualizadorService {
     public List<Visualizador> buscarPorAlias(String alias) {
         return visualizadorRepository.findByAliasContainingIgnoreCase(alias);
     }
+
+    public String activar2FA(String email) {
+        String res = "";
+        Optional<Usuario> existingUser = this.usuarioRepository.findByEmail(email);
+
+        if (existingUser.isPresent()) {
+            GoogleAuthenticator gAuth = new GoogleAuthenticator();
+            GoogleAuthenticatorKey key = gAuth.createCredentials();
+
+            String secret = key.getKey();
+
+            String otpAuthURL = GoogleAuthenticatorQRGenerator.getOtpAuthURL("MiApp", email, key);
+            Usuario user = existingUser.get();
+            user.setSecretkey(secret);
+            user.setTwoFactorAutenticationEnabled(true); 
+            usuarioRepository.save(user);
+
+            res = otpAuthURL;
+        }
+
+        return res;
+    }
+
 }
