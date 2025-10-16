@@ -44,16 +44,42 @@ public class UserService {
         String email = loginData.get("email");
         String password = loginData.get("password");
 
+        System.out.println("🔐 Intento de login - Email: " + email);
+        
         Optional<Usuario> existingUser = this.usuarioRepository.findByEmail(email);
+        
+        if (existingUser.isEmpty()) {
+            System.out.println("❌ Usuario no encontrado con email: " + email);
+            return null;
+        }
+        
+        Usuario user = existingUser.get();
+        System.out.println("✅ Usuario encontrado: " + user.getNombre() + " " + user.getApellidos());
+        System.out.println("📋 Tipo de usuario (_class): " + user.getClass().getName());
+        
+        if (user.getContrasenia() == null) {
+            System.out.println("⚠️ ADVERTENCIA: El usuario no tiene contraseña configurada");
+            return null;
+        }
+        
+        String storedPassword = user.getContrasenia().getContraseniaActual();
+        System.out.println("🔑 Contraseña almacenada: " + storedPassword);
+        System.out.println("🔑 Contraseña recibida: " + password);
+        System.out.println("🔍 ¿Contraseñas coinciden? " + storedPassword.equals(password));
 
-        if (existingUser.isPresent() && existingUser.get().getContrasenia().getContraseniaActual().equals(password)) {
-            if (!existingUser.get().isTwoFactorAutenticationEnabled()) {
-                generateAndSaveToken(existingUser.get());
-                return existingUser.get();
+        if (storedPassword.equals(password)) {
+            System.out.println("✅ Credenciales correctas!");
+            if (!user.isTwoFactorAutenticationEnabled()) {
+                System.out.println("🎫 Generando token de sesión (2FA deshabilitado)");
+                generateAndSaveToken(user);
+                return user;
             } else {
-                return existingUser.get();
+                System.out.println("🔐 2FA habilitado - se requiere segundo factor");
+                return user;
             }
         }
+        
+        System.out.println("❌ Contraseña incorrecta");
         return null;
     }
 
@@ -63,7 +89,14 @@ public class UserService {
     private void generateAndSaveToken(Usuario user) {
         Token token = new Token();
         user.sesionstoken.add(token);
+        
+        System.out.println("🎫 Token generado: " + token.getToken());
+        System.out.println("📅 Fecha de expiración: " + token.getFechaExpiracion());
+        System.out.println("💾 Guardando usuario con token en MongoDB...");
+        
         this.usuarioRepository.save(user);
+        
+        System.out.println("✅ Usuario guardado con token de sesión");
     }
 
     /**

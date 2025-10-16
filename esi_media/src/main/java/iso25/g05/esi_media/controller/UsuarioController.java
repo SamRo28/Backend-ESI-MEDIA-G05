@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -53,11 +54,35 @@ public class UsuarioController {
      * Login de usuario con email y contraseña
      */
     @PostMapping("/login")
-    public Usuario login(@RequestBody Map<String, String> loginData) {
+    public ResponseEntity<?> login(@RequestBody Map<String, String> loginData) {
         Usuario loggedInUser = userService.login(loginData);
         if (loggedInUser == null)
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid credentials");
-        return loggedInUser;
+        
+        // Crear un mapa con los datos del usuario y el campo _class
+        Map<String, Object> response = new HashMap<>();
+        response.put("_id", loggedInUser.getId());
+        response.put("nombre", loggedInUser.getNombre());
+        response.put("apellidos", loggedInUser.getApellidos());
+        response.put("email", loggedInUser.getEmail());
+        response.put("foto", loggedInUser.getFoto());
+        response.put("bloqueado", loggedInUser.isBloqueado());
+        response.put("fecharegistro", loggedInUser.getFechaRegistro());
+        response.put("sesionstoken", loggedInUser.sesionstoken);
+        response.put("twoFactorAutenticationEnabled", loggedInUser.isTwoFactorAutenticationEnabled());
+        response.put("threeFactorAutenticationEnabled", loggedInUser.isThreeFactorAutenticationEnabled());
+        
+        // Agregar el campo _class con el nombre completo de la clase
+        response.put("_class", loggedInUser.getClass().getName());
+        
+        // Si es administrador, agregar el departamento
+        if (loggedInUser instanceof Administrador) {
+            response.put("departamento", ((Administrador) loggedInUser).getDepartamento());
+        }
+        
+        System.out.println("📤 Enviando respuesta de login con _class: " + loggedInUser.getClass().getName());
+        
+        return ResponseEntity.ok(response);
     }
 
     /**
@@ -256,6 +281,58 @@ public class UsuarioController {
             }
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    /**
+     * Actualizar perfil del usuario (nombre, apellidos, foto)
+     */
+    @PutMapping("/{id}/profile")
+    @CrossOrigin(origins = "*")
+    public ResponseEntity<?> updateProfile(@PathVariable String id, @RequestBody Map<String, String> updates) {
+        try {
+            Optional<Usuario> optionalUsuario = usuarioRepository.findById(id);
+            
+            if (!optionalUsuario.isPresent()) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            Usuario usuario = optionalUsuario.get();
+            
+            // Actualizar campos si están presentes
+            if (updates.containsKey("nombre")) {
+                usuario.setNombre(updates.get("nombre"));
+            }
+            if (updates.containsKey("apellidos")) {
+                usuario.setApellidos(updates.get("apellidos"));
+            }
+            if (updates.containsKey("foto")) {
+                usuario.setFoto(updates.get("foto"));
+            }
+            
+            // Guardar en MongoDB
+            Usuario updatedUsuario = usuarioRepository.save(usuario);
+            
+            // Construir respuesta con _class incluido (igual que en login)
+            Map<String, Object> response = new HashMap<>();
+            response.put("_id", updatedUsuario.getId());
+            response.put("nombre", updatedUsuario.getNombre());
+            response.put("apellidos", updatedUsuario.getApellidos());
+            response.put("email", updatedUsuario.getEmail());
+            response.put("foto", updatedUsuario.getFoto());
+            response.put("bloqueado", updatedUsuario.isBloqueado());
+            response.put("_class", updatedUsuario.getClass().getName());
+            
+            // Si es Administrador, incluir departamento
+            if (updatedUsuario instanceof Administrador) {
+                response.put("departamento", ((Administrador) updatedUsuario).getDepartamento());
+            }
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error al actualizar perfil: " + e.getMessage());
         }
     }
 
