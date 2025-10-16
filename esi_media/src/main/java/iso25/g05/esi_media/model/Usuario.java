@@ -149,7 +149,7 @@ public class Usuario {
     public void setFechaRegistro(Date fecha) {
         this.fecharegistro = fecha;
     }
-public boolean isTwoFactorAutenticationEnabled() {
+    public boolean isTwoFactorAutenticationEnabled() {
         return twoFactorAutenticationEnabled;
     }
 
@@ -181,5 +181,31 @@ public boolean isTwoFactorAutenticationEnabled() {
     public void setFoto(Object foto) {
         this.foto = foto;
     }
+
+    public List<Codigorecuperacion> getCodigosrecuperacion() {
+        return codigosrecuperacion;
+    }
+
+    public void setCodigosrecuperacion(List<Codigorecuperacion> codigosrecuperacion) {
+        this.codigosrecuperacion = codigosrecuperacion;
+    }
+
+    public List<Token> getSesionstoken() {
+        return sesionstoken;
+    }
+
+    public void setSesionstoken(List<Token> sesionstoken) {
+        this.sesionstoken = sesionstoken;
+    }
+
+    public String getSecretkey() {
+        return secretkey;
+    }
+
+    public void setSecretkey(String secretkey) {
+        this.secretkey = secretkey;
+    }
+
+
 
 }
