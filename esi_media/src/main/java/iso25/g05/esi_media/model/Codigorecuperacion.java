@@ -1,33 +1,42 @@
 package iso25.g05.esi_media.model;
 
-<<<<<<< HEAD
-import java.util.Date;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Random;
-import java.util.UUID;
 
-public class Codigorecuperacion {
-	protected String id;
-	private String codigo;
-	private Date fechaexpiracion;
-	public Usuario unnamedUsuario;
-
-    public Codigorecuperacion(Usuario unnamedUsuario) {
-        this.id = UUID.randomUUID().toString();
-        this.codigo = ""+generarNumeroAleatorio6Cifras();
-        this.fechaexpiracion = new Date(System.currentTimeMillis() + 1 * 60 * 1000); // 1 minuto desde ahora
-=======
 public class Codigorecuperacion {
 	protected String id;
 	private String codigo;
 	private String fechaexpiracion;
 	public Usuario unnamedUsuario;
 
+    // Constructor completo (original)
     public Codigorecuperacion(String id, String codigo, String fechaexpiracion, Usuario unnamedUsuario) {
         this.id = id;
         this.codigo = codigo;
         this.fechaexpiracion = fechaexpiracion;
->>>>>>> alvaro
         this.unnamedUsuario = unnamedUsuario;
+    }
+
+    // Constructor simplificado para EmailService - genera código automáticamente
+    public Codigorecuperacion(Usuario usuario) {
+        this.id = null; // MongoDB asignará el ID
+        this.codigo = generarCodigo6Digitos();
+        this.fechaexpiracion = calcularFechaExpiracion();
+        this.unnamedUsuario = usuario;
+    }
+
+    private String generarCodigo6Digitos() {
+        Random random = new Random();
+        int codigo = 100000 + random.nextInt(900000); // Genera número entre 100000 y 999999
+        return String.valueOf(codigo);
+    }
+
+    private String calcularFechaExpiracion() {
+        LocalDateTime ahora = LocalDateTime.now();
+        LocalDateTime expiracion = ahora.plusMinutes(15); // Expira en 15 minutos
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        return expiracion.format(formatter);
     }
 
 	public String getId() {
@@ -42,17 +51,10 @@ public class Codigorecuperacion {
 	public void setcodigo(String codigo) {
 		this.codigo = codigo;
 	}
-<<<<<<< HEAD
-	public Date getfechaexpiracion() {
-		return fechaexpiracion;
-	}
-	public void setfechaexpiracion(Date fechaexpiracion) {
-=======
 	public String getfechaexpiracion() {
 		return fechaexpiracion;
 	}
 	public void setfechaexpiracion(String fechaexpiracion) {
->>>>>>> alvaro
 		this.fechaexpiracion = fechaexpiracion;
 	}
 	public Usuario getunnamedUsuario() {
@@ -62,13 +64,5 @@ public class Codigorecuperacion {
 		this.unnamedUsuario = unnamedUsuario;
 	}
 
-<<<<<<< HEAD
-	private int generarNumeroAleatorio6Cifras() {
-        Random random = new Random();
-        return 100000 + random.nextInt(900000);
-    }
-
-=======
->>>>>>> alvaro
 	
 }

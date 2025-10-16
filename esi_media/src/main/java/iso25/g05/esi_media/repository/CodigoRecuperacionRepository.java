@@ -10,10 +10,6 @@ import iso25.g05.esi_media.model.Codigorecuperacion;
 
 @Repository
 public interface CodigoRecuperacionRepository extends MongoRepository<Codigorecuperacion, String> {
-<<<<<<< HEAD
-    @Query("{ '_codigo' : ?0 }")
-=======
     @Query("{'codigo': ?0}")
->>>>>>> alvaro
     Optional<Codigorecuperacion> findByCodigo(String codigo);
 }

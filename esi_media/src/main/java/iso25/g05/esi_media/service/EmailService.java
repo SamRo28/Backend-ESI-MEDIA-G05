@@ -1,4 +1,4 @@
-package iso25.g05.esi_media.services;
+package iso25.g05.esi_media.service;
 
 import java.util.UUID;
 import java.nio.file.Files;

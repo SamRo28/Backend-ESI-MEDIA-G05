@@ -1,23 +1,28 @@
 package iso25.g05.esi_media.model;
 
+/**
+ * Administrador - hereda de Usuario
+ * NO necesita @Document porque Usuario ya lo tiene
+ * Spring Data MongoDB usará el discriminador _class para identificar el tipo
+ */
 public class Administrador extends Usuario {
-	private String _departamento;
-
-	public Administrador(String _apellidos, boolean _bloqueado, Contrasenia _contrasenia, String _email, Object _foto, String _nombre, String departamento) {
-		super(_apellidos, _bloqueado, _contrasenia, _email, _foto, _nombre);
-		this._departamento = departamento;
-	}
-
-
 	private String departamento;
 
-	public String get_departamento() {
-		return _departamento;
+	// Constructor vacío requerido por MongoDB
+	public Administrador() {
+		super("", false, null, "", null, "");
 	}
 
-	public void set_departamento(String _departamento) {
-		this._departamento = _departamento;
+	public Administrador(String apellidos, boolean bloqueado, Contrasenia contrasenia, String email, Object foto, String nombre, String departamento) {
+		super(apellidos, bloqueado, contrasenia, email, foto, nombre);
+		this.departamento = departamento;
 	}
 
-	
+	public String getDepartamento() {
+		return departamento;
+	}
+
+	public void setDepartamento(String departamento) {
+		this.departamento = departamento;
+	}
 }

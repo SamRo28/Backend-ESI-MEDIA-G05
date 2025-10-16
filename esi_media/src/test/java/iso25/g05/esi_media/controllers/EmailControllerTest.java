@@ -6,7 +6,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import iso25.g05.esi_media.services.EmailService;
+import iso25.g05.esi_media.service.EmailService;
+import iso25.g05.esi_media.controller.EmailController;
 
 @ExtendWith(MockitoExtension.class)
 class EmailControllerTest {

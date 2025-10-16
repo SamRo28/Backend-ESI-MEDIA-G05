@@ -255,6 +255,7 @@ public class VisualizadorService {
         // TEMPORAL: Sin objeto Contrasenia para evitar relaciones circulares problemáticas
         // PASO 1: Crear contraseña con nuevo constructor sin referencia de usuario
         Contrasenia contrasenia = new Contrasenia(
+            null, // ID será generado por MongoDB
             new Date(System.currentTimeMillis() + (365L * 24 * 60 * 60 * 1000)), // Expira en 1 año
             dto.getContrasenia(), // Contraseña actual
             new ArrayList<>() // Lista de contraseñas anteriores vacía

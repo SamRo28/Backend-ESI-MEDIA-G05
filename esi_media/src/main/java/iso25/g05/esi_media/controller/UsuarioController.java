@@ -7,10 +7,12 @@ import iso25.g05.esi_media.model.Usuario;
 import iso25.g05.esi_media.model.Visualizador;
 import iso25.g05.esi_media.repository.AdministradorRepository;
 import iso25.g05.esi_media.repository.UsuarioRepository;
+import iso25.g05.esi_media.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -19,8 +21,13 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+/**
+ * Controlador unificado para gestión de usuarios
+ * Incluye endpoints para listar, registrar, login y gestión general
+ */
 @RestController
 @RequestMapping("/api/usuarios")
+@CrossOrigin(origins = "*")
 public class UsuarioController {
 
     @Autowired
@@ -28,6 +35,32 @@ public class UsuarioController {
     
     @Autowired
     private AdministradorRepository administradorRepository;
+    
+    @Autowired
+    private UserService userService;
+    
+    // ==================== ENDPOINTS DE LOGIN (/users) ====================
+    
+    /**
+     * Login de usuario con email y contraseña
+     */
+    @PostMapping("/users/login")
+    public Usuario login(@RequestBody Map<String, String> loginData) {
+        Usuario loggedInUser = userService.login(loginData);
+        if (loggedInUser == null)
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid credentials");
+        return loggedInUser;
+    }
+
+    /**
+     * Login con autenticación de 3 factores
+     */
+    @PostMapping("/users/login3Auth")
+    public void login3Auth(@RequestBody Map<String, String> loginData) {
+        userService.login3Auth(loginData);
+    }
+    
+    // ==================== ENDPOINTS DE USUARIOS (/api/usuarios) ====================
 
     /**
      * Obtener todos los usuarios - Endpoint compatible con frontend

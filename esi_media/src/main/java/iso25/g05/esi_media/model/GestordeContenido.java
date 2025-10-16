@@ -3,6 +3,11 @@ package iso25.g05.esi_media.model;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * GestordeContenido - hereda de Usuario
+ * NO necesita @Document porque Usuario ya lo tiene
+ * Spring Data MongoDB usará el discriminador _class para identificar el tipo
+ */
 public class GestordeContenido extends Usuario {
 
 	private String alias;
@@ -11,16 +16,12 @@ public class GestordeContenido extends Usuario {
 	private String tipocontenidovideooaudio;
 	public List<Lista> listasgeneradas ;
 
-<<<<<<< HEAD
-=======
 	// Constructor vacío requerido por MongoDB
 	public GestordeContenido() {
 		super("", false, null, "", null, "");
 		this.listasgeneradas = new ArrayList<>();
-		// MongoDB usará este constructor y luego los setters para poblar los campos
 	}
 
->>>>>>> alvaro
 	public GestordeContenido(String apellidos, boolean bloqueado, Contrasenia contrasenia, String email,
 			Object foto, String nombre) {
 		super(apellidos, bloqueado, contrasenia, email, foto, nombre);
@@ -29,7 +30,6 @@ public class GestordeContenido extends Usuario {
 		this.descripcion = null;
 		this.campoespecializacion = null;
 		this.tipocontenidovideooaudio = null;
-
 	}
 
 	public String getalias() {

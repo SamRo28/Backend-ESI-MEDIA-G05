@@ -1,22 +1,86 @@
 package iso25.g05.esi_media.service;
 
+import java.util.Map;
+import java.util.Optional;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
 import iso25.g05.esi_media.model.Administrador;
 import iso25.g05.esi_media.model.Contrasenia;
+import iso25.g05.esi_media.model.Token;
+import iso25.g05.esi_media.model.Usuario;
 import iso25.g05.esi_media.dto.CrearAdministradorRequest;
 import iso25.g05.esi_media.repository.AdministradorRepository;
 import iso25.g05.esi_media.repository.UsuarioRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import java.util.Optional;
 
+/**
+ * Servicio unificado para gestión de usuarios (login, administradores, etc.)
+ * Combina funcionalidades de UserService y userservice
+ */
 @Service
-public class userservice {
+public class UserService {
     
     @Autowired
     private AdministradorRepository administradorRepository;
     
     @Autowired
     private UsuarioRepository usuarioRepository;
+    
+    @Autowired
+    private EmailService emailService;
+
+    // ============================================
+    // FUNCIONALIDADES DE LOGIN Y AUTENTICACIÓN
+    // ============================================
+    
+    /**
+     * Login normal con email y contraseña
+     * Si el usuario NO tiene 2FA habilitado, genera un token de sesión
+     * @param loginData Map con email y password
+     * @return Usuario si las credenciales son correctas, null en caso contrario
+     */
+    public Usuario login(Map<String, String> loginData) {
+        String email = loginData.get("email");
+        String password = loginData.get("password");
+
+        Optional<Usuario> existingUser = this.usuarioRepository.findByEmail(email);
+
+        if (existingUser.isPresent() && existingUser.get().getContrasenia().getContraseniaActual().equals(password)) {
+            if (!existingUser.get().isTwoFactorAutenticationEnabled()) {
+                generateAndSaveToken(existingUser.get());
+                return existingUser.get();
+            } else {
+                return existingUser.get();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Genera un token de sesión y lo guarda en el usuario
+     */
+    private void generateAndSaveToken(Usuario user) {
+        Token token = new Token();
+        user.sesionstoken.add(token);
+        this.usuarioRepository.save(user);
+    }
+
+    /**
+     * Login con autenticación de 3 factores
+     * Envía un email con el código de verificación
+     */
+    public void login3Auth(Map<String, String> loginData) {
+        String email = loginData.get("email");
+        Optional<Usuario> existingUser = this.usuarioRepository.findByEmail(email);
+        if (existingUser.isPresent()) {
+            emailService.send3FAemail(email, existingUser.get());
+        }
+    }
+
+    // ============================================
+    // FUNCIONALIDADES DE CREACIÓN DE ADMINISTRADORES
+    // ============================================
     
     /**
      * Crea un nuevo administrador

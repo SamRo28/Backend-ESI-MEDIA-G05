@@ -17,7 +17,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.server.ResponseStatusException;
 
 import iso25.g05.esi_media.model.Usuario;
-import iso25.g05.esi_media.services.UserService;
+import iso25.g05.esi_media.service.UserService;
+import iso25.g05.esi_media.controller.UsuarioController;
 
 @ExtendWith(MockitoExtension.class)
 class UserControllerTest {
@@ -26,7 +27,7 @@ class UserControllerTest {
     private UserService userService;
 
     @InjectMocks
-    private UserController userController;
+    private UsuarioController userController;
 
     @Test
     void testLoginSuccess() {

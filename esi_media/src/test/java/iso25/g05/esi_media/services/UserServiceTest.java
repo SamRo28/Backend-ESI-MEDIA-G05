@@ -20,6 +20,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import iso25.g05.esi_media.model.Contrasenia;
 import iso25.g05.esi_media.model.Usuario;
 import iso25.g05.esi_media.repository.UsuarioRepository;
+import iso25.g05.esi_media.service.EmailService;
+import iso25.g05.esi_media.service.UserService;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {

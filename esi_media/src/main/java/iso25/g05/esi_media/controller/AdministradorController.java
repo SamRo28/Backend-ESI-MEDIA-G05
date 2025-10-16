@@ -20,7 +20,7 @@ import java.util.Map;
 import java.util.ArrayList;
 import java.util.Calendar;
 import iso25.g05.esi_media.model.Administrador;
-import iso25.g05.esi_media.service.userservice;
+import iso25.g05.esi_media.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -37,7 +37,7 @@ import java.util.Map;
 public class AdministradorController {
     
     @Autowired
-    private userservice userService;
+    private UserService userService;
 
     @Autowired
     private MongoTemplate mongoTemplate;

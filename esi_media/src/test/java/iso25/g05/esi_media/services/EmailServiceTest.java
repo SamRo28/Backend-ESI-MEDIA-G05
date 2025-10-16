@@ -9,6 +9,7 @@ import org.springframework.mail.javamail.JavaMailSender;
 
 import iso25.g05.esi_media.model.Usuario;
 import iso25.g05.esi_media.repository.CodigoRecuperacionRepository;
+import iso25.g05.esi_media.service.EmailService;
 import jakarta.mail.internet.MimeMessage;
 
 import static org.mockito.Mockito.*;

@@ -2,42 +2,15 @@ package iso25.g05.esi_media.model;
 
 import java.util.Date;
 import java.util.List;
-<<<<<<< HEAD
-import java.util.ArrayList;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
-=======
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
->>>>>>> alvaro
 
 @Document(collection = "contrasenias")
 public class Contrasenia {
 
     @Id
     protected String id;
-<<<<<<< HEAD
-    private Date fechaexpiracion;
-    private String contraseniaactual;
-    private List<String> contraseniausadas;
-    
-    // DECISIÓN DEL EQUIPO: Sin referencia al usuario
-    // - Contrasenia NO conoce a su usuario (unidireccional)
-    // - Usuario SÍ conoce su contraseña 
-    // - Eliminación: primero contraseña, luego usuario
-
-    // Constructor vacío para MongoDB
-    public Contrasenia() {
-        this.contraseniausadas = new ArrayList<>();
-    }
-
-    // Constructor sin referencia a usuario - Decisión del equipo
-    public Contrasenia(Date fecha_expiracion, String contrasenia_actual, List<String> contrasenias_usadas) {
-        this.fechaexpiracion = fecha_expiracion;
-        this.contraseniaactual = contrasenia_actual;
-        this.contraseniausadas = contrasenias_usadas != null ? contrasenias_usadas : new ArrayList<>();
-=======
     
     @Field("fecha_expiracion")
     private Date fechaexpiracion;
@@ -58,7 +31,6 @@ public class Contrasenia {
         this.contraseniaactual = contraseniaactual;
         this.contraseniausadas = contraseniausadas;
 
->>>>>>> alvaro
     }
 
     public String getId() {
