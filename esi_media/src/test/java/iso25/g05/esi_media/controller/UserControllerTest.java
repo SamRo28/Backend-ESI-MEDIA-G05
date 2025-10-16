@@ -14,6 +14,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.server.ResponseStatusException;
 
 import iso25.g05.esi_media.model.Usuario;
@@ -39,10 +40,15 @@ class UserControllerTest {
 
         when(userService.login(loginData)).thenReturn(user);
 
-        Usuario result = userController.login(loginData);
+        ResponseEntity<?> response = userController.login(loginData);
 
-        assertNotNull(result);
-        assertEquals("test@example.com", result.getEmail());
+        assertNotNull(response);
+        assertEquals(200, response.getStatusCode().value());
+        assertNotNull(response.getBody());
+        
+        @SuppressWarnings("unchecked")
+        Map<String, Object> responseBody = (Map<String, Object>) response.getBody();
+        assertEquals("test@example.com", responseBody.get("email"));
     }
 
     @Test

@@ -299,6 +299,9 @@ public class UsuarioController {
             
             Usuario usuario = optionalUsuario.get();
             
+            System.out.println("🔍 Usuario antes de actualizar perfil - sesionstoken count: " + 
+                (usuario.sesionstoken != null ? usuario.sesionstoken.size() : "null"));
+            
             // Actualizar campos si están presentes
             if (updates.containsKey("nombre")) {
                 usuario.setNombre(updates.get("nombre"));
@@ -310,8 +313,14 @@ public class UsuarioController {
                 usuario.setFoto(updates.get("foto"));
             }
             
+            System.out.println("💾 Guardando usuario - sesionstoken count: " + 
+                (usuario.sesionstoken != null ? usuario.sesionstoken.size() : "null"));
+            
             // Guardar en MongoDB
             Usuario updatedUsuario = usuarioRepository.save(usuario);
+            
+            System.out.println("✅ Usuario guardado - sesionstoken count: " + 
+                (updatedUsuario.sesionstoken != null ? updatedUsuario.sesionstoken.size() : "null"));
             
             // Construir respuesta con _class incluido (igual que en login)
             Map<String, Object> response = new HashMap<>();

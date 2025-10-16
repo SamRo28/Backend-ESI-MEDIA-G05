@@ -87,16 +87,30 @@ public class UserService {
      * Genera un token de sesión y lo guarda en el usuario
      */
     private void generateAndSaveToken(Usuario user) {
+        System.out.println("🔐 ANTES de generar token:");
+        System.out.println("   - Usuario ID: " + user.getId());
+        System.out.println("   - Tokens existentes: " + (user.sesionstoken != null ? user.sesionstoken.size() : "null"));
+        
         Token token = new Token();
         user.sesionstoken.add(token);
         
         System.out.println("🎫 Token generado: " + token.getToken());
         System.out.println("📅 Fecha de expiración: " + token.getFechaExpiracion());
+        System.out.println("📊 Total tokens en lista: " + user.sesionstoken.size());
         System.out.println("💾 Guardando usuario con token en MongoDB...");
         
-        this.usuarioRepository.save(user);
+        Usuario savedUser = this.usuarioRepository.save(user);
         
-        System.out.println("✅ Usuario guardado con token de sesión");
+        System.out.println("✅ Usuario guardado:");
+        System.out.println("   - ID: " + savedUser.getId());
+        System.out.println("   - Tokens después de guardar: " + (savedUser.sesionstoken != null ? savedUser.sesionstoken.size() : "null"));
+        
+        // Verificar inmediatamente después de guardar
+        Optional<Usuario> verificar = this.usuarioRepository.findById(savedUser.getId());
+        if (verificar.isPresent()) {
+            System.out.println("🔍 Verificación inmediata - Tokens en DB: " + 
+                (verificar.get().sesionstoken != null ? verificar.get().sesionstoken.size() : "null"));
+        }
     }
 
     /**
