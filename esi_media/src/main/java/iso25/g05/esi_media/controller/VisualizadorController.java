@@ -28,11 +28,12 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/visualizador")
 // Configuración CORS segura para desarrollo local - CAMBIAR EN PRODUCCIÓN
-@CrossOrigin(
+/*@CrossOrigin(
     origins = {"http://localhost:4200", "http://localhost:3000"},
     allowedHeaders = {"Content-Type", "Authorization"},
     methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE}
-)
+)*/
+@CrossOrigin(origins = "*") // Permitir todas las fuentes - SOLO PARA TESTING
 public class VisualizadorController {
     
     /**
@@ -47,6 +48,20 @@ public class VisualizadorController {
         this.visualizadorService = visualizadorService;
     }
     
+    @PostMapping("/activate2FA")
+    public ResponseEntity<Map<String, String>> activar2FA(@RequestBody Map<String, String> request) {
+        String email = request.get("email");
+        
+        // Lógica para activar 2FA (enviar código, verificar, etc.)
+        String res = visualizadorService.activar2FA(email);
+
+        if (!res.isEmpty()) {
+            return ResponseEntity.ok(Map.of("mensaje", res));
+        } else {
+            return ResponseEntity.badRequest().body(Map.of("mensaje", "Error al activar 2FA"));
+        }
+    }
+
     /**
      * Endpoint principal para registrar un nuevo visualizador
      * 
