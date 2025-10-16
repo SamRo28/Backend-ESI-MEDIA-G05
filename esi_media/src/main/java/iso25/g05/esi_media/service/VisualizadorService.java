@@ -1,18 +1,26 @@
 package iso25.g05.esi_media.service;
 
-import iso25.g05.esi_media.model.*;
-import iso25.g05.esi_media.repository.UsuarioRepository;
-import iso25.g05.esi_media.repository.VisualizadorRepository;
-import iso25.g05.esi_media.repository.ContraseniaRepository;
-import org.springframework.stereotype.Service;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import jakarta.validation.ConstraintViolation;
-import jakarta.validation.Validator;
-
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+
+import iso25.g05.esi_media.dto.VisualizadorRegistroDTO;
+import iso25.g05.esi_media.model.Contrasenia;
+import iso25.g05.esi_media.model.Usuario;
+import iso25.g05.esi_media.model.Visualizador;
+import iso25.g05.esi_media.repository.ContraseniaRepository;
+import iso25.g05.esi_media.repository.UsuarioRepository;
+import iso25.g05.esi_media.repository.VisualizadorRepository;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Validator;
 
 /**
  * Servicio para gestionar el registro de visualizadores con persistencia MongoDB.

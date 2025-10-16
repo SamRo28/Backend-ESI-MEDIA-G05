@@ -1,8 +1,14 @@
-package iso25.g05.esi_media.model;
+package iso25.g05.esi_media.dto;
+
+import java.util.Date;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import jakarta.validation.constraints.*;
-import java.util.Date;
+
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Past;
+import jakarta.validation.constraints.Size;
 
 /**
  * DTO (Data Transfer Object) para recibir los datos del formulario de registro de Visualizador.

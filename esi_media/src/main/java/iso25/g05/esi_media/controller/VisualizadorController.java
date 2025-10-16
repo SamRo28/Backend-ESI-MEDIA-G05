@@ -1,6 +1,6 @@
 package iso25.g05.esi_media.controller;
 
-import iso25.g05.esi_media.model.VisualizadorRegistroDTO;
+import iso25.g05.esi_media.dto.VisualizadorRegistroDTO;
 import iso25.g05.esi_media.service.RegistroResultado;
 import iso25.g05.esi_media.service.VisualizadorService;
 

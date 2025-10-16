@@ -1,5 +1,25 @@
 package iso25.g05.esi_media.controller;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
+
 import iso25.g05.esi_media.model.Administrador;
 import iso25.g05.esi_media.model.Contrasenia;
 import iso25.g05.esi_media.model.GestordeContenido;
@@ -8,25 +28,13 @@ import iso25.g05.esi_media.model.Visualizador;
 import iso25.g05.esi_media.repository.AdministradorRepository;
 import iso25.g05.esi_media.repository.UsuarioRepository;
 import iso25.g05.esi_media.service.UserService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * Controlador unificado para gestión de usuarios
  * Incluye endpoints para listar, registrar, login y gestión general
  */
 @RestController
-@RequestMapping("/api/usuarios")
+@RequestMapping("/users")
 @CrossOrigin(origins = "*")
 public class UsuarioController {
 
@@ -44,7 +52,7 @@ public class UsuarioController {
     /**
      * Login de usuario con email y contraseña
      */
-    @PostMapping("/users/login")
+    @PostMapping("/login")
     public Usuario login(@RequestBody Map<String, String> loginData) {
         Usuario loggedInUser = userService.login(loginData);
         if (loggedInUser == null)
@@ -55,7 +63,7 @@ public class UsuarioController {
     /**
      * Login con autenticación de 3 factores
      */
-    @PostMapping("/users/login3Auth")
+    @PostMapping("/login3Auth")
     public void login3Auth(@RequestBody Map<String, String> loginData) {
         userService.login3Auth(loginData);
     }

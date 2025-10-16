@@ -1,4 +1,4 @@
-package iso25.g05.esi_media.controllers;
+package iso25.g05.esi_media.controller;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -18,7 +18,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 import iso25.g05.esi_media.model.Usuario;
 import iso25.g05.esi_media.service.UserService;
-import iso25.g05.esi_media.controller.UsuarioController;
 
 @ExtendWith(MockitoExtension.class)
 class UserControllerTest {
