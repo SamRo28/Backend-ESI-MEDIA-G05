@@ -6,12 +6,16 @@ import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.warrenstrange.googleauth.GoogleAuthenticator;
+
+import iso25.g05.esi_media.dto.CrearAdministradorRequest;
 import iso25.g05.esi_media.model.Administrador;
+import iso25.g05.esi_media.model.Codigorecuperacion;
 import iso25.g05.esi_media.model.Contrasenia;
 import iso25.g05.esi_media.model.Token;
 import iso25.g05.esi_media.model.Usuario;
-import iso25.g05.esi_media.dto.CrearAdministradorRequest;
 import iso25.g05.esi_media.repository.AdministradorRepository;
+import iso25.g05.esi_media.repository.CodigoRecuperacionRepository;
 import iso25.g05.esi_media.repository.ContraseniaRepository;
 import iso25.g05.esi_media.repository.UsuarioRepository;
 
@@ -27,12 +31,18 @@ public class UserService {
     
     @Autowired
     private UsuarioRepository usuarioRepository;
-    
+
+    @Autowired
+    private CodigoRecuperacionRepository codigorecuperacionRepository;
+
     @Autowired
     private ContraseniaRepository contraseniaRepository;
     
     @Autowired
     private EmailService emailService;
+    
+
+    private final GoogleAuthenticator gAuth = new GoogleAuthenticator();
 
     // ============================================
     // FUNCIONALIDADES DE LOGIN Y AUTENTICACIÓN
@@ -90,43 +100,36 @@ public class UserService {
     /**
      * Genera un token de sesión y lo guarda en el usuario
      */
-    private void generateAndSaveToken(Usuario user) {
-        System.out.println("🔐 ANTES de generar token:");
-        System.out.println("   - Usuario ID: " + user.getId());
-        System.out.println("   - Tokens existentes: " + (user.sesionstoken != null ? user.sesionstoken.size() : "null"));
-        
+    private Token generateAndSaveToken(Usuario user) {
         Token token = new Token();
         user.sesionstoken.add(token);
-        
-        System.out.println("🎫 Token generado: " + token.getToken());
-        System.out.println("📅 Fecha de expiración: " + token.getFechaExpiracion());
-        System.out.println("📊 Total tokens en lista: " + user.sesionstoken.size());
-        System.out.println("💾 Guardando usuario con token en MongoDB...");
-        
-        Usuario savedUser = this.usuarioRepository.save(user);
-        
-        System.out.println("✅ Usuario guardado:");
-        System.out.println("   - ID: " + savedUser.getId());
-        System.out.println("   - Tokens después de guardar: " + (savedUser.sesionstoken != null ? savedUser.sesionstoken.size() : "null"));
-        
-        // Verificar inmediatamente después de guardar
-        Optional<Usuario> verificar = this.usuarioRepository.findById(savedUser.getId());
-        if (verificar.isPresent()) {
-            System.out.println("🔍 Verificación inmediata - Tokens en DB: " + 
-                (verificar.get().sesionstoken != null ? verificar.get().sesionstoken.size() : "null"));
-        }
+        this.usuarioRepository.save(user);
+        return token;
     }
 
     /**
      * Login con autenticación de 3 factores
      * Envía un email con el código de verificación
      */
-    public void login3Auth(Map<String, String> loginData) {
+    public String login3Auth(Map<String, String> loginData) {
         String email = loginData.get("email");
         Optional<Usuario> existingUser = this.usuarioRepository.findByEmail(email);
         if (existingUser.isPresent()) {
-            emailService.send3FAemail(email, existingUser.get());
+            Codigorecuperacion cr = emailService.send3FAemail(email, existingUser.get());
+            return cr.getId();
         }
+        return null;
+    }
+
+    public Token confirmLogin3Auth(Map<String, String> loginData) {
+        String codigoRecuperacionId = loginData.get("id");
+        String code = loginData.get("code");
+        Optional<Codigorecuperacion> existingCode = this.codigorecuperacionRepository.findById(codigoRecuperacionId);
+        if (existingCode.isPresent() && existingCode.get().getcodigo().equals(code)) {
+            Usuario user = existingCode.get().getunnamedUsuario();
+            return generateAndSaveToken(user);
+        }
+        return null;
     }
 
     // ============================================
@@ -208,5 +211,17 @@ public class UserService {
         if (administradorRepository.existsByEmail(email)) {
             throw new RuntimeException("El email ya existe en el sistema");
         }
+    }
+
+    public boolean confirm2faCode(Map<String, String> data) {
+        int code = Integer.parseInt(data.get("code"));
+        String email = data.get("email");
+        boolean valid = false;
+        Optional<Usuario> existingUser = this.usuarioRepository.findByEmail(email);
+        if (existingUser.isPresent() ) {
+            String secret = existingUser.get().getSecretkey();
+            valid = gAuth.authorize(secret, code);
+        }
+        return valid;
     }
 }

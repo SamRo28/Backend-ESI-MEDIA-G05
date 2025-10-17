@@ -54,43 +54,37 @@ public class UsuarioController {
      * Login de usuario con email y contraseña
      */
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody Map<String, String> loginData) {
+    public Map<String,Object> login(@RequestBody Map<String, String> loginData) {
         Usuario loggedInUser = userService.login(loginData);
         if (loggedInUser == null)
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid credentials");
-        
-        // Crear un mapa con los datos del usuario y el campo _class
-        Map<String, Object> response = new HashMap<>();
-        response.put("_id", loggedInUser.getId());
-        response.put("nombre", loggedInUser.getNombre());
-        response.put("apellidos", loggedInUser.getApellidos());
-        response.put("email", loggedInUser.getEmail());
-        response.put("foto", loggedInUser.getFoto());
-        response.put("bloqueado", loggedInUser.isBloqueado());
-        response.put("fecharegistro", loggedInUser.getFechaRegistro());
-        response.put("sesionstoken", loggedInUser.sesionstoken);
-        response.put("twoFactorAutenticationEnabled", loggedInUser.isTwoFactorAutenticationEnabled());
-        response.put("threeFactorAutenticationEnabled", loggedInUser.isThreeFactorAutenticationEnabled());
-        
-        // Agregar el campo _class con el nombre completo de la clase
-        response.put("_class", loggedInUser.getClass().getName());
-        
-        // Si es administrador, agregar el departamento
-        if (loggedInUser instanceof Administrador) {
-            response.put("departamento", ((Administrador) loggedInUser).getDepartamento());
-        }
-        
-        System.out.println("📤 Enviando respuesta de login con _class: " + loggedInUser.getClass().getName());
-        
-        return ResponseEntity.ok(response);
+        return Map.of(
+            "tipo", loggedInUser.getClass().getSimpleName(),
+            "usuario", loggedInUser
+        );
     }
 
     /**
      * Login con autenticación de 3 factores
      */
     @PostMapping("/login3Auth")
-    public void login3Auth(@RequestBody Map<String, String> loginData) {
-        userService.login3Auth(loginData);
+    public Map<String, Object> login3Auth(@RequestBody Map<String, String> loginData) {
+        String codigoRecuperacionId = userService.login3Auth(loginData);
+        Map<String, Object> response = new HashMap<>();
+        response.put("codigoRecuperacionId", codigoRecuperacionId);
+        return response;
+    }
+
+
+    /**
+     * Login con autenticación de 3 factores
+     */
+    @PostMapping("/confirm3Auth")
+    public Map<String, Object> confirm3Auth(@RequestBody Map<String, String> loginData) {
+        String codigoRecuperacionId = userService.login3Auth(loginData);
+        Map<String, Object> response = new HashMap<>();
+        response.put("codigoRecuperacionId", codigoRecuperacionId);
+        return response;
     }
     
     // ==================== ENDPOINTS DE USUARIOS (/api/usuarios) ====================
@@ -120,6 +114,11 @@ public class UsuarioController {
             error.put("mensaje", "Error al obtener usuarios: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
+    }
+
+    @PostMapping("/confirm2faCode")
+    public boolean confirm2faCode(@RequestBody Map<String, String> data) {
+        return userService.confirm2faCode(data);
     }
     
     /**
