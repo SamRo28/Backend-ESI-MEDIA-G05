@@ -7,8 +7,8 @@ public class Lista {
 	protected String id;
 	private String nombre;
 	private Usuario usuario;
-	public String publico;
-	public List<Contenido> contenidos = new ArrayList<>();
+	private String publico;
+	private List<Contenido> contenidos = new ArrayList<>();
 
 	public Lista(String id, String nombre, Usuario usuario, String publico, List<Contenido> contenidos) {
 		this.id = id;

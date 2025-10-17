@@ -2,24 +2,49 @@ package iso25.g05.esi_media.model;
 
 import java.util.Date;
 import java.util.List;
+import org.bson.types.Binary;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 @Document(collection = "audios")
 public class Audio extends Contenido {
-	private Object fichero;
+    private Binary fichero;        // Archivo binario real (.mp3)
+    private String mimeType;       // Tipo MIME, ej. "audio/mpeg"
+    private long tamanoBytes;      // Tamaño en bytes
 
-	public Audio(String id, String titulo, String descripcion, List<String> etiquetas, double duracion, boolean vip, boolean estado, Date fechaEstadoAutomatico, Date fechaDisponibleHasta, int edadVisualizacion, Object caratula, int nVisualizaciones, Object fichero) {
-		super(id, titulo, descripcion, etiquetas, duracion, vip, estado, fechaEstadoAutomatico, fechaDisponibleHasta, edadVisualizacion, caratula, nVisualizaciones);
+	public Audio(String id, String titulo, String descripcion, List<String> tags, double duracion, 
+				boolean vip, boolean estado, Date fechaestadoautomatico, Date fechadisponiblehasta, int edadvisualizacion, 
+				Object caratula, int nvisualizaciones, Binary fichero, String mimeType, long tamanoBytes, String gestorId) {
+		super(id, titulo, descripcion, tags, duracion, vip, estado, fechaestadoautomatico, fechadisponiblehasta, 
+				edadvisualizacion, caratula, nvisualizaciones, gestorId);
 		this.fichero = fichero;
+		this.mimeType = mimeType;
+		this.tamanoBytes = tamanoBytes;
 	}
 
-	public Object getfichero() {
+	public Binary getfichero() {
 		return fichero;
 	}
 
-	public void setfichero(Object fichero) {
+	public void setfichero(Binary fichero) {
+
 		this.fichero = fichero;
 	}
+
+	public String getmimeType() {
+		return mimeType;
+    }
+
+    public void setmimeType(String mimeType) {
+        this.mimeType = mimeType;
+    }
+
+    public long gettamanoBytes() {
+        return tamanoBytes;
+    }
+
+    public void settamanoBytes(long tamanoBytes) {
+        this.tamanoBytes = tamanoBytes;
+    }
 
 	
 }

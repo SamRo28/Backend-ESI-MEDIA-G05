@@ -14,18 +14,20 @@ public class Contenido {
 	protected List<String> tags;
 	protected double duracion;
 	protected boolean vip;
-	protected boolean estado;
+	protected boolean estado;	// ACLARACION: TRUE: Visible, FALSE: No visible
+
 	protected Date fechaestadoautomatico;
 	protected Date fechadisponiblehasta;
 	protected int edadvisualizacion;
 	protected Object caratula;
 	protected int nvisualizaciones;
+	protected String gestorId;	// ID del gestor que subió el contenido
 
 
 	
 	public Contenido(String id, String titulo, String descripcion, List<String> tags, double duracion, boolean vip,
 			boolean estado, Date fechaestadoautomatico, Date fechadisponiblehasta, int edadvisualizacion,
-			Object caratula, int nvisualizaciones) {
+			Object caratula, int nvisualizaciones, String gestorId) {
 		this.id = id;
 		this.titulo = titulo;
 		this.descripcion = descripcion;
@@ -38,6 +40,7 @@ public class Contenido {
 		this.edadvisualizacion = edadvisualizacion;
 		this.caratula = caratula;
 		this.nvisualizaciones = nvisualizaciones;
+		this.gestorId = gestorId;
 	}
 
 	public String getId() {
@@ -136,8 +139,12 @@ public class Contenido {
 		this.nvisualizaciones = nvisualizaciones;
 	}
 
+	public String getgestorId() {
+		return gestorId;
+	}
 
-
-	
+	public void setgestorId(String gestorId) {
+		this.gestorId = gestorId;
+	}
 
 }
