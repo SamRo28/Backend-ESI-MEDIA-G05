@@ -103,7 +103,6 @@ public class Usuario {
         this(apellidos, bloqueado, contrasenia, email, foto, nombre, new Date());
     }
 
-
     public Contrasenia getContrasenia() {
         return contrasenia;
     }
@@ -206,5 +205,7 @@ public class Usuario {
     public void setSecretkey(String secretkey) {
         this.secretkey = secretkey;
     }
+
+
 
 }

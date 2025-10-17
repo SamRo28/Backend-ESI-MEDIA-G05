@@ -26,6 +26,7 @@ public class Audio extends Contenido {
 	}
 
 	public void setfichero(Binary fichero) {
+
 		this.fichero = fichero;
 	}
 

@@ -2,21 +2,35 @@ package iso25.g05.esi_media.model;
 
 import java.util.Date;
 import java.util.List;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
 
+@Document(collection = "contrasenias")
 public class Contrasenia {
 
+    @Id
     protected String id;
-    private Date fecha_expiracion;
-    private String contrasenia_actual;
-    private List<String> contrasenia_usadas;
-    private Usuario usuario;
+    
+    @Field("fecha_expiracion")
+    private Date fechaexpiracion;
+    
+    @Field("contrasenia_actual")
+    private String contraseniaactual;
+    
+    @Field("contrasenia_usadas")
+    private List<String> contraseniausadas;
 
-    public Contrasenia(String id, Date fecha_expiracion, String contrasenia_actual, List<String> contrasenia_usadas, Usuario usuario) {
+    // Constructor vacío requerido por MongoDB
+    public Contrasenia() {
+    }
+
+    public Contrasenia(String id, Date fechaexpiracion, String contraseniaactual, List<String> contraseniausadas) {
         this.id = id;
-        this.fecha_expiracion = fecha_expiracion;
-        this.contrasenia_actual = contrasenia_actual;
-        this.contrasenia_usadas = contrasenia_usadas;
-        this.usuario = usuario;
+        this.fechaexpiracion = fechaexpiracion;
+        this.contraseniaactual = contraseniaactual;
+        this.contraseniausadas = contraseniausadas;
+
     }
 
     public String getId() {
@@ -27,35 +41,47 @@ public class Contrasenia {
         this.id = id;
     }
 
-    public Date getFecha_expiracion() {
-        return fecha_expiracion;
+    public Date getFechaExpiracion() {
+        return fechaexpiracion;
     }
 
-    public void setFecha_expiracion(Date fecha_expiracion) {
-        this.fecha_expiracion = fecha_expiracion;
+    public void setFechaExpiracion(Date d) {
+        fechaexpiracion = d;
     }
 
-    public String getContrasenia_actual() {
-        return contrasenia_actual;
+    public String getContraseniaActual() {
+        return contraseniaactual;
     }
 
-    public void setContrasenia_actual(String contrasenia_actual) {
-        this.contrasenia_actual = contrasenia_actual;
+    public void setContraseniaActual(String c) {
+        contraseniaactual = c;
     }
 
-    public List<String> getContrasenia_usadas() {
-        return contrasenia_usadas;
+    public List<String> getContraseniasUsadas() {
+        return contraseniausadas;
     }
 
-    public void setContrasenia_usadas(List<String> contrasenia_usadas) {
-        this.contrasenia_usadas = contrasenia_usadas;
+    public void setContraseniasUsadas(List<String> l) {
+        contraseniausadas = l;
     }
-
-    public Usuario getUsuario() {
-        return usuario;
-    }
-
-    public void setUsuario(Usuario usuario) {
-        this.usuario = usuario;
-    }
+    
+    /**
+     * NOTA IMPORTANTE SOBRE EL DISEÑO:
+     * 
+     * DECISIÓN DEL EQUIPO - MODELO UNIDIRECCIONAL:
+     * - Contrasenia NO conoce a su usuario (sin usuarioId)
+     * - Usuario SÍ conoce su contraseña (relación uno a uno)
+     * - Eliminación controlada: primero contraseña, luego usuario
+     * 
+     * VENTAJAS DE ESTE DISEÑO:
+     * - Máxima simplicidad: Contrasenia es solo un valor/objeto
+     * - Sin referencias circulares en absoluto
+     * - Modelo conceptualmente más claro
+     * - Lógica de eliminación controlada por el servicio
+     * 
+     * RESPONSABILIDADES:
+     * - Usuario: Conoce y gestiona su contraseña
+     * - Contrasenia: Solo almacena datos de autenticación
+     * - Servicio: Gestiona la relación y el ciclo de vida
+     */
 }

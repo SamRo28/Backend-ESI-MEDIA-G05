@@ -15,6 +15,7 @@ public class Contenido {
 	protected double duracion;
 	protected boolean vip;
 	protected boolean estado;	// ACLARACION: TRUE: Visible, FALSE: No visible
+
 	protected Date fechaestadoautomatico;
 	protected Date fechadisponiblehasta;
 	protected int edadvisualizacion;

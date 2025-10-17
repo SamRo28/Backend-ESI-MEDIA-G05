@@ -10,6 +10,6 @@ import iso25.g05.esi_media.model.GestordeContenido;
 
 @Repository
 public interface GestorDeContenidoRepository extends MongoRepository<GestordeContenido, String> {
-    @Query("{ '_campo_especializacion' : ?0 }")
+    @Query("{'campoespecializacion': ?0}")
     List<GestordeContenido> findByCampoEspecializacion(String campo);
 }
