@@ -12,6 +12,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.server.ResponseStatusException;
 
 import iso25.g05.esi_media.service.UserService;
@@ -36,7 +37,7 @@ class UserControllerTest {
 
         when(userService.login(loginData)).thenReturn(user);
 
-        Usuario result = userController.login(loginData);
+        ResponseEntity<?> response = userController.login(loginData);
 
         assertNotNull(result);
         assertEquals("test@example.com", result.getEmail());

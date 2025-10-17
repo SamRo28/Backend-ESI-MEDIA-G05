@@ -33,7 +33,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/administradores")
+@RequestMapping("/administradores")
+@CrossOrigin(origins = "*")
 public class AdministradorController {
     
     @Autowired
