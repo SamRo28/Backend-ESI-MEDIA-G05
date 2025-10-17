@@ -12,6 +12,7 @@ import iso25.g05.esi_media.model.Token;
 import iso25.g05.esi_media.model.Usuario;
 import iso25.g05.esi_media.dto.CrearAdministradorRequest;
 import iso25.g05.esi_media.repository.AdministradorRepository;
+import iso25.g05.esi_media.repository.ContraseniaRepository;
 import iso25.g05.esi_media.repository.UsuarioRepository;
 
 /**
@@ -26,6 +27,9 @@ public class UserService {
     
     @Autowired
     private UsuarioRepository usuarioRepository;
+    
+    @Autowired
+    private ContraseniaRepository contraseniaRepository;
     
     @Autowired
     private EmailService emailService;
@@ -163,6 +167,21 @@ public class UserService {
         
         // 4. Guardar el administrador
         return administradorRepository.save(nuevoAdmin);
+    }
+    
+    /**
+     * Eliminar una contraseña por su ID
+     * @param contraseniaId ID de la contraseña a eliminar
+     */
+    public void deletePassword(String contraseniaId) {
+        System.out.println("Servicio: Eliminando contraseña con ID: " + contraseniaId);
+        try {
+            // Eliminar directamente sin comprobar existencia para mayor velocidad
+            contraseniaRepository.deleteById(contraseniaId);
+            System.out.println("Contraseña eliminada correctamente");
+        } catch (Exception e) {
+            System.out.println("Error al eliminar contraseña o no existe: " + e.getMessage());
+        }
     }
     
     /**

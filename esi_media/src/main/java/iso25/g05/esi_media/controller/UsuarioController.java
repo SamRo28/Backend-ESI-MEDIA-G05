@@ -346,19 +346,47 @@ public class UsuarioController {
     }
 
     /**
-     * Eliminar un usuario
+     * Eliminar un usuario y su contraseña asociada de manera optimizada
      */
     @DeleteMapping("/{id}")
-    public ResponseEntity<String> eliminarUsuario(@PathVariable String id) {
+    public ResponseEntity<Map<String, String>> eliminarUsuario(@PathVariable String id) {
+        long startTime = System.currentTimeMillis();
+        Map<String, String> response = new HashMap<>();
+        
         try {
-            if (usuarioRepository.existsById(id)) {
+            // Obtener información del usuario por ID (solo una vez)
+            Optional<Usuario> usuarioOpt = usuarioRepository.findById(id);
+            
+            if (usuarioOpt.isPresent()) {
+                Usuario usuario = usuarioOpt.get();
+                String contraseniaId = null;
+                
+                // Capturar ID de contraseña si existe
+                if (usuario.getContrasenia() != null && usuario.getContrasenia().getId() != null) {
+                    contraseniaId = usuario.getContrasenia().getId();
+                }
+                
+                // Eliminar usuario inmediatamente para liberar recursos
                 usuarioRepository.deleteById(id);
-                return ResponseEntity.ok("Usuario eliminado correctamente");
+                System.out.println("Usuario eliminado: " + id);
+                
+                // Eliminar contraseña después (si existe)
+                if (contraseniaId != null) {
+                    userService.deletePassword(contraseniaId);
+                }
+                
+                long duration = System.currentTimeMillis() - startTime;
+                response.put("mensaje", "Usuario eliminado correctamente");
+                response.put("tiempoEjecucion", duration + "ms");
+                return ResponseEntity.ok(response);
             } else {
-                return ResponseEntity.notFound().build();
+                response.put("error", "Usuario no encontrado");
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
             }
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
+            System.out.println("Error al eliminar usuario: " + e.getMessage());
+            response.put("error", "Error al eliminar usuario: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
 }
