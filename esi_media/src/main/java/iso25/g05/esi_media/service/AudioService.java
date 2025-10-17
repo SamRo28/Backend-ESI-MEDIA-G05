@@ -74,7 +74,7 @@ public class AudioService {
         Audio audioGuardado = audioRepository.save(audio);
         
         // 5. Actualizar lista de contenidos del gestor
-        gestor.getContenidosSubidos().add(audioGuardado.getId());
+        gestor.getContenidos_subidos().add(audioGuardado.getId());
         gestorRepository.save(gestor);
         
         return audioGuardado;
@@ -93,7 +93,7 @@ public class AudioService {
         Gestor_de_Contenido gestor = gestorOpt.get();
         
         // Verificar que el gestor puede subir audio
-        if (!"audio".equalsIgnoreCase(gestor.get_tipo_contenido_video_o_audio())) {
+        if (!"audio".equalsIgnoreCase(gestor.getTipo_contenido_video_o_audio())) {
             throw new IllegalArgumentException("El gestor no está autorizado para subir contenido de audio");
         }
         
@@ -170,7 +170,7 @@ public class AudioService {
             throw new IllegalArgumentException("Gestor no encontrado con ID: " + gestorId);
         }
         
-        return audioRepository.findAllById(gestorOpt.get().getContenidosSubidos());
+        return audioRepository.findAllById(gestorOpt.get().getContenidos_subidos());
     }
     
     /**
@@ -180,12 +180,14 @@ public class AudioService {
      * @throws IllegalArgumentException Si el token es inválido
      */
     private String validarTokenYObtenerGestorId(String authHeader) {
+
         // 1. Extraer token del header
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             throw new IllegalArgumentException("Header de autorización inválido");
         }
         
         String tokenValue = authHeader.replace("Bearer ", "").trim();
+       
         if (tokenValue.isEmpty()) {
             throw new IllegalArgumentException("Token vacío");
         }
@@ -197,20 +199,22 @@ public class AudioService {
         }
         
         Token token = tokenOpt.get();
-        
+
         // 3. Verificar que el token no ha expirado
         if (token.getFechaExpiracion().before(new Date())) {
             throw new IllegalArgumentException("Token expirado");
         }
         
         // 4. Obtener el usuario asociado al token
-        Usuario usuario = token._usuario;
+        Usuario usuario = token.getUsuario();
+
         if (usuario == null) {
             throw new IllegalArgumentException("Token sin usuario asociado");
         }
         
         // 5. Verificar que el usuario es un gestor de contenido
         Optional<Gestor_de_Contenido> gestorOpt = gestorRepository.findById(usuario.getId());
+        
         if (gestorOpt.isEmpty()) {
             throw new IllegalArgumentException("El usuario no es un gestor de contenido");
         }

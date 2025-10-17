@@ -18,7 +18,7 @@ public class AudioUploadDTO {
     @Size(min = 1, max = 500, message = "La descripción debe tener entre 1 y 500 caracteres")
     private String descripcion;
     
-    @NotBlank(message = "Los tags son obligatorios (al menos uno)")
+    @NotEmpty(message = "Los tags son obligatorios (al menos uno)")
     private List<String> tags;
     
     @NotNull(message = "La duración es obligatoria")

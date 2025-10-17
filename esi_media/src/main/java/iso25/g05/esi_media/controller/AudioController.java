@@ -14,10 +14,10 @@ import java.util.Map;
 
 /**
  * Controlador REST para gestión de contenido de audio por gestores
- * Endpoints para subir y consultar audios
+ * Endpoints para subir audios
  */
 @RestController
-@RequestMapping("/api/gestor/audio")
+@RequestMapping("/gestor/audio")
 @CrossOrigin(origins = "*") // Configuración básica de CORS
 public class AudioController {
     
@@ -26,50 +26,50 @@ public class AudioController {
     
     /**
      * Endpoint para subir un nuevo archivo de audio
-     * POST /api/gestor/audio/subir
+     * POST /gestor/audio/subir
      * 
-     * @param audioDTO Datos del audio (form-data con archivo)
+     * @param audioDTO Datos del audio
      * @param authHeader Token de autorización del gestor
      * @return Respuesta con el audio creado o error
      */
-    @PostMapping("/subir")
-    public ResponseEntity<Map<String, Object>> subirAudio(
-            @Valid @ModelAttribute AudioUploadDTO audioDTO,
-            @RequestHeader("Authorization") String authHeader) {
+@PostMapping("/subir")
+public ResponseEntity<Map<String, Object>> subirAudio(
+        @Valid @ModelAttribute AudioUploadDTO audioDTO,
+        @RequestHeader("Authorization") String authHeader) {  // ← RESTAURAR ESTO
+    
+    Map<String, Object> response = new HashMap<>();
+    
+    try {
+        // CAMBIAR: Usar método CON token (como VideoController)
+        Audio audioGuardado = audioService.subirAudioConToken(audioDTO, authHeader);
         
-        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("message", "Audio subido exitosamente");
+        response.put("audioId", audioGuardado.getId());
+        response.put("titulo", audioGuardado.getTitulo());
         
-        try {
-            // El service se encarga de validar el token y extraer el gestorId
-            Audio audioGuardado = audioService.subirAudioConToken(audioDTO, authHeader);
-            
-            response.put("success", true);
-            response.put("message", "Audio subido exitosamente");
-            response.put("audioId", audioGuardado.getId());
-            response.put("titulo", audioGuardado.get_titulo());
-            
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-            
-        } catch (IllegalArgumentException e) {
-            response.put("success", false);
-            response.put("message", "Error de validación: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-            
-        } catch (IOException e) {
-            response.put("success", false);
-            response.put("message", "Error procesando el archivo: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-            
-        } catch (Exception e) {
-            response.put("success", false);
-            response.put("message", "Error interno del servidor");
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-        }
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        
+    } catch (IllegalArgumentException e) {
+        response.put("success", false);
+        response.put("message", "Error de validación: " + e.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        
+    } catch (IOException e) {
+        response.put("success", false);
+        response.put("message", "Error procesando el archivo: " + e.getMessage());
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        
+    } catch (Exception e) {
+        response.put("success", false);
+        response.put("message", "Error interno del servidor: " + e.getMessage());
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
+}
     
     /**
      * Endpoint para verificar que el servicio está funcionando
-     * GET /api/gestor/audio/estado
+     * GET /gestor/audio/estado
      */
     @GetMapping("/estado")
     public ResponseEntity<Map<String, String>> estado() {

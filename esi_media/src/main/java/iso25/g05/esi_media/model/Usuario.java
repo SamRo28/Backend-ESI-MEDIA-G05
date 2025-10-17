@@ -11,33 +11,39 @@ public class Usuario {
     @Id
     private String id;
 
-    protected String _nombre;
-    protected String _apellidos;
-    protected String _email;
-    protected Object _foto;
-    protected boolean _bloqueado;
-    public List<Codigo_recuperacion> _codigos_recuperacion_ = new ArrayList<>();
-    public List<Token> sesions_token_ = new ArrayList<>();
-    public Contrasenia _contrasenia;
-    protected Date _fecha_registro;
+    protected String nombre;
+    protected String apellidos;
+    protected String email;
+    protected Object foto;
+    protected boolean bloqueado;
+    private List<Codigo_recuperacion> codigosRecuperacion = new ArrayList<>();
+    private List<Token> sesionsToken = new ArrayList<>();
+    private Contrasenia contrasenia;
+    protected Date fechaRegistro;
     private String secretkey;
-    private boolean _2FactorAutenticationEnabled;
-    private boolean _3FactorAutenticationEnabled;
+    private boolean twoFactorAuthenticationEnabled;
+    private boolean threeFactorAuthenticationEnabled;
 
 
-    public Usuario(String _apellidos, boolean _bloqueado, Contrasenia _contrasenia, String _email, Object _foto, String _nombre, Date _fecha_registro) {
-        this._apellidos = _apellidos;
-        this._bloqueado = _bloqueado;
-        this._contrasenia = _contrasenia;
-        this._email = _email;
-        this._foto = _foto;
-        this._nombre = _nombre;
-        this._fecha_registro = _fecha_registro;
+    public Usuario(String apellidos, boolean bloqueado, Contrasenia contrasenia, String email, Object foto, String nombre, Date fechaRegistro) {
+        this.apellidos = apellidos;
+        this.bloqueado = bloqueado;
+        this.contrasenia = contrasenia;
+        this.email = email;
+        this.foto = foto;
+        this.nombre = nombre;
+        this.fechaRegistro = fechaRegistro;
+    }
+
+        public Usuario() {
+        this.fechaRegistro = new Date();
+        this.codigosRecuperacion = new ArrayList<>();
+        this.sesionsToken = new ArrayList<>();
     }
 
     // Constructor sin fecha de registro (se asigna automáticamente)
-    public Usuario(String _apellidos, boolean _bloqueado, Contrasenia _contrasenia, String _email, Object _foto, String _nombre) {
-        this(_apellidos, _bloqueado, _contrasenia, _email, _foto, _nombre, new Date());
+    public Usuario(String apellidos, boolean bloqueado, Contrasenia contrasenia, String email, Object foto, String nombre) {
+        this(apellidos, bloqueado, contrasenia, email, foto, nombre, new Date());
     }
 
 
@@ -51,42 +57,98 @@ public class Usuario {
     }
 
     public String getNombre() {
-        return _nombre;
+        return nombre;
     }
 
-    public void setNombre(String n) {
-        _nombre = n;
+    public void setNombre(String nombre) {
+        this.nombre = nombre;
     }
 
     public String getApellidos() {
-        return _apellidos;
+        return apellidos;
     }
 
-    public void setApellidos(String a) {
-        _apellidos = a;
+    public void setApellidos(String apellidos) {
+        this.apellidos = apellidos;
     }
 
     public String getEmail() {
-        return _email;
+        return email;
     }
 
-    public void setEmail(String e) {
-        _email = e;
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public boolean isBloqueado() {
-        return _bloqueado;
+        return bloqueado;
     }
 
-    public void setBloqueado(boolean b) {
-        _bloqueado = b;
+    public void setBloqueado(boolean bloqueado) {
+        this.bloqueado = bloqueado;
     }
 
     public Date getFechaRegistro() {
-        return _fecha_registro;
+        return fechaRegistro;
     }
 
-    public void setFechaRegistro(Date fecha) {
-        this._fecha_registro = fecha;
+    public void setFechaRegistro(Date fechaRegistro) {
+        this.fechaRegistro = fechaRegistro;
+    }
+
+    public Object getFoto() {
+        return foto;
+    }
+
+    public void setFoto(Object foto) {
+        this.foto = foto;
+    }
+
+    public Contrasenia getContrasenia() {
+        return contrasenia;
+    }
+
+    public void setContrasenia(Contrasenia contrasenia) {
+        this.contrasenia = contrasenia;
+    }
+
+    public List<Codigo_recuperacion> getCodigosRecuperacion() {
+        return codigosRecuperacion;
+    }
+
+    public void setCodigosRecuperacion(List<Codigo_recuperacion> codigosRecuperacion) {
+        this.codigosRecuperacion = codigosRecuperacion;
+    }
+
+    public List<Token> getSesionsToken() {
+        return sesionsToken;
+    }
+
+    public void setSesionsToken(List<Token> sesionsToken) {
+        this.sesionsToken = sesionsToken;
+    }
+
+    public String getSecretkey() {
+        return secretkey;
+    }
+
+    public void setSecretkey(String secretkey) {
+        this.secretkey = secretkey;
+    }
+
+    public boolean isTwoFactorAuthenticationEnabled() {
+        return twoFactorAuthenticationEnabled;
+    }
+
+    public void setTwoFactorAuthenticationEnabled(boolean twoFactorAuthenticationEnabled) {
+        this.twoFactorAuthenticationEnabled = twoFactorAuthenticationEnabled;
+    }
+
+    public boolean isThreeFactorAuthenticationEnabled() {
+        return threeFactorAuthenticationEnabled;
+    }
+
+    public void setThreeFactorAuthenticationEnabled(boolean threeFactorAuthenticationEnabled) {
+        this.threeFactorAuthenticationEnabled = threeFactorAuthenticationEnabled;
     }
 }

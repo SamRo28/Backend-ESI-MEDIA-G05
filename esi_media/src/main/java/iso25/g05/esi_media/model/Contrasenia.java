@@ -6,17 +6,17 @@ import java.util.List;
 public class Contrasenia {
 
     protected String id;
-    private Date _fecha_expiracion;
-    private String _contrasenia_actual;
-    private List<String> _contrasenia_usadas;
-    public Usuario _unnamed_Usuario_;
+    private Date fecha_expiracion;
+    private String contrasenia_actual;
+    private List<String> contrasenia_usadas;
+    private Usuario usuario;
 
-    public Contrasenia(String id, Date _fecha_expiracion, String _contrasenia_actual, List<String> _contrasenia_usadas, Usuario _unnamed_Usuario_) {
+    public Contrasenia(String id, Date fecha_expiracion, String contrasenia_actual, List<String> contrasenia_usadas, Usuario usuario) {
         this.id = id;
-        this._fecha_expiracion = _fecha_expiracion;
-        this._contrasenia_actual = _contrasenia_actual;
-        this._contrasenia_usadas = _contrasenia_usadas;
-        this._unnamed_Usuario_ = _unnamed_Usuario_;
+        this.fecha_expiracion = fecha_expiracion;
+        this.contrasenia_actual = contrasenia_actual;
+        this.contrasenia_usadas = contrasenia_usadas;
+        this.usuario = usuario;
     }
 
     public String getId() {
@@ -27,27 +27,35 @@ public class Contrasenia {
         this.id = id;
     }
 
-    public Date getFechaExpiracion() {
-        return _fecha_expiracion;
+    public Date getFecha_expiracion() {
+        return fecha_expiracion;
     }
 
-    public void setFechaExpiracion(Date d) {
-        _fecha_expiracion = d;
+    public void setFecha_expiracion(Date fecha_expiracion) {
+        this.fecha_expiracion = fecha_expiracion;
     }
 
-    public String getContraseniaActual() {
-        return _contrasenia_actual;
+    public String getContrasenia_actual() {
+        return contrasenia_actual;
     }
 
-    public void setContraseniaActual(String c) {
-        _contrasenia_actual = c;
+    public void setContrasenia_actual(String contrasenia_actual) {
+        this.contrasenia_actual = contrasenia_actual;
     }
 
-    public List<String> getContraseniasUsadas() {
-        return _contrasenia_usadas;
+    public List<String> getContrasenia_usadas() {
+        return contrasenia_usadas;
     }
 
-    public void setContraseniasUsadas(List<String> l) {
-        _contrasenia_usadas = l;
+    public void setContrasenia_usadas(List<String> contrasenia_usadas) {
+        this.contrasenia_usadas = contrasenia_usadas;
+    }
+
+    public Usuario getUsuario() {
+        return usuario;
+    }
+
+    public void setUsuario(Usuario usuario) {
+        this.usuario = usuario;
     }
 }

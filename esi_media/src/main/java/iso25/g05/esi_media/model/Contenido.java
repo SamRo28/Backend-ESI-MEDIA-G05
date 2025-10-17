@@ -9,37 +9,37 @@ public class Contenido {
 
 	@Id
 	protected String id;
-	protected String _titulo;
-	protected String _descripcion;
-	protected List<String> _tags;
-	protected double _duracion;
-	protected boolean _vip;
-	protected boolean _estado;	// ACLARACION: TRUE: Visible, FALSE: No visible
-	protected Date _fecha_estado_automatico;
-	protected Date _fecha_disponible_hasta;
-	protected int _edad_visualizacion;
-	protected Object _caratula;
-	protected int _n_visualizaciones;
-	protected String _gestorId;	// ID del gestor que subió el contenido
+	protected String titulo;
+	protected String descripcion;
+	protected List<String> tags;
+	protected double duracion;
+	protected boolean vip;
+	protected boolean estado;	// ACLARACION: TRUE: Visible, FALSE: No visible
+	protected Date fecha_estado_automatico;
+	protected Date fecha_disponible_hasta;
+	protected int edad_visualizacion;
+	protected Object caratula;
+	protected int n_visualizaciones;
+	protected String gestorId;	// ID del gestor que subió el contenido
 
 
 	
-	public Contenido(String id, String _titulo, String _descripcion, List<String> _tags, double _duracion, boolean _vip,
-			boolean _estado, Date _fecha_estado_automatico, Date _fecha_disponible_hasta, int _edad_visualizacion,
-			Object _caratula, int _n_visualizaciones, String _gestorId) {
+	public Contenido(String id, String titulo, String descripcion, List<String> tags, double duracion, boolean vip,
+			boolean estado, Date fecha_estado_automatico, Date fecha_disponible_hasta, int edad_visualizacion,
+			Object caratula, int n_visualizaciones, String gestorId) {
 		this.id = id;
-		this._titulo = _titulo;
-		this._descripcion = _descripcion;
-		this._tags = _tags;
-		this._duracion = _duracion;
-		this._vip = _vip;
-		this._estado = _estado;
-		this._fecha_estado_automatico = _fecha_estado_automatico;
-		this._fecha_disponible_hasta = _fecha_disponible_hasta;
-		this._edad_visualizacion = _edad_visualizacion;
-		this._caratula = _caratula;
-		this._n_visualizaciones = _n_visualizaciones;
-		this._gestorId = _gestorId;
+		this.titulo = titulo;
+		this.descripcion = descripcion;
+		this.tags = tags;
+		this.duracion = duracion;
+		this.vip = vip;
+		this.estado = estado;
+		this.fecha_estado_automatico = fecha_estado_automatico;
+		this.fecha_disponible_hasta = fecha_disponible_hasta;
+		this.edad_visualizacion = edad_visualizacion;
+		this.caratula = caratula;
+		this.n_visualizaciones = n_visualizaciones;
+		this.gestorId = gestorId;
 	}
 
 	public String getId() {
@@ -50,100 +50,100 @@ public class Contenido {
 		this.id = id;
 	}
 
-	public String get_titulo() {
-		return _titulo;
+	public String getTitulo() {
+		return titulo;
 	}
 
-	public void set_titulo(String _titulo) {
-		this._titulo = _titulo;
+	public void setTitulo(String titulo) {
+		this.titulo = titulo;
 	}
 
-	public String get_descripcion() {
-		return _descripcion;
+	public String getDescripcion() {
+		return descripcion;
 	}
 
-	public void set_descripcion(String _descripcion) {
-		this._descripcion = _descripcion;
+	public void setDescripcion(String descripcion) {
+		this.descripcion = descripcion;
 	}
 
-	public List<String> get_tags() {
-		return _tags;
+	public List<String> getTags() {
+		return tags;
 	}
 
-	public void set_tags(List<String> _tags) {
-		this._tags = _tags;
+	public void setTags(List<String> tags) {
+		this.tags = tags;
 	}
 
-	public double get_duracion() {
-		return _duracion;
+	public double getDuracion() {
+		return duracion;
 	}
 
-	public void set_duracion(double _duracion) {
-		this._duracion = _duracion;
+	public void setDuracion(double duracion) {
+		this.duracion = duracion;
 	}
 
-	public boolean is_vip() {
-		return _vip;
+	public boolean isVip() {
+		return vip;
 	}
 
-	public void set_vip(boolean _vip) {
-		this._vip = _vip;
+	public void setVip(boolean vip) {
+		this.vip = vip;
 	}
 
-	public boolean is_estado() {
-		return _estado;
+	public boolean isEstado() {
+		return estado;
 	}
 
-	public void set_estado(boolean _estado) {
-		this._estado = _estado;
+	public void setEstado(boolean estado) {
+		this.estado = estado;
 	}
 
-	public Date get_fecha_estado_automatico() {
-		return _fecha_estado_automatico;
+	public Date getFecha_estado_automatico() {
+		return fecha_estado_automatico;
 	}
 
-	public void set_fecha_estado_automatico(Date _fecha_estado_automatico) {
-		this._fecha_estado_automatico = _fecha_estado_automatico;
+	public void setFecha_estado_automatico(Date fecha_estado_automatico) {
+		this.fecha_estado_automatico = fecha_estado_automatico;
 	}
 
-	public Date get_fecha_disponible_hasta() {
-		return _fecha_disponible_hasta;
+	public Date getFecha_disponible_hasta() {
+		return fecha_disponible_hasta;
 	}
 
-	public void set_fecha_disponible_hasta(Date _fecha_disponible_hasta) {
-		this._fecha_disponible_hasta = _fecha_disponible_hasta;
+	public void setFecha_disponible_hasta(Date fecha_disponible_hasta) {
+		this.fecha_disponible_hasta = fecha_disponible_hasta;
 	}
 
-	public int get_edad_visualizacion() {
-		return _edad_visualizacion;
+	public int getEdad_visualizacion() {
+		return edad_visualizacion;
 	}
 
-	public void set_edad_visualizacion(int _edad_visualizacion) {
-		this._edad_visualizacion = _edad_visualizacion;
+	public void setEdad_visualizacion(int edad_visualizacion) {
+		this.edad_visualizacion = edad_visualizacion;
 	}
 
-	public Object get_caratula() {
-		return _caratula;
+	public Object getCaratula() {
+		return caratula;
 	}
 
-	public void set_caratula(Object _caratula) {
-		this._caratula = _caratula;
+	public void setCaratula(Object caratula) {
+		this.caratula = caratula;
 	}
 
-	public int get_n_visualizaciones() {
-		return _n_visualizaciones;
+	public int getN_visualizaciones() {
+		return n_visualizaciones;
 	}
 
-	public void set_n_visualizaciones(int _n_visualizaciones) {
-		this._n_visualizaciones = _n_visualizaciones;
+	public void setN_visualizaciones(int n_visualizaciones) {
+		this.n_visualizaciones = n_visualizaciones;
 	}
 
-	public String get_gestorId() {
-		return _gestorId;
+	public String getGestorId() {
+		return gestorId;
 	}
 
-	public void set_gestorId(String _gestorId) {
-		this._gestorId = _gestorId;
+	public void setGestorId(String gestorId) {
+		this.gestorId = gestorId;
 	}
 
 }

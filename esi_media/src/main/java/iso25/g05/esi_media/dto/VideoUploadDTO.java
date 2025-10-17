@@ -17,7 +17,7 @@ public class VideoUploadDTO {
     @Size(min = 1, max = 500, message = "La descripción debe tener entre 1 y 500 caracteres")
     private String descripcion;
     
-    @NotBlank(message = "Los tags son obligatorios (al menos uno)")
+    @NotEmpty(message = "Los tags son obligatorios (al menos uno)")
     private List<String> tags;
     
     @DecimalMin(value = "0.1", message = "La duración debe ser mayor a 0.1 segundos")

@@ -2,40 +2,47 @@ package iso25.g05.esi_media.model;
 
 public class Codigo_recuperacion {
 	protected String id;
-	private String _codigo;
-	private String _fecha_expiracion;
-	public Usuario _unnamed_Usuario_;
+	private String codigo;
+	private String fecha_expiracion;
+	private Usuario usuario;
 
-    public Codigo_recuperacion(String id, String _codigo, String _fecha_expiracion, Usuario _unnamed_Usuario_) {
+    public Codigo_recuperacion(String id, String codigo, String fecha_expiracion, Usuario usuario) {
         this.id = id;
-        this._codigo = _codigo;
-        this._fecha_expiracion = _fecha_expiracion;
-        this._unnamed_Usuario_ = _unnamed_Usuario_;
+        this.codigo = codigo;
+        this.fecha_expiracion = fecha_expiracion;
+        this.usuario = usuario;
     }
 
 	public String getId() {
 		return id;
 	}
+	
 	public void setId(String id) {
 		this.id = id;
 	}
-	public String get_codigo() {
-		return _codigo;
+	
+	public String getCodigo() {
+		return codigo;
 	}
-	public void set_codigo(String _codigo) {
-		this._codigo = _codigo;
+	
+	public void setCodigo(String codigo) {
+		this.codigo = codigo;
 	}
-	public String get_fecha_expiracion() {
-		return _fecha_expiracion;
+	
+	public String getFecha_expiracion() {
+		return fecha_expiracion;
 	}
-	public void set_fecha_expiracion(String _fecha_expiracion) {
-		this._fecha_expiracion = _fecha_expiracion;
+	
+	public void setFecha_expiracion(String fecha_expiracion) {
+		this.fecha_expiracion = fecha_expiracion;
 	}
-	public Usuario get_unnamed_Usuario_() {
-		return _unnamed_Usuario_;
+	
+	public Usuario getUsuario() {
+		return usuario;
 	}
-	public void set_unnamed_Usuario_(Usuario _unnamed_Usuario_) {
-		this._unnamed_Usuario_ = _unnamed_Usuario_;
+	
+	public void setUsuario(Usuario usuario) {
+		this.usuario = usuario;
 	}
 
 	

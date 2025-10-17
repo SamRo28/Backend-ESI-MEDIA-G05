@@ -7,7 +7,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 @Document(collection = "audios")
 public class Audio extends Contenido {
-    private Binary _fichero;        // Archivo binario real (.mp3)
+    private Binary fichero;        // Archivo binario real (.mp3)
     private String mimeType;       // Tipo MIME, ej. "audio/mpeg"
     private long tamanoBytes;      // Tamaño en bytes
 
@@ -16,17 +16,17 @@ public class Audio extends Contenido {
 				Object caratula, int nVisualizaciones, Binary fichero, String mimeType, long tamanoBytes, String gestorId) {
 		super(id, titulo, descripcion, etiquetas, duracion, vip, estado, fechaEstadoAutomatico, fechaDisponibleHasta, 
 				edadVisualizacion, caratula, nVisualizaciones, gestorId);
-		this._fichero = fichero;
+		this.fichero = fichero;
 		this.mimeType = mimeType;
 		this.tamanoBytes = tamanoBytes;
 	}
 
-	public Binary get_fichero() {
-		return _fichero;
+	public Binary getFichero() {
+		return fichero;
 	}
 
-	public void set_fichero(Binary _fichero) {
-		this._fichero = _fichero;
+	public void setFichero(Binary fichero) {
+		this.fichero = fichero;
 	}
 
 	public String getMimeType() {

@@ -7,18 +7,18 @@ import java.util.List;
 
 public class Visualizador extends Usuario {
 
-    private String _alias;
-    private Date _fecha_nac;
-    private boolean _vip;
-    public List<Lista> listas_privadas = new ArrayList<>();
-    public List<Contenido> contenido_fav = new ArrayList<>();
+    private String alias;
+    private Date fecha_nac;
+    private boolean vip;
+    private List<Lista> listas_privadas = new ArrayList<>();
+    private List<Contenido> contenido_fav = new ArrayList<>();
 
-    public Visualizador(String _apellidos, boolean _bloqueado, Contrasenia _contrasenia, String _email, Object _foto,
-            String _nombre, String alias, Date fechaNac, boolean vip) {
-        super(_apellidos, _bloqueado, _contrasenia, _email, _foto, _nombre);
-        this._alias = alias;
-        this._fecha_nac = fechaNac;
-        this._vip = vip;
+    public Visualizador(String apellidos, boolean bloqueado, Contrasenia contrasenia, String email, Object foto,
+            String nombre, String alias, Date fecha_nac, boolean vip) {
+        super(apellidos, bloqueado, contrasenia, email, foto, nombre);
+        this.alias = alias;
+        this.fecha_nac = fecha_nac;
+        this.vip = vip;
         this.listas_privadas = new ArrayList<>();
         this.contenido_fav = new ArrayList<>();
     }
@@ -28,26 +28,42 @@ public class Visualizador extends Usuario {
     }
 
     public String getAlias() {
-        return _alias;
+        return alias;
     }
 
-    public void setAlias(String a) {
-        _alias = a;
+    public void setAlias(String alias) {
+        this.alias = alias;
     }
 
-    public Date getFechaNac() {
-        return _fecha_nac;
+    public Date getFecha_nac() {
+        return fecha_nac;
     }
 
-    public void setFechaNac(Date d) {
-        _fecha_nac = d;
+    public void setFecha_nac(Date fecha_nac) {
+        this.fecha_nac = fecha_nac;
     }
 
     public boolean isVip() {
-        return _vip;
+        return vip;
     }
 
-    public void setVip(boolean v) {
-        _vip = v;
+    public void setVip(boolean vip) {
+        this.vip = vip;
+    }
+
+    public List<Lista> getListas_privadas() {
+        return listas_privadas;
+    }
+
+    public void setListas_privadas(List<Lista> listas_privadas) {
+        this.listas_privadas = listas_privadas;
+    }
+
+    public List<Contenido> getContenido_fav() {
+        return contenido_fav;
+    }
+
+    public void setContenido_fav(List<Contenido> contenido_fav) {
+        this.contenido_fav = contenido_fav;
     }
 }

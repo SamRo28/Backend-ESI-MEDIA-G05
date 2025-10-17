@@ -67,7 +67,7 @@ public class VideoService {
         Video videoGuardado = videoRepository.save(video);
         
         // 5. Actualizar lista de contenidos del gestor
-        gestor.getContenidosSubidos().add(videoGuardado.getId());
+        gestor.getContenidos_subidos().add(videoGuardado.getId());
         gestorRepository.save(gestor);
         
         return videoGuardado;
@@ -86,7 +86,7 @@ public class VideoService {
         Gestor_de_Contenido gestor = gestorOpt.get();
         
         // Verificar que el gestor puede subir video
-        if (!"video".equalsIgnoreCase(gestor.get_tipo_contenido_video_o_audio())) {
+        if (!"video".equalsIgnoreCase(gestor.getTipo_contenido_video_o_audio())) {
             throw new IllegalArgumentException("El gestor no está autorizado para subir contenido de video");
         }
         
@@ -131,8 +131,8 @@ public class VideoService {
             dto.getTags(),
             dto.getDuracion(),
             dto.getVip(),
-            dto.getVisible(), // El usuario decide la visibilidad
-            null, // Fecha estado automático
+            dto.getVisible(),
+            null,
             dto.getFechaDisponibleHasta(),
             dto.getEdadVisualizacion(),
             dto.getCaratula(),
@@ -153,7 +153,7 @@ public class VideoService {
             throw new IllegalArgumentException("Gestor no encontrado con ID: " + gestorId);
         }
         
-        return videoRepository.findAllById(gestorOpt.get().getContenidosSubidos());
+        return videoRepository.findAllById(gestorOpt.get().getContenidos_subidos());
     }
     
     /**
@@ -187,7 +187,7 @@ public class VideoService {
         }
         
         // 4. Obtener el usuario asociado al token
-        Usuario usuario = token._usuario;
+        Usuario usuario = token.getUsuario();
         if (usuario == null) {
             throw new IllegalArgumentException("Token sin usuario asociado");
         }

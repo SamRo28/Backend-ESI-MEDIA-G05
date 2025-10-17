@@ -5,67 +5,54 @@ import java.util.List;
 
 public class Gestor_de_Contenido extends Usuario {
 
-	private String _alias;
-	private String _descripcion;
-	private String _campo_especializacion;
-	private String _tipo_contenido_video_o_audio;
-	public List<Lista> listas_generadas ;
-	private List<String> contenidosSubidos = new ArrayList<>();	// Lista de IDs de contenidos subidos por el gestor
+	private String alias;
+	private String descripcion;
+	private String campo_especializacion;
+	private String tipo_contenido_video_o_audio;
+	private List<Lista> listas_generadas;
+	private List<String> contenidos_subidos = new ArrayList<>();	// Lista de IDs de contenidos subidos por el gestor
 
-	public Gestor_de_Contenido(String _apellidos, boolean _bloqueado, Contrasenia _contrasenia, String _email,
-			Object _foto, String _nombre) {
-		super(_apellidos, _bloqueado, _contrasenia, _email, _foto, _nombre);
+	public Gestor_de_Contenido(String apellidos, boolean bloqueado, Contrasenia contrasenia, String email,
+			Object foto, String nombre) {
+		super(apellidos, bloqueado, contrasenia, email, foto, nombre);
 		this.listas_generadas = new ArrayList<>();
-		this._alias = null;
-		this._descripcion = null;
-		this._campo_especializacion = null;
-		this._tipo_contenido_video_o_audio = null;
+		this.alias = null;
+		this.descripcion = null;
+		this.campo_especializacion = null;
+		this.tipo_contenido_video_o_audio = null;
 
 	}
 
-	public String get_alias() {
-		return _alias;
+	public String getAlias() {
+		return alias;
 	}
 
-
-	public void set_alias(String _alias) {
-		this._alias = _alias;
+	public void setAlias(String alias) {
+		this.alias = alias;
 	}
 
-
-
-	public String get_descripcion() {
-		return _descripcion;
+	public String getDescripcion() {
+		return descripcion;
 	}
 
-
-
-	public void set_descripcion(String _descripcion) {
-		this._descripcion = _descripcion;
+	public void setDescripcion(String descripcion) {
+		this.descripcion = descripcion;
 	}
 
-
-
-	public String get_campo_especializacion() {
-		return _campo_especializacion;
+	public String getCampo_especializacion() {
+		return campo_especializacion;
 	}
 
-
-
-	public void set_campo_especializacion(String _campo_especializacion) {
-		this._campo_especializacion = _campo_especializacion;
+	public void setCampo_especializacion(String campo_especializacion) {
+		this.campo_especializacion = campo_especializacion;
 	}
 
-
-
-	public String get_tipo_contenido_video_o_audio() {
-		return _tipo_contenido_video_o_audio;
+	public String getTipo_contenido_video_o_audio() {
+		return tipo_contenido_video_o_audio;
 	}
 
-
-
-	public void set_tipo_contenido_video_o_audio(String _tipo_contenido_video_o_audio) {
-		this._tipo_contenido_video_o_audio = _tipo_contenido_video_o_audio;
+	public void setTipo_contenido_video_o_audio(String tipo_contenido_video_o_audio) {
+		this.tipo_contenido_video_o_audio = tipo_contenido_video_o_audio;
 	}
 
 
@@ -82,12 +69,12 @@ public class Gestor_de_Contenido extends Usuario {
 
 
 
-	public List<String> getContenidosSubidos() {
-		return contenidosSubidos;
+	public List<String> getContenidos_subidos() {
+		return contenidos_subidos;
 	}
 
-	public void setContenidosSubidos(List<String> contenidosSubidos) {
-		this.contenidosSubidos = contenidosSubidos;
+	public void setContenidos_subidos(List<String> contenidos_subidos) {
+		this.contenidos_subidos = contenidos_subidos;
 	}
 
 	//TODO: Habria que meter un add y un remove para las listas generadas y otro para los contenidos subidos
