@@ -15,8 +15,8 @@ import iso25.g05.esi_media.model.Contrasenia;
 import iso25.g05.esi_media.model.Token;
 import iso25.g05.esi_media.model.Usuario;
 import iso25.g05.esi_media.repository.AdministradorRepository;
-import iso25.g05.esi_media.repository.UsuarioRepository;
 import iso25.g05.esi_media.repository.CodigoRecuperacionRepository;
+import iso25.g05.esi_media.repository.UsuarioRepository;
 
 /**
  * Servicio unificado para gestión de usuarios (login, administradores, etc.)
@@ -37,7 +37,7 @@ public class UserService {
     @Autowired
     private EmailService emailService;
     
-    @Autowired
+
     private final GoogleAuthenticator gAuth = new GoogleAuthenticator();
 
     // ============================================

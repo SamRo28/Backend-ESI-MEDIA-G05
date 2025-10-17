@@ -53,11 +53,14 @@ public class UsuarioController {
      * Login de usuario con email y contraseña
      */
     @PostMapping("/login")
-    public Usuario login(@RequestBody Map<String, String> loginData) {
+    public Map<String,Object> login(@RequestBody Map<String, String> loginData) {
         Usuario loggedInUser = userService.login(loginData);
         if (loggedInUser == null)
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid credentials");
-        return loggedInUser;
+        return Map.of(
+            "tipo", loggedInUser.getClass().getSimpleName(),
+            "usuario", loggedInUser
+        );
     }
 
     /**
