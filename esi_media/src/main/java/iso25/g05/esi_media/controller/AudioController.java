@@ -46,7 +46,7 @@ public ResponseEntity<Map<String, Object>> subirAudio(
         response.put("success", true);
         response.put("message", "Audio subido exitosamente");
         response.put("audioId", audioGuardado.getId());
-        response.put("titulo", audioGuardado.getTitulo());
+        response.put("titulo", audioGuardado.gettitulo());
         
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
         

@@ -45,8 +45,8 @@ public class VideoController {
             response.put("success", true);
             response.put("message", "Video subido exitosamente");
             response.put("videoId", videoGuardado.getId());
-            response.put("titulo", videoGuardado.getTitulo());
-            response.put("url", videoGuardado.getUrl());
+            response.put("titulo", videoGuardado.gettitulo());
+            response.put("url", videoGuardado.geturl());
             
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
             

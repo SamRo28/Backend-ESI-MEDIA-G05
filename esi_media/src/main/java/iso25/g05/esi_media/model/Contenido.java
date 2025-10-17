@@ -15,18 +15,18 @@ public class Contenido {
 	protected double duracion;
 	protected boolean vip;
 	protected boolean estado;	// ACLARACION: TRUE: Visible, FALSE: No visible
-	protected Date fecha_estado_automatico;
-	protected Date fecha_disponible_hasta;
-	protected int edad_visualizacion;
+	protected Date fechaestadoautomatico;
+	protected Date fechadisponiblehasta;
+	protected int edadvisualizacion;
 	protected Object caratula;
-	protected int n_visualizaciones;
+	protected int nvisualizaciones;
 	protected String gestorId;	// ID del gestor que subió el contenido
 
 
 	
 	public Contenido(String id, String titulo, String descripcion, List<String> tags, double duracion, boolean vip,
-			boolean estado, Date fecha_estado_automatico, Date fecha_disponible_hasta, int edad_visualizacion,
-			Object caratula, int n_visualizaciones, String gestorId) {
+			boolean estado, Date fechaestadoautomatico, Date fechadisponiblehasta, int edadvisualizacion,
+			Object caratula, int nvisualizaciones, String gestorId) {
 		this.id = id;
 		this.titulo = titulo;
 		this.descripcion = descripcion;
@@ -34,11 +34,11 @@ public class Contenido {
 		this.duracion = duracion;
 		this.vip = vip;
 		this.estado = estado;
-		this.fecha_estado_automatico = fecha_estado_automatico;
-		this.fecha_disponible_hasta = fecha_disponible_hasta;
-		this.edad_visualizacion = edad_visualizacion;
+		this.fechaestadoautomatico = fechaestadoautomatico;
+		this.fechadisponiblehasta = fechadisponiblehasta;
+		this.edadvisualizacion = edadvisualizacion;
 		this.caratula = caratula;
-		this.n_visualizaciones = n_visualizaciones;
+		this.nvisualizaciones = nvisualizaciones;
 		this.gestorId = gestorId;
 	}
 
@@ -50,99 +50,99 @@ public class Contenido {
 		this.id = id;
 	}
 
-	public String getTitulo() {
+	public String gettitulo() {
 		return titulo;
 	}
 
-	public void setTitulo(String titulo) {
+	public void settitulo(String titulo) {
 		this.titulo = titulo;
 	}
 
-	public String getDescripcion() {
+	public String getdescripcion() {
 		return descripcion;
 	}
 
-	public void setDescripcion(String descripcion) {
+	public void setdescripcion(String descripcion) {
 		this.descripcion = descripcion;
 	}
 
-	public List<String> getTags() {
+	public List<String> gettags() {
 		return tags;
 	}
 
-	public void setTags(List<String> tags) {
+	public void settags(List<String> tags) {
 		this.tags = tags;
 	}
 
-	public double getDuracion() {
+	public double getduracion() {
 		return duracion;
 	}
 
-	public void setDuracion(double duracion) {
+	public void setduracion(double duracion) {
 		this.duracion = duracion;
 	}
 
-	public boolean isVip() {
+	public boolean isvip() {
 		return vip;
 	}
 
-	public void setVip(boolean vip) {
+	public void setvip(boolean vip) {
 		this.vip = vip;
 	}
 
-	public boolean isEstado() {
+	public boolean isestado() {
 		return estado;
 	}
 
-	public void setEstado(boolean estado) {
+	public void setestado(boolean estado) {
 		this.estado = estado;
 	}
 
-	public Date getFecha_estado_automatico() {
-		return fecha_estado_automatico;
+	public Date getfechaestadoautomatico() {
+		return fechaestadoautomatico;
 	}
 
-	public void setFecha_estado_automatico(Date fecha_estado_automatico) {
-		this.fecha_estado_automatico = fecha_estado_automatico;
+	public void setfechaestadoautomatico(Date fechaestadoautomatico) {
+		this.fechaestadoautomatico = fechaestadoautomatico;
 	}
 
-	public Date getFecha_disponible_hasta() {
-		return fecha_disponible_hasta;
+	public Date getfechadisponiblehasta() {
+		return fechadisponiblehasta;
 	}
 
-	public void setFecha_disponible_hasta(Date fecha_disponible_hasta) {
-		this.fecha_disponible_hasta = fecha_disponible_hasta;
+	public void setfechadisponiblehasta(Date fechadisponiblehasta) {
+		this.fechadisponiblehasta = fechadisponiblehasta;
 	}
 
-	public int getEdad_visualizacion() {
-		return edad_visualizacion;
+	public int getedadvisualizacion() {
+		return edadvisualizacion;
 	}
 
-	public void setEdad_visualizacion(int edad_visualizacion) {
-		this.edad_visualizacion = edad_visualizacion;
+	public void setedadvisualizacion(int edadvisualizacion) {
+		this.edadvisualizacion = edadvisualizacion;
 	}
 
-	public Object getCaratula() {
+	public Object getcaratula() {
 		return caratula;
 	}
 
-	public void setCaratula(Object caratula) {
+	public void setcaratula(Object caratula) {
 		this.caratula = caratula;
 	}
 
-	public int getN_visualizaciones() {
-		return n_visualizaciones;
+	public int getnvisualizaciones() {
+		return nvisualizaciones;
 	}
 
-	public void setN_visualizaciones(int n_visualizaciones) {
-		this.n_visualizaciones = n_visualizaciones;
+	public void setnvisualizaciones(int nvisualizaciones) {
+		this.nvisualizaciones = nvisualizaciones;
 	}
 
-	public String getGestorId() {
+	public String getgestorId() {
 		return gestorId;
 	}
 
-	public void setGestorId(String gestorId) {
+	public void setgestorId(String gestorId) {
 		this.gestorId = gestorId;
 	}
 

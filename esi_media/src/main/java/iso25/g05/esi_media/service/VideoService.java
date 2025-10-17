@@ -2,7 +2,7 @@ package iso25.g05.esi_media.service;
 
 import iso25.g05.esi_media.dto.VideoUploadDTO;
 import iso25.g05.esi_media.model.Video;
-import iso25.g05.esi_media.model.Gestor_de_Contenido;
+import iso25.g05.esi_media.model.GestordeContenido;
 import iso25.g05.esi_media.model.Token;
 import iso25.g05.esi_media.model.Usuario;
 import iso25.g05.esi_media.repository.VideoRepository;
@@ -56,7 +56,7 @@ public class VideoService {
     public Video subirVideo(VideoUploadDTO videoDTO, String gestorId) {
 
         // 1. Validar que el gestor existe y puede subir video
-        Gestor_de_Contenido gestor = validarGestorVideo(gestorId);
+        GestordeContenido gestor = validarGestorVideo(gestorId);
 
         // 2. Validar URL
         validarUrl(videoDTO.getUrl());
@@ -77,17 +77,15 @@ public class VideoService {
     /**
      * Valida que el gestor existe y está autorizado para subir video
      */
-    private Gestor_de_Contenido validarGestorVideo(String gestorId) {
-        Optional<Gestor_de_Contenido> gestorOpt = gestorRepository.findById(gestorId);
+    private GestordeContenido validarGestorVideo(String gestorId) {
+        Optional<GestordeContenido> gestorOpt = gestorRepository.findById(gestorId);
         
         if (gestorOpt.isEmpty()) {
             throw new IllegalArgumentException("Gestor no encontrado con ID: " + gestorId);
         }
-        
-        Gestor_de_Contenido gestor = gestorOpt.get();
-        
-        // Verificar que el gestor puede subir video
-        if (!"video".equalsIgnoreCase(gestor.getTipo_contenido_video_o_audio())) {
+
+        GestordeContenido gestor = gestorOpt.get();        // Verificar que el gestor puede subir video
+        if (!"video".equalsIgnoreCase(gestor.gettipocontenidovideooaudio())) {
             throw new IllegalArgumentException("El gestor no está autorizado para subir contenido de video");
         }
         
@@ -148,7 +146,7 @@ public class VideoService {
      * Obtiene todos los videos subidos por un gestor específico
      */
     public Iterable<Video> obtenerVideosPorGestor(String gestorId) {
-        Optional<Gestor_de_Contenido> gestorOpt = gestorRepository.findById(gestorId);
+        Optional<GestordeContenido> gestorOpt = gestorRepository.findById(gestorId);
         
         if (gestorOpt.isEmpty()) {
             throw new IllegalArgumentException("Gestor no encontrado con ID: " + gestorId);
@@ -183,7 +181,7 @@ public class VideoService {
         Token token = tokenOpt.get();
         
         // 3. Verificar que el token no ha expirado
-        if (token.getFechaExpiracion().before(new Date())) {
+        if (token.getfechaexpiracion().before(new Date())) {
             throw new IllegalArgumentException("Token expirado");
         }
         
@@ -195,7 +193,7 @@ public class VideoService {
         }
         
         // 5. Verificar que el usuario es un gestor de contenido
-        Optional<Gestor_de_Contenido> gestorOpt = gestorRepository.findById(usuario.getId());
+        Optional<GestordeContenido> gestorOpt = gestorRepository.findById(usuario.getId());
         if (gestorOpt.isEmpty()) {
             throw new IllegalArgumentException("El usuario no es un gestor de contenido");
         }

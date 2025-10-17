@@ -6,10 +6,10 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;
 
-import iso25.g05.esi_media.model.Gestor_de_Contenido;
+import iso25.g05.esi_media.model.GestordeContenido;
 
 @Repository
-public interface GestorDeContenidoRepository extends MongoRepository<Gestor_de_Contenido, String> {
+public interface GestorDeContenidoRepository extends MongoRepository<GestordeContenido, String> {
     @Query("{ '_campo_especializacion' : ?0 }")
-    List<Gestor_de_Contenido> findByCampoEspecializacion(String campo);
+    List<GestordeContenido> findByCampoEspecializacion(String campo);
 }

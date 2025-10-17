@@ -2,7 +2,7 @@ package iso25.g05.esi_media.service;
 
 import iso25.g05.esi_media.dto.AudioUploadDTO;
 import iso25.g05.esi_media.model.Audio;
-import iso25.g05.esi_media.model.Gestor_de_Contenido;
+import iso25.g05.esi_media.model.GestordeContenido;
 import iso25.g05.esi_media.model.Token;
 import iso25.g05.esi_media.model.Usuario;
 import iso25.g05.esi_media.repository.AudioRepository;
@@ -61,7 +61,7 @@ public class AudioService {
      */
     public Audio subirAudio(AudioUploadDTO audioDTO, String gestorId) throws IOException {
         // 1. Validar que el gestor existe y puede subir audio
-        Gestor_de_Contenido gestor = validarGestorAudio(gestorId);
+        GestordeContenido gestor = validarGestorAudio(gestorId);
         
         // 2. Validar archivo
         MultipartFile archivo = audioDTO.getArchivo();
@@ -83,17 +83,15 @@ public class AudioService {
     /**
      * Valida que el gestor existe y está autorizado para subir audio
      */
-    private Gestor_de_Contenido validarGestorAudio(String gestorId) {
-        Optional<Gestor_de_Contenido> gestorOpt = gestorRepository.findById(gestorId);
+    private GestordeContenido validarGestorAudio(String gestorId) {
+        Optional<GestordeContenido> gestorOpt = gestorRepository.findById(gestorId);
         
         if (gestorOpt.isEmpty()) {
             throw new IllegalArgumentException("Gestor no encontrado con ID: " + gestorId);
         }
-        
-        Gestor_de_Contenido gestor = gestorOpt.get();
-        
-        // Verificar que el gestor puede subir audio
-        if (!"audio".equalsIgnoreCase(gestor.getTipo_contenido_video_o_audio())) {
+
+        GestordeContenido gestor = gestorOpt.get();        // Verificar que el gestor puede subir audio
+        if (!"audio".equalsIgnoreCase(gestor.gettipocontenidovideooaudio())) {
             throw new IllegalArgumentException("El gestor no está autorizado para subir contenido de audio");
         }
         
@@ -164,7 +162,7 @@ public class AudioService {
      * Obtiene todos los audios subidos por un gestor específico
      */
     public Iterable<Audio> obtenerAudiosPorGestor(String gestorId) {
-        Optional<Gestor_de_Contenido> gestorOpt = gestorRepository.findById(gestorId);
+        Optional<GestordeContenido> gestorOpt = gestorRepository.findById(gestorId);
         
         if (gestorOpt.isEmpty()) {
             throw new IllegalArgumentException("Gestor no encontrado con ID: " + gestorId);
@@ -201,7 +199,7 @@ public class AudioService {
         Token token = tokenOpt.get();
 
         // 3. Verificar que el token no ha expirado
-        if (token.getFechaExpiracion().before(new Date())) {
+        if (token.getfechaexpiracion().before(new Date())) {
             throw new IllegalArgumentException("Token expirado");
         }
         
@@ -213,7 +211,7 @@ public class AudioService {
         }
         
         // 5. Verificar que el usuario es un gestor de contenido
-        Optional<Gestor_de_Contenido> gestorOpt = gestorRepository.findById(usuario.getId());
+        Optional<GestordeContenido> gestorOpt = gestorRepository.findById(usuario.getId());
         
         if (gestorOpt.isEmpty()) {
             throw new IllegalArgumentException("El usuario no es un gestor de contenido");

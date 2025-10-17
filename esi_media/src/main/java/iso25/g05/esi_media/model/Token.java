@@ -28,11 +28,11 @@ public class Token {
         token = t;
     }
 
-    public Date getFechaExpiracion() {
+    public Date getfechaexpiracion() {
         return fechaexpiracion;
     }
 
-    public void setFechaExpiracion(Date d) {
+    public void setfechaexpiracion(Date d) {
         fechaexpiracion = d;
     }
 

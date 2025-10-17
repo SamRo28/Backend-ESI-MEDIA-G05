@@ -9,27 +9,27 @@ public class Video extends Contenido {
     private String resolucion;
 
 	public Video(String id, String titulo, String descripcion, java.util.List<String> tags, double duracion, boolean vip,
-            boolean estado, java.util.Date fechaEstadoAutomatico, java.util.Date fechaDisponibleHasta,
-            int edadVisualizacion, Object caratula, int nVisualizaciones, String url, String resolucion, String gestorId) {
-        super(id, titulo, descripcion, tags, duracion, vip, estado, fechaEstadoAutomatico, fechaDisponibleHasta,
-                edadVisualizacion, caratula, nVisualizaciones, gestorId);
+            boolean estado, java.util.Date fechaestadoautomatico, java.util.Date fechadisponiblehasta,
+            int edadvisualizacion, Object caratula, int nvisualizaciones, String url, String resolucion, String gestorId) {
+        super(id, titulo, descripcion, tags, duracion, vip, estado, fechaestadoautomatico, fechadisponiblehasta,
+                edadvisualizacion, caratula, nvisualizaciones, gestorId);
         this.url = url;
         this.resolucion = resolucion;
     }
     
-    public String getUrl() {
+    public String geturl() {
         return url;
     }
 
-    public void setUrl(String url) {
+    public void seturl(String url) {
         this.url = url;
     }
 
-    public String getResolucion() {
+    public String getresolucion() {
         return resolucion;
     }
 
-    public void setResolucion(String resolucion) {
+    public void setresolucion(String resolucion) {
         this.resolucion = resolucion;
     }
 }

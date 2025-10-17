@@ -11,37 +11,37 @@ public class Audio extends Contenido {
     private String mimeType;       // Tipo MIME, ej. "audio/mpeg"
     private long tamanoBytes;      // Tamaño en bytes
 
-	public Audio(String id, String titulo, String descripcion, List<String> etiquetas, double duracion, 
-				boolean vip, boolean estado, Date fechaEstadoAutomatico, Date fechaDisponibleHasta, int edadVisualizacion, 
-				Object caratula, int nVisualizaciones, Binary fichero, String mimeType, long tamanoBytes, String gestorId) {
-		super(id, titulo, descripcion, etiquetas, duracion, vip, estado, fechaEstadoAutomatico, fechaDisponibleHasta, 
-				edadVisualizacion, caratula, nVisualizaciones, gestorId);
+	public Audio(String id, String titulo, String descripcion, List<String> tags, double duracion, 
+				boolean vip, boolean estado, Date fechaestadoautomatico, Date fechadisponiblehasta, int edadvisualizacion, 
+				Object caratula, int nvisualizaciones, Binary fichero, String mimeType, long tamanoBytes, String gestorId) {
+		super(id, titulo, descripcion, tags, duracion, vip, estado, fechaestadoautomatico, fechadisponiblehasta, 
+				edadvisualizacion, caratula, nvisualizaciones, gestorId);
 		this.fichero = fichero;
 		this.mimeType = mimeType;
 		this.tamanoBytes = tamanoBytes;
 	}
 
-	public Binary getFichero() {
+	public Binary getfichero() {
 		return fichero;
 	}
 
-	public void setFichero(Binary fichero) {
+	public void setfichero(Binary fichero) {
 		this.fichero = fichero;
 	}
 
-	public String getMimeType() {
+	public String getmimeType() {
 		return mimeType;
     }
 
-    public void setMimeType(String mimeType) {
+    public void setmimeType(String mimeType) {
         this.mimeType = mimeType;
     }
 
-    public long getTamanoBytes() {
+    public long gettamanoBytes() {
         return tamanoBytes;
     }
 
-    public void setTamanoBytes(long tamanoBytes) {
+    public void settamanoBytes(long tamanoBytes) {
         this.tamanoBytes = tamanoBytes;
     }
 

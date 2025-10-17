@@ -1,14 +1,43 @@
 package iso25.g05.esi_media.model;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Date;
-import org.springframework.data.mongodb.core.mapping.Document;
-import org.springframework.data.annotation.Id;
+import java.util.List;
 
-@Document(collection = "users")
+import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Transient;
+import org.springframework.data.mongodb.core.mapping.Document;
+
+import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Transient;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Transient;
+
+/**
+ * Clase base para usuarios del sistema (Visualizador, Administrador, Gestor).
+ * 
+ * ESTRATEGIA DE PERSISTENCIA: Herencia en MongoDB
+ * - Todos los tipos de usuario se guardan en la colección "users"
+ * - MongoDB usa discriminadores automáticos para diferenciar tipos
+ * - Permite consultas polimórficas y reutilización de código
+ * 
+ * ANOTACIONES DE PERSISTENCIA:
+ * - @Document: Define la colección de MongoDB donde se almacenan los objetos
+ * - @Id: Marca un campo como identificador único en MongoDB
+ * - @Indexed: Define índices para búsquedas eficientes (ej: email único)
+ * - @DBRef: Establece una referencia a otro documento en MongoDB
+ * - @JsonIgnore: Evita la serialización circular en JSON cuando hay relaciones bidireccionales
+ */
+@Document(collection = "users") // Define que esta clase se guardará en la colección "users" de MongoDB
 public class Usuario {
-    @Id
+    
+    /**
+     * Identificador único generado por MongoDB
+     * @Id - Marca este campo como el identificador único en la base de datos (similar a una clave primaria)
+     */
+    @Id // Indica a MongoDB que este campo es el identificador único del documento
     private String id;
 
     protected String nombre;
@@ -16,29 +45,57 @@ public class Usuario {
     protected String email;
     protected Object foto;
     protected boolean bloqueado;
-    private List<Codigo_recuperacion> codigosRecuperacion = new ArrayList<>();
-    private List<Token> sesionsToken = new ArrayList<>();
-    private Contrasenia contrasenia;
-    protected Date fechaRegistro;
+
+    @Transient
+    public List<Codigorecuperacion> codigosrecuperacion = new ArrayList<>();
+    
+    // Lista de tokens de sesión activos (se guarda en MongoDB)
+    public List<Token> sesionstoken = new ArrayList<>();
+
+    @org.springframework.data.mongodb.core.mapping.DBRef
+    public Contrasenia contrasenia;
+
+    protected Date fecharegistro;
+
+    @Transient
     private String secretkey;
-    private boolean twoFactorAuthenticationEnabled;
-    private boolean threeFactorAuthenticationEnabled;
+    
+    private boolean twoFactorAutenticationEnabled;
+    private boolean threeFactorAutenticationEnabled;
 
+    // Constructor vacío requerido por MongoDB
+    public Usuario() {
+        this.codigosrecuperacion = new ArrayList<>();
+        this.sesionstoken = new ArrayList<>();
+        this.fecharegistro = new Date();
+    }
 
-    public Usuario(String apellidos, boolean bloqueado, Contrasenia contrasenia, String email, Object foto, String nombre, Date fechaRegistro) {
+    public Usuario(String apellidos, boolean bloqueado, String email, Object foto, String nombre, Date fechaRegistro) {
+        this.apellidos = apellidos;
+        this.bloqueado = bloqueado;
+        this.email = email;
+        this.foto = foto;
+        this.nombre = nombre;
+        this.fecharegistro = fechaRegistro;
+        // Inicializar listas
+        this.codigosrecuperacion = new ArrayList<>();
+        this.sesionstoken = new ArrayList<>();
+        // contrasenia se inicializa como null (será asignada por separado)
+    }
+
+     // Constructor sin fecha de registro (se asigna automáticamente)
+    public Usuario(String apellidos, boolean bloqueado, String email, Object foto, String nombre) {
+        this(apellidos, bloqueado, email, foto, nombre, new Date());
+    }
+
+    public Usuario(String apellidos, boolean bloqueado, Contrasenia contrasenia, String email, Object foto, String nombre, Date fecharegistro) {
         this.apellidos = apellidos;
         this.bloqueado = bloqueado;
         this.contrasenia = contrasenia;
         this.email = email;
         this.foto = foto;
         this.nombre = nombre;
-        this.fechaRegistro = fechaRegistro;
-    }
-
-        public Usuario() {
-        this.fechaRegistro = new Date();
-        this.codigosRecuperacion = new ArrayList<>();
-        this.sesionsToken = new ArrayList<>();
+        this.fecharegistro = fecharegistro;
     }
 
     // Constructor sin fecha de registro (se asigna automáticamente)
@@ -47,53 +104,75 @@ public class Usuario {
     }
 
 
-
-    public String getId() {
-        return id;
+    public Contrasenia getContrasenia() {
+        return contrasenia;
     }
-
-    public void setId(String id) {
-        this.id = id;
+    public void setContrasenia(Contrasenia c) {
+        contrasenia = c;
     }
 
     public String getNombre() {
         return nombre;
     }
-
-    public void setNombre(String nombre) {
-        this.nombre = nombre;
+    
+    public void setNombre(String n) {
+        nombre = n;
     }
 
     public String getApellidos() {
         return apellidos;
     }
-
-    public void setApellidos(String apellidos) {
-        this.apellidos = apellidos;
+    
+    public void setApellidos(String a) {
+        apellidos = a;
     }
 
     public String getEmail() {
         return email;
     }
-
-    public void setEmail(String email) {
-        this.email = email;
+    
+    public void setEmail(String e) {
+        email = e;
     }
 
     public boolean isBloqueado() {
         return bloqueado;
     }
 
-    public void setBloqueado(boolean bloqueado) {
-        this.bloqueado = bloqueado;
+    public void setBloqueado(boolean b) {
+        bloqueado = b;
     }
 
     public Date getFechaRegistro() {
-        return fechaRegistro;
+        return fecharegistro;
     }
 
-    public void setFechaRegistro(Date fechaRegistro) {
-        this.fechaRegistro = fechaRegistro;
+    public void setFechaRegistro(Date fecha) {
+        this.fecharegistro = fecha;
+    }
+    public boolean isTwoFactorAutenticationEnabled() {
+        return twoFactorAutenticationEnabled;
+    }
+
+    public void setTwoFactorAutenticationEnabled(boolean twoFactorAutenticationEnabled) {
+        this.twoFactorAutenticationEnabled = twoFactorAutenticationEnabled;
+    }
+
+    public boolean isThreeFactorAutenticationEnabled() {
+        return threeFactorAutenticationEnabled;
+    }
+
+    public void setThreeFactorAutenticationEnabled(boolean threeFactorAutenticationEnabled) {
+        this.threeFactorAutenticationEnabled = threeFactorAutenticationEnabled;
+    }
+
+    // Getters faltantes para id y foto
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
     }
 
     public Object getFoto() {
@@ -104,28 +183,20 @@ public class Usuario {
         this.foto = foto;
     }
 
-    public Contrasenia getContrasenia() {
-        return contrasenia;
+    public List<Codigorecuperacion> getCodigosrecuperacion() {
+        return codigosrecuperacion;
     }
 
-    public void setContrasenia(Contrasenia contrasenia) {
-        this.contrasenia = contrasenia;
+    public void setCodigosrecuperacion(List<Codigorecuperacion> codigosrecuperacion) {
+        this.codigosrecuperacion = codigosrecuperacion;
     }
 
-    public List<Codigo_recuperacion> getCodigosRecuperacion() {
-        return codigosRecuperacion;
+    public List<Token> getSesionstoken() {
+        return sesionstoken;
     }
 
-    public void setCodigosRecuperacion(List<Codigo_recuperacion> codigosRecuperacion) {
-        this.codigosRecuperacion = codigosRecuperacion;
-    }
-
-    public List<Token> getSesionsToken() {
-        return sesionsToken;
-    }
-
-    public void setSesionsToken(List<Token> sesionsToken) {
-        this.sesionsToken = sesionsToken;
+    public void setSesionstoken(List<Token> sesionstoken) {
+        this.sesionstoken = sesionstoken;
     }
 
     public String getSecretkey() {
@@ -136,19 +207,4 @@ public class Usuario {
         this.secretkey = secretkey;
     }
 
-    public boolean isTwoFactorAuthenticationEnabled() {
-        return twoFactorAuthenticationEnabled;
-    }
-
-    public void setTwoFactorAuthenticationEnabled(boolean twoFactorAuthenticationEnabled) {
-        this.twoFactorAuthenticationEnabled = twoFactorAuthenticationEnabled;
-    }
-
-    public boolean isThreeFactorAuthenticationEnabled() {
-        return threeFactorAuthenticationEnabled;
-    }
-
-    public void setThreeFactorAuthenticationEnabled(boolean threeFactorAuthenticationEnabled) {
-        this.threeFactorAuthenticationEnabled = threeFactorAuthenticationEnabled;
-    }
 }
