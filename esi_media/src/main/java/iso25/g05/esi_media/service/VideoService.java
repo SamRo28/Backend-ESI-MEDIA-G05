@@ -54,16 +54,17 @@ public class VideoService {
      * @throws IllegalArgumentException Si las validaciones fallan
      */
     public Video subirVideo(VideoUploadDTO videoDTO, String gestorId) {
+
         // 1. Validar que el gestor existe y puede subir video
         Gestor_de_Contenido gestor = validarGestorVideo(gestorId);
-        
+
         // 2. Validar URL
         validarUrl(videoDTO.getUrl());
-        
+
         // 3. Crear entidad Video
         Video video = crearVideoDesdeDTO(videoDTO, gestorId);
-        
         // 4. Guardar en base de datos
+        video.setId(null);
         Video videoGuardado = videoRepository.save(video);
         
         // 5. Actualizar lista de contenidos del gestor
@@ -131,7 +132,7 @@ public class VideoService {
             dto.getTags(),
             dto.getDuracion(),
             dto.getVip(),
-            dto.getVisible(),
+            dto.getVisible() != null ? dto.getVisible() : true,
             null,
             dto.getFechaDisponibleHasta(),
             dto.getEdadVisualizacion(),
@@ -188,6 +189,7 @@ public class VideoService {
         
         // 4. Obtener el usuario asociado al token
         Usuario usuario = token.getUsuario();
+
         if (usuario == null) {
             throw new IllegalArgumentException("Token sin usuario asociado");
         }
