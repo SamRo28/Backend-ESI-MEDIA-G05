@@ -1,8 +1,11 @@
 package iso25.g05.esi_media.service;
 
+
 import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Servicio para registrar eventos de auditoría y trazabilidad
@@ -11,7 +14,7 @@ import java.time.format.DateTimeFormatter;
  */
 @Service
 public class LogService {
-    
+    private static final Logger logger = LoggerFactory.getLogger(LogService.class);
     private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     
     /**
@@ -37,12 +40,8 @@ public class LogService {
             usuarioConsultadoId
         );
         
-        // Por ahora lo registramos en consola
-        // En producción se podría guardar en una colección de MongoDB o archivo de log
-        System.out.println(logMessage);
-        
-        // TODO: Implementar persistencia en MongoDB si es necesario
-        // guardarEnBaseDatos(logMessage);
+    // Por ahora lo registramos en log
+    logger.info(logMessage);
     }
     
     /**
@@ -60,7 +59,7 @@ public class LogService {
             recurso
         );
         
-        System.err.println(logMessage);
+    logger.warn(logMessage);
     }
     
     /**
@@ -80,7 +79,7 @@ public class LogService {
             error
         );
         
-        System.err.println(logMessage);
+    logger.error(logMessage);
     }
     
     /**
@@ -98,6 +97,52 @@ public class LogService {
             usuario
         );
         
-        System.out.println(logMessage);
+    logger.info(logMessage);
+    }
+    
+    /**
+     * Registra el bloqueo de un usuario por parte de un administrador
+     * @param adminId ID del administrador que bloquea
+     * @param adminEmail Email del administrador
+     * @param usuarioBloqueadoId ID del usuario bloqueado
+     * @param usuarioBloqueadoEmail Email del usuario bloqueado
+     */
+    public void registrarBloqueoUsuario(String adminId, String adminEmail,
+                                       String usuarioBloqueadoId, String usuarioBloqueadoEmail) {
+        String timestamp = LocalDateTime.now().format(formatter);
+        
+        String logMessage = String.format(
+            "[AUDITORÍA BLOQUEO] %s | Admin: %s (%s) bloqueó al usuario: %s (%s)",
+            timestamp,
+            adminEmail,
+            adminId,
+            usuarioBloqueadoEmail,
+            usuarioBloqueadoId
+        );
+        
+    logger.info(logMessage);
+    }
+    
+    /**
+     * Registra el desbloqueo de un usuario por parte de un administrador
+     * @param adminId ID del administrador que desbloquea
+     * @param adminEmail Email del administrador
+     * @param usuarioDesbloqueadoId ID del usuario desbloqueado
+     * @param usuarioDesbloqueadoEmail Email del usuario desbloqueado
+     */
+    public void registrarDesbloqueoUsuario(String adminId, String adminEmail,
+                                          String usuarioDesbloqueadoId, String usuarioDesbloqueadoEmail) {
+        String timestamp = LocalDateTime.now().format(formatter);
+        
+        String logMessage = String.format(
+            "[AUDITORÍA DESBLOQUEO] %s | Admin: %s (%s) desbloqueó al usuario: %s (%s)",
+            timestamp,
+            adminEmail,
+            adminId,
+            usuarioDesbloqueadoEmail,
+            usuarioDesbloqueadoId
+        );
+        
+    logger.info(logMessage);
     }
 }

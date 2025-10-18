@@ -1,9 +1,9 @@
 package iso25.g05.esi_media.controller;
 
 import iso25.g05.esi_media.dto.CrearAdministradorRequest;
-import iso25.g05.esi_media.model.Administrador;
-import iso25.g05.esi_media.repository.AdministradorRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import iso25.g05.esi_media.service.UserService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -11,23 +11,9 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 import com.mongodb.client.MongoCollection;
-import com.mongodb.MongoWriteException;
-import com.mongodb.DBRef;
 
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.ArrayList;
 import java.util.Calendar;
-import iso25.g05.esi_media.model.Administrador;
-import iso25.g05.esi_media.service.UserService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.bson.Document;
-
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -36,12 +22,14 @@ import java.util.Map;
 @RequestMapping("/administradores")
 @CrossOrigin(origins = "*")
 public class AdministradorController {
-    
-    @Autowired
-    private UserService userService;
+    private static final Logger logger = LoggerFactory.getLogger(AdministradorController.class);
+    private final UserService userService;
+    private final MongoTemplate mongoTemplate;
 
-    @Autowired
-    private MongoTemplate mongoTemplate;
+    public AdministradorController(UserService userService, MongoTemplate mongoTemplate) {
+        this.userService = userService;
+        this.mongoTemplate = mongoTemplate;
+    }
     
     /**
      * Endpoint para crear un nuevo administrador
@@ -50,26 +38,23 @@ public class AdministradorController {
      * @return Respuesta con el administrador creado
      */
     @PostMapping("/crear")
-    public ResponseEntity<?> crearAdministrador(
+    public ResponseEntity<Object> crearAdministrador(
             @RequestBody CrearAdministradorRequest request,
             @RequestHeader("Admin-ID") String adminActualId) {
         
         try {
-            Administrador nuevoAdmin = userService.crearAdministrador(request, adminActualId);
-            
+            userService.crearAdministrador(request, adminActualId);
             // No devolver información sensible como contraseñas
             AdminResponse response = new AdminResponse(
-                "temp-id", // nuevoAdmin.getId(),
-                "temp-nombre", // nuevoAdmin.getNombre(),
-                "temp-apellidos", // nuevoAdmin.getApellidos(),
-                "temp@email.com", // nuevoAdmin.getEmail(),
-                "temp-dept", // nuevoAdmin.getdepartamento(),
-                "ADMINISTRADOR", // Valor fijo ya que es administrador
-                new java.util.Date() // Fecha actual como placeholder
+                "temp-id",
+                "temp-nombre",
+                "temp-apellidos",
+                "temp@email.com",
+                "temp-dept",
+                "ADMINISTRADOR",
+                new java.util.Date()
             );
-            
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
-            
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(new ErrorResponse(e.getMessage()));
@@ -82,11 +67,11 @@ public class AdministradorController {
      */
     @PostMapping("/crear-simple")
     public ResponseEntity<Map<String, Object>> crearAdministradorSimple(@RequestBody CrearAdministradorRequest request) {
-        System.out.println("=== CREACIÓN BYPASS ÍNDICE CORRUPTO ===");
-        System.out.println("Datos recibidos: " + request);
+    logger.info("=== CREACIÓN BYPASS ÍNDICE CORRUPTO ===");
+    logger.info("Datos recibidos: {}", request);
         
         try {
-            System.out.println("Procesando: " + request.getNombre() + " " + request.getApellidos() + " - " + request.getEmail());
+            logger.info("Procesando: {} {} - {}", request.getNombre(), request.getApellidos(), request.getEmail());
             
             // Paso 1: Crear documento de contraseña en la colección 'contrasenias'
             MongoCollection<Document> contraseniasCollection = mongoTemplate.getCollection("contrasenias");
@@ -102,14 +87,16 @@ public class AdministradorController {
                 .append("contrasenia_usadas", new ArrayList<>())
                 .append("_class", "iso25.g05.esi_media.model.Contrasenia");
             
-            System.out.println("📝 Base de datos actual: " + mongoTemplate.getDb().getName());
-            System.out.println("📝 Colección: " + contraseniasCollection.getNamespace());
-            System.out.println("📝 Insertando contraseña: " + contraseniaDoc.toJson());
+            logger.info("📝 Base de datos actual: {}", mongoTemplate.getDb().getName());
+            logger.info("📝 Colección: {}", contraseniasCollection.getNamespace());
+            if (logger.isInfoEnabled()) {
+                logger.info("📝 Insertando contraseña: {}", contraseniaDoc.toJson());
+            }
             contraseniasCollection.insertOne(contraseniaDoc);
             ObjectId contraseniaObjectId = contraseniaDoc.getObjectId("_id");
             String contraseniaId = contraseniaObjectId.toString();
-            System.out.println("✅ Contraseña insertada en BD con _id: " + contraseniaObjectId);
-            System.out.println("✅ String ID para DBRef: " + contraseniaId);
+            logger.info("✅ Contraseña insertada en BD con _id: {}", contraseniaObjectId);
+            logger.info("✅ String ID para DBRef: {}", contraseniaId);
             
             // Paso 2: Crear DBRef para la contraseña
             com.mongodb.DBRef contraseniaRef = new com.mongodb.DBRef("contrasenias", new org.bson.types.ObjectId(contraseniaId));
@@ -131,9 +118,9 @@ public class AdministradorController {
                 .append("threeFactorAutenticationEnabled", false)
                 .append("_class", "iso25.g05.esi_media.model.Administrador");
             
-            System.out.println("Insertando usuario con contraseña vinculada...");
+            logger.info("Insertando usuario con contraseña vinculada...");
             usersCollection.insertOne(adminDoc);
-            System.out.println("✅ Usuario insertado exitosamente en colección USERS");
+            logger.info("✅ Usuario insertado exitosamente en colección USERS");
             
             Map<String, Object> response = new HashMap<>();
             response.put("mensaje", "Administrador creado exitosamente con contraseña");
@@ -146,8 +133,7 @@ public class AdministradorController {
             return ResponseEntity.ok(response);
             
         } catch (Exception e) {
-            System.out.println("ERROR en creación: " + e.getMessage());
-            e.printStackTrace();
+            logger.error("ERROR en creación: {}", e.getMessage(), e);
             
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("mensaje", "Error al crear usuario: " + e.getMessage());

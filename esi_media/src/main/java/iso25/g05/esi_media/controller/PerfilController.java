@@ -1,4 +1,7 @@
+
 package iso25.g05.esi_media.controller;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import iso25.g05.esi_media.dto.PerfilDTO;
 import iso25.g05.esi_media.model.Administrador;
@@ -30,6 +33,7 @@ import java.util.Optional;
 @RequestMapping("/perfiles")
 @CrossOrigin(origins = "*")
 public class PerfilController {
+    private static final Logger logger = LoggerFactory.getLogger(PerfilController.class);
     
     private final UsuarioRepository usuarioRepository;
     private final LogService logService;
@@ -56,6 +60,7 @@ public class PerfilController {
         try {
             // Validar que se proporcione el ID del administrador
             if (adminId == null || adminId.isEmpty()) {
+                logger.warn("Intento de acceso sin Admin-ID");
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(crearRespuestaError("No autorizado. Se requiere identificación de administrador."));
             }
@@ -115,46 +120,62 @@ public class PerfilController {
         boolean bloqueado = usuario.isBloqueado();
         Date fechaRegistro = usuario.getFechaRegistro();
         
+        // No hay System.out.println en este método, solo lógica de creación de DTO
         if (usuario instanceof Administrador admin) {
-            return new PerfilDTO(
-                id, nombre, apellidos, email, foto, bloqueado,
-                admin.getDepartamento(),
-                fechaRegistro
-            );
-            
+            return new PerfilDTO.Builder()
+                .id(id)
+                .nombre(nombre)
+                .apellidos(apellidos)
+                .email(email)
+                .foto(foto)
+                .bloqueado(bloqueado)
+                .rol("Administrador")
+                .departamento(admin.getDepartamento())
+                .fechaRegistro(fechaRegistro)
+                .build();
         } else if (usuario instanceof GestordeContenido gestor) {
-            return new PerfilDTO(
-                id, nombre, apellidos, email, foto, bloqueado,
-                gestor.getalias(),
-                gestor.getdescripcion(),
-                gestor.getcampoespecializacion(),
-                gestor.gettipocontenidovideooaudio(),
-                fechaRegistro
-            );
-            
+            return new PerfilDTO.Builder()
+                .id(id)
+                .nombre(nombre)
+                .apellidos(apellidos)
+                .email(email)
+                .foto(foto)
+                .bloqueado(bloqueado)
+                .rol("Gestor")
+                .alias(gestor.getalias())
+                .descripcion(gestor.getdescripcion())
+                .especialidad(gestor.getcampoespecializacion())
+                .tipoContenido(gestor.gettipocontenidovideooaudio())
+                .fechaRegistro(fechaRegistro)
+                .build();
         } else if (usuario instanceof Visualizador visualizador) {
             Integer edad = calcularEdad(visualizador.getFechaNac());
-            return new PerfilDTO(
-                id, nombre, apellidos, email, foto, bloqueado,
-                visualizador.getAlias(),
-                visualizador.getFechaNac(),
-                visualizador.isVip(),
-                edad,
-                fechaRegistro
-            );
-            
+            return new PerfilDTO.Builder()
+                .id(id)
+                .nombre(nombre)
+                .apellidos(apellidos)
+                .email(email)
+                .foto(foto)
+                .bloqueado(bloqueado)
+                .rol("Visualizador")
+                .alias(visualizador.getAlias())
+                .fechaNacimiento(visualizador.getFechaNac())
+                .vip(visualizador.isVip())
+                .edad(edad)
+                .fechaRegistro(fechaRegistro)
+                .build();
         } else {
             // Usuario genérico (por si acaso)
-            PerfilDTO perfil = new PerfilDTO();
-            perfil.setId(id);
-            perfil.setNombre(nombre);
-            perfil.setApellidos(apellidos);
-            perfil.setEmail(email);
-            perfil.setFoto(foto);
-            perfil.setBloqueado(bloqueado);
-            perfil.setRol("Usuario");
-            perfil.setFechaRegistro(fechaRegistro);
-            return perfil;
+            return new PerfilDTO.Builder()
+                .id(id)
+                .nombre(nombre)
+                .apellidos(apellidos)
+                .email(email)
+                .foto(foto)
+                .bloqueado(bloqueado)
+                .rol("Usuario")
+                .fechaRegistro(fechaRegistro)
+                .build();
         }
     }
     
