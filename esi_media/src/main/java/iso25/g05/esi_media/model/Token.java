@@ -46,6 +46,13 @@ public class Token {
         expirado = e;
     }
 	
+    public Usuario getUsuario() {
+        return usuario;
+    }
+    
+    public void setUsuario(Usuario u) {
+        usuario = u;
+    }
 
     
 }
