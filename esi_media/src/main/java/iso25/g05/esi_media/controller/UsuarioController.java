@@ -23,6 +23,7 @@ import org.springframework.web.server.ResponseStatusException;
 import iso25.g05.esi_media.model.Administrador;
 import iso25.g05.esi_media.model.Contrasenia;
 import iso25.g05.esi_media.model.GestordeContenido;
+import iso25.g05.esi_media.model.Token;
 import iso25.g05.esi_media.model.Usuario;
 import iso25.g05.esi_media.model.Visualizador;
 import iso25.g05.esi_media.repository.AdministradorRepository;
@@ -78,12 +79,10 @@ public class UsuarioController {
     /**
      * Login con autenticación de 3 factores
      */
-    @PostMapping("/confirm3Auth")
-    public Map<String, Object> confirm3Auth(@RequestBody Map<String, String> loginData) {
-        String codigoRecuperacionId = userService.login3Auth(loginData);
-        Map<String, Object> response = new HashMap<>();
-        response.put("codigoRecuperacionId", codigoRecuperacionId);
-        return response;
+    @PostMapping("/verify3AuthCode")
+    public Token confirm3Auth(@RequestBody Map<String, String> loginData) {
+        Token sesion = userService.confirmLogin3Auth(loginData);
+        return sesion;
     }
     
     // ==================== ENDPOINTS DE USUARIOS (/api/usuarios) ====================
@@ -115,14 +114,14 @@ public class UsuarioController {
         }
     }
 
-    @PostMapping("/confirm2faCode")
+    @PostMapping("/verify2FACode")
     public boolean confirm2faCode(@RequestBody Map<String, String> data) {
         return userService.confirm2faCode(data);
-    }
+    }   
     
     /**
      * Formatear usuario al formato esperado por el frontend
-     */
+     */     
     private Map<String, Object> formatearUsuario(Usuario usuario) {
         Map<String, Object> usuarioFormateado = new HashMap<>();
         usuarioFormateado.put("id", usuario.getId());
