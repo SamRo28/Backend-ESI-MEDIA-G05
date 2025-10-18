@@ -50,6 +50,7 @@ public class Usuario {
     public List<Codigorecuperacion> codigosrecuperacion = new ArrayList<>();
     
     // Lista de tokens de sesión activos (se guarda en MongoDB)
+    @Transient
     public List<Token> sesionstoken = new ArrayList<>();
 
     @org.springframework.data.mongodb.core.mapping.DBRef
