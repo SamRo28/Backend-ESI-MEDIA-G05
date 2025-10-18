@@ -181,7 +181,7 @@ public class VideoService {
         Token token = tokenOpt.get();
         
         // 3. Verificar que el token no ha expirado
-        if (token.getfechaexpiracion().before(new Date())) {
+        if (token.getFechaExpiracion().before(new Date())) {
             throw new IllegalArgumentException("Token expirado");
         }
         

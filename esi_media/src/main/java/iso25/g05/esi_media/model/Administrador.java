@@ -19,13 +19,11 @@ public class Administrador extends Usuario {
 
 	public void setDepartamento(String departamento) {
 		this.departamento = departamento;
+	}
 
 	// Constructor vacío requerido por MongoDB
 	public Administrador() {
 		super("", false, null, "", null, "");
 	}
-
-
-	}
-
+	
 }
