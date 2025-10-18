@@ -17,7 +17,8 @@ import java.util.ArrayList;
 import java.util.Calendar;
 
 @RestController
-@RequestMapping("/api/gestores")
+@RequestMapping("/gestores")
+@CrossOrigin(origins = "*")
 public class GestorController {
     
     @Autowired

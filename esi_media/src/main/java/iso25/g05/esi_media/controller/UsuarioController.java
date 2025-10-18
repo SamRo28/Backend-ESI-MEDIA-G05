@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -282,19 +283,104 @@ public class UsuarioController {
     }
 
     /**
-     * Eliminar un usuario
+     * Actualizar perfil del usuario (nombre, apellidos, foto)
      */
-    @DeleteMapping("/{id}")
-    public ResponseEntity<String> eliminarUsuario(@PathVariable String id) {
+    @PutMapping("/{id}/profile")
+    @CrossOrigin(origins = "*")
+    public ResponseEntity<?> updateProfile(@PathVariable String id, @RequestBody Map<String, String> updates) {
         try {
-            if (usuarioRepository.existsById(id)) {
-                usuarioRepository.deleteById(id);
-                return ResponseEntity.ok("Usuario eliminado correctamente");
-            } else {
+            Optional<Usuario> optionalUsuario = usuarioRepository.findById(id);
+            
+            if (!optionalUsuario.isPresent()) {
                 return ResponseEntity.notFound().build();
             }
+            
+            Usuario usuario = optionalUsuario.get();
+            
+            System.out.println("🔍 Usuario antes de actualizar perfil - sesionstoken count: " + 
+                (usuario.sesionstoken != null ? usuario.sesionstoken.size() : "null"));
+            
+            // Actualizar campos si están presentes
+            if (updates.containsKey("nombre")) {
+                usuario.setNombre(updates.get("nombre"));
+            }
+            if (updates.containsKey("apellidos")) {
+                usuario.setApellidos(updates.get("apellidos"));
+            }
+            if (updates.containsKey("foto")) {
+                usuario.setFoto(updates.get("foto"));
+            }
+            
+            System.out.println("💾 Guardando usuario - sesionstoken count: " + 
+                (usuario.sesionstoken != null ? usuario.sesionstoken.size() : "null"));
+            
+            // Guardar en MongoDB
+            Usuario updatedUsuario = usuarioRepository.save(usuario);
+            
+            System.out.println("✅ Usuario guardado - sesionstoken count: " + 
+                (updatedUsuario.sesionstoken != null ? updatedUsuario.sesionstoken.size() : "null"));
+            
+            // Construir respuesta con _class incluido (igual que en login)
+            Map<String, Object> response = new HashMap<>();
+            response.put("_id", updatedUsuario.getId());
+            response.put("nombre", updatedUsuario.getNombre());
+            response.put("apellidos", updatedUsuario.getApellidos());
+            response.put("email", updatedUsuario.getEmail());
+            response.put("foto", updatedUsuario.getFoto());
+            response.put("bloqueado", updatedUsuario.isBloqueado());
+            response.put("_class", updatedUsuario.getClass().getName());
+            
+            // Si es Administrador, incluir departamento
+            if (updatedUsuario instanceof Administrador) {
+                response.put("departamento", ((Administrador) updatedUsuario).getDepartamento());
+            }
+            
+            return ResponseEntity.ok(response);
+            
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error al actualizar perfil: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Eliminar un usuario y su contraseña asociada de manera optimizada
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Map<String, String>> eliminarUsuario(@PathVariable String id) {
+        long startTime = System.currentTimeMillis();
+        Map<String, String> response = new HashMap<>();
+        
+        try {
+            // Obtener información del usuario por ID (solo una vez)
+            Optional<Usuario> usuarioOpt = usuarioRepository.findById(id);
+            
+            if (usuarioOpt.isPresent()) {
+                Usuario usuario = usuarioOpt.get();
+                String contraseniaId = null;
+                
+                // Capturar ID de contraseña si existe
+                if (usuario.getContrasenia() != null && usuario.getContrasenia().getId() != null) {
+                    contraseniaId = usuario.getContrasenia().getId();
+                }
+                
+                // Eliminar usuario inmediatamente para liberar recursos
+                usuarioRepository.deleteById(id);
+                System.out.println("Usuario eliminado: " + id);
+                
+                
+                long duration = System.currentTimeMillis() - startTime;
+                response.put("mensaje", "Usuario eliminado correctamente");
+                response.put("tiempoEjecucion", duration + "ms");
+                return ResponseEntity.ok(response);
+            } else {
+                response.put("error", "Usuario no encontrado");
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+            }
+        } catch (Exception e) {
+            System.out.println("Error al eliminar usuario: " + e.getMessage());
+            response.put("error", "Error al eliminar usuario: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
 }
