@@ -7,6 +7,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -39,6 +41,8 @@ import iso25.g05.esi_media.service.UserService;
 @RequestMapping("/users")
 @CrossOrigin(origins = "*")
 public class UsuarioController {
+
+    private static final Logger logger = LoggerFactory.getLogger(UsuarioController.class);
 
     @Autowired
     private UsuarioRepository usuarioRepository;
@@ -122,7 +126,7 @@ public class UsuarioController {
     
     /**
      * Formatear usuario al formato esperado por el frontend
-     */     
+     */
     private Map<String, Object> formatearUsuario(Usuario usuario) {
         Map<String, Object> usuarioFormateado = new HashMap<>();
         usuarioFormateado.put("id", usuario.getId());
@@ -363,11 +367,17 @@ public class UsuarioController {
                 if (usuario.getContrasenia() != null && usuario.getContrasenia().getId() != null) {
                     contraseniaId = usuario.getContrasenia().getId();
                 }
-                
+                /* 
+                // Capturar info de la contraseña para el log
+                if (contraseniaId != null) {
+                    logger.info("Se va a proceder a eliminar usuario {} con contraseña ID {}", id, contraseniaId);
+                } else {
+                    logger.info("Se va a proceder a eliminar usuario {} (sin contraseña asociada)", id);
+                }
+                */
                 // Eliminar usuario inmediatamente para liberar recursos
                 usuarioRepository.deleteById(id);
-                System.out.println("Usuario eliminado: " + id);
-                
+                logger.info("Usuario eliminado: {}", id);
                 
                 long duration = System.currentTimeMillis() - startTime;
                 response.put("mensaje", "Usuario eliminado correctamente");
@@ -378,7 +388,7 @@ public class UsuarioController {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
             }
         } catch (Exception e) {
-            System.out.println("Error al eliminar usuario: " + e.getMessage());
+            logger.error("Error al eliminar usuario {}: {}", id, e.getMessage());
             response.put("error", "Error al eliminar usuario: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
