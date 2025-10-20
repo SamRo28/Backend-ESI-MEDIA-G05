@@ -123,7 +123,7 @@ public class UsuarioController {
 
     @PostMapping("/confirm2faCode")
     public boolean confirm2faCode(@RequestBody Map<String, String> data) {
-        return userService.confirm2faCode(data);
+        return userService.confirm2faCode(data) != null;
     }
     
     /**
