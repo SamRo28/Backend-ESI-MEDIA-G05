@@ -5,29 +5,31 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @Document(collection = "videos")
 public class Video extends Contenido {
 
-    private String _url;
-    private String _resolucion;
+    private String url;
+    private String resolucion;
 
 	public Video(String id, String titulo, String descripcion, java.util.List<String> tags, double duracion, boolean vip,
-            boolean estado, java.util.Date fechaEstadoAutomatico, java.util.Date fechaDisponibleHasta,
-            int edadVisualizacion, Object caratula, int nVisualizaciones, String url, String resolucion) {
-        super(id, titulo, descripcion, tags, duracion, vip, estado, fechaEstadoAutomatico, fechaDisponibleHasta,
-                edadVisualizacion, caratula, nVisualizaciones);
-        this._url = url;
-        this._resolucion = resolucion;
-    }    public String getUrl() {
-        return _url;
+            boolean estado, java.util.Date fechaestadoautomatico, java.util.Date fechadisponiblehasta,
+            int edadvisualizacion, Object caratula, int nvisualizaciones, String url, String resolucion, String gestorId) {
+        super(id, titulo, descripcion, tags, duracion, vip, estado, fechaestadoautomatico, fechadisponiblehasta,
+                edadvisualizacion, caratula, nvisualizaciones, gestorId);
+        this.url = url;
+        this.resolucion = resolucion;
+    }
+    
+    public String geturl() {
+        return url;
     }
 
-    public void setUrl(String u) {
-        _url = u;
+    public void seturl(String url) {
+        this.url = url;
     }
 
-    public String getResolucion() {
-        return _resolucion;
+    public String getresolucion() {
+        return resolucion;
     }
 
-    public void setResolucion(String r) {
-        _resolucion = r;
+    public void setresolucion(String resolucion) {
+        this.resolucion = resolucion;
     }
 }
