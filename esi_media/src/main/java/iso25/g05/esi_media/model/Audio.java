@@ -9,6 +9,8 @@ public class Audio extends Contenido {
     private String mimeType;       // Tipo MIME, ej. "audio/mpeg"
     private long tamanoBytes;      // Tamaño en bytes
 
+	public Audio() { }
+
 	public Audio(String id, String titulo, String descripcion, List<String> tags, double duracion, 
 				boolean vip, boolean estado, Date fechaestadoautomatico, Date fechadisponiblehasta, int edadvisualizacion, 
 				Object caratula, int nvisualizaciones, Binary fichero, String mimeType, long tamanoBytes, String gestorId) {

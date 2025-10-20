@@ -25,6 +25,8 @@ public class Contenido {
 
 
 	
+	public Contenido() { }
+
 	public Contenido(String id, String titulo, String descripcion, List<String> tags, double duracion, boolean vip,
 			boolean estado, Date fechaestadoautomatico, Date fechadisponiblehasta, int edadvisualizacion,
 			Object caratula, int nvisualizaciones, String gestorId) {
