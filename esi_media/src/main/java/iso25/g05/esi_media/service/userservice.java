@@ -16,7 +16,6 @@ import iso25.g05.esi_media.model.Token;
 import iso25.g05.esi_media.model.Usuario;
 import iso25.g05.esi_media.repository.AdministradorRepository;
 import iso25.g05.esi_media.repository.CodigoRecuperacionRepository;
-import iso25.g05.esi_media.repository.ContraseniaRepository;
 import iso25.g05.esi_media.repository.UsuarioRepository;
 
 /**
@@ -35,9 +34,6 @@ public class UserService {
     @Autowired
     private CodigoRecuperacionRepository codigorecuperacionRepository;
 
-    @Autowired
-    private ContraseniaRepository contraseniaRepository;
-    
     @Autowired
     private EmailService emailService;
     
@@ -58,42 +54,16 @@ public class UserService {
         String email = loginData.get("email");
         String password = loginData.get("password");
 
-        System.out.println("🔐 Intento de login - Email: " + email);
-        
         Optional<Usuario> existingUser = this.usuarioRepository.findByEmail(email);
-        
-        if (existingUser.isEmpty()) {
-            System.out.println("❌ Usuario no encontrado con email: " + email);
-            return null;
-        }
-        
-        Usuario user = existingUser.get();
-        System.out.println("✅ Usuario encontrado: " + user.getNombre() + " " + user.getApellidos());
-        System.out.println("📋 Tipo de usuario (_class): " + user.getClass().getName());
-        
-        if (user.getContrasenia() == null) {
-            System.out.println("⚠️ ADVERTENCIA: El usuario no tiene contraseña configurada");
-            return null;
-        }
-        
-        String storedPassword = user.getContrasenia().getContraseniaActual();
-        System.out.println("🔑 Contraseña almacenada: " + storedPassword);
-        System.out.println("🔑 Contraseña recibida: " + password);
-        System.out.println("🔍 ¿Contraseñas coinciden? " + storedPassword.equals(password));
 
-        if (storedPassword.equals(password)) {
-            System.out.println("✅ Credenciales correctas!");
-            if (!user.isTwoFactorAutenticationEnabled()) {
-                System.out.println("🎫 Generando token de sesión (2FA deshabilitado)");
-                generateAndSaveToken(user);
-                return user;
+        if (existingUser.isPresent() && existingUser.get().getContrasenia().getContraseniaActual().equals(password)) {
+            if (!existingUser.get().isTwoFactorAutenticationEnabled()) {
+                generateAndSaveToken(existingUser.get());
+                return existingUser.get();
             } else {
-                System.out.println("🔐 2FA habilitado - se requiere segundo factor");
-                return user;
+                return existingUser.get();
             }
         }
-        
-        System.out.println("❌ Contraseña incorrecta");
         return null;
     }
 
@@ -127,6 +97,11 @@ public class UserService {
         Optional<Codigorecuperacion> existingCode = this.codigorecuperacionRepository.findById(codigoRecuperacionId);
         if (existingCode.isPresent() && existingCode.get().getcodigo().equals(code)) {
             Usuario user = existingCode.get().getunnamedUsuario();
+
+            if (!user.isThreeFactorAutenticationEnabled()) {
+               user.setThreeFactorAutenticationEnabled(true);
+            }
+
             return generateAndSaveToken(user);
         }
         return null;
@@ -173,21 +148,6 @@ public class UserService {
     }
     
     /**
-     * Eliminar una contraseña por su ID
-     * @param contraseniaId ID de la contraseña a eliminar
-     */
-    public void deletePassword(String contraseniaId) {
-        System.out.println("Servicio: Eliminando contraseña con ID: " + contraseniaId);
-        try {
-            // Eliminar directamente sin comprobar existencia para mayor velocidad
-            contraseniaRepository.deleteById(contraseniaId);
-            System.out.println("Contraseña eliminada correctamente");
-        } catch (Exception e) {
-            System.out.println("Error al eliminar contraseña o no existe: " + e.getMessage());
-        }
-    }
-    
-    /**
      * Verifica si el administrador actual tiene permisos para crear otros administradores
      */
     private void verificarPermisosCreacion(String adminId) {
@@ -213,15 +173,20 @@ public class UserService {
         }
     }
 
-    public boolean confirm2faCode(Map<String, String> data) {
+    public Usuario confirm2faCode(Map<String, String> data) {
         int code = Integer.parseInt(data.get("code"));
         String email = data.get("email");
         boolean valid = false;
         Optional<Usuario> existingUser = this.usuarioRepository.findByEmail(email);
+
         if (existingUser.isPresent() ) {
             String secret = existingUser.get().getSecretkey();
-            valid = gAuth.authorize(secret, code);
+            valid = gAuth.authorize(secret, code);    
+            
+            if (existingUser.get().isThreeFactorAutenticationEnabled() && valid) {
+                    generateAndSaveToken(existingUser.get());
+                }
         }
-        return valid;
+        return existingUser.orElse(null);
     }
 }

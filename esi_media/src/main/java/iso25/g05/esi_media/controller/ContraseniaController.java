@@ -1,5 +1,7 @@
 package iso25.g05.esi_media.controller;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +24,8 @@ import java.util.Optional;
 @RequestMapping("/contrasenias")
 @CrossOrigin(origins = "*")
 public class ContraseniaController {
+
+    private static final Logger logger = LoggerFactory.getLogger(ContraseniaController.class);
 
     @Autowired
     private ContraseniaRepository contraseniaRepository;
@@ -51,6 +55,7 @@ public class ContraseniaController {
         try {
             if (contraseniaRepository.existsById(id)) {
                 contraseniaRepository.deleteById(id);
+                logger.info("Contraseña eliminada correctamente: {}", id);
                 return ResponseEntity.ok("Contraseña eliminada correctamente");
             } else {
                 return ResponseEntity.notFound().build();

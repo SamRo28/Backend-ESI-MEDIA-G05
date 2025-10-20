@@ -5,15 +5,7 @@ import java.util.Date;
 import java.util.List;
 
 import org.springframework.data.annotation.Id;
-import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.mapping.Document;
-
-import org.springframework.data.annotation.Id;
-import org.springframework.data.annotation.Transient;
-import org.springframework.data.mongodb.core.mapping.Document;
-import org.springframework.data.mongodb.core.index.Indexed;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.annotation.Transient;
 
 /**
  * Clase base para usuarios del sistema (Visualizador, Administrador, Gestor).
@@ -46,10 +38,10 @@ public class Usuario {
     protected Object foto;
     protected boolean bloqueado;
 
-    @Transient
+
     public List<Codigorecuperacion> codigosrecuperacion = new ArrayList<>();
     
-    // Lista de tokens de sesión activos (se guarda en MongoDB)
+
     public List<Token> sesionstoken = new ArrayList<>();
 
     @org.springframework.data.mongodb.core.mapping.DBRef
@@ -57,7 +49,6 @@ public class Usuario {
 
     protected Date fecharegistro;
 
-    @Transient
     private String secretkey;
     
     private boolean twoFactorAutenticationEnabled;

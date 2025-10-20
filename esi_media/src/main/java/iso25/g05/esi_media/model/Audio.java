@@ -3,9 +3,7 @@ package iso25.g05.esi_media.model;
 import java.util.Date;
 import java.util.List;
 import org.bson.types.Binary;
-import org.springframework.data.mongodb.core.mapping.Document;
 
-@Document(collection = "audios")
 public class Audio extends Contenido {
     private Binary fichero;        // Archivo binario real (.mp3)
     private String mimeType;       // Tipo MIME, ej. "audio/mpeg"

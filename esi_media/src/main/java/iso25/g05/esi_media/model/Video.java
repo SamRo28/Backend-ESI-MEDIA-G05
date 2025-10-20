@@ -1,8 +1,5 @@
 package iso25.g05.esi_media.model;
 
-import org.springframework.data.mongodb.core.mapping.Document;
-
-@Document(collection = "videos")
 public class Video extends Contenido {
 
     private String url;

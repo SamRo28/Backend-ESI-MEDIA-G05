@@ -18,6 +18,8 @@ public class Codigorecuperacion {
         this.unnamedUsuario = unnamedUsuario;
     }
 
+	public Codigorecuperacion(){}
+
     // Constructor simplificado para EmailService - genera código automáticamente
     public Codigorecuperacion(Usuario usuario) {
         this.id = null; // MongoDB asignará el ID
