@@ -58,6 +58,17 @@ public class UsuarioController {
      */
     @PostMapping("/login")
     public Map<String,Object> login(@RequestBody Map<String, String> loginData) {
+        // Check blocked user before attempting login
+        try {
+            String email = loginData.get("email");
+            if (email != null) {
+                Optional<Usuario> maybeUser = usuarioRepository.findByEmail(email);
+                if (maybeUser.isPresent() && maybeUser.get().isBloqueado()) {
+                    throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuario bloqueado");
+                }
+            }
+        } catch (Exception ignored) {}
+
         Usuario loggedInUser = userService.login(loginData);
         if (loggedInUser == null)
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid credentials");

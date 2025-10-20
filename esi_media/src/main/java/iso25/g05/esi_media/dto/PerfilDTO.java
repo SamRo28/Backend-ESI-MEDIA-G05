@@ -214,4 +214,28 @@ public class PerfilDTO {
     public void setEdad(Integer edad) {
         this.edad = edad;
     }
+
+    // Builder estático para crear instancias de PerfilDTO de forma fluida
+    public static class Builder {
+        private final PerfilDTO dto = new PerfilDTO();
+
+        public Builder id(String id) { dto.setId(id); return this; }
+        public Builder nombre(String nombre) { dto.setNombre(nombre); return this; }
+        public Builder apellidos(String apellidos) { dto.setApellidos(apellidos); return this; }
+        public Builder email(String email) { dto.setEmail(email); return this; }
+        public Builder foto(Object foto) { dto.setFoto(foto); return this; }
+        public Builder bloqueado(boolean bloqueado) { dto.setBloqueado(bloqueado); return this; }
+        public Builder rol(String rol) { dto.setRol(rol); return this; }
+        public Builder fechaRegistro(Date fechaRegistro) { dto.setFechaRegistro(fechaRegistro); return this; }
+        public Builder departamento(String departamento) { dto.setDepartamento(departamento); return this; }
+        public Builder alias(String alias) { dto.setAlias(alias); return this; }
+        public Builder descripcion(String descripcion) { dto.setDescripcion(descripcion); return this; }
+        public Builder especialidad(String especialidad) { dto.setEspecialidad(especialidad); return this; }
+        public Builder tipoContenido(String tipoContenido) { dto.setTipoContenido(tipoContenido); return this; }
+        public Builder fechaNacimiento(Date fechaNacimiento) { dto.setFechaNacimiento(fechaNacimiento); return this; }
+        public Builder vip(boolean vip) { dto.setVip(vip); return this; }
+        public Builder edad(Integer edad) { dto.setEdad(edad); return this; }
+
+        public PerfilDTO build() { return dto; }
+    }
 }
