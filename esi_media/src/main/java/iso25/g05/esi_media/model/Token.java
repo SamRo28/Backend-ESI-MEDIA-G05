@@ -1,58 +1,44 @@
 package iso25.g05.esi_media.model;
 
 import java.util.Date;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
 
-@Document(collection = "tokens")
 public class Token {
 
-    private String token;
-    private Date fechaexpiracion;
-    private boolean expirado;
-    public Usuario usuario;
+    private String _token;
+    private Date _fecha_expiracion;
+    private boolean _expirado;
+    public Usuario _usuario;
 
-
-    public Token() {
-        this.token = java.util.UUID.randomUUID().toString();
-        this.fechaexpiracion = new Date(System.currentTimeMillis() + 3600 * 1000);
-        this.expirado = false;
+    public Token(boolean _expirado, Date _fecha_expiracion, String _token, Usuario _usuario) {
+        this._expirado = _expirado;
+        this._fecha_expiracion = _fecha_expiracion;
+        this._token = _token;
+        this._usuario = _usuario;
     }
+
 	
 
     public String getToken() {
-        return token;
+        return _token;
     }
 
     public void setToken(String t) {
-        token = t;
+        _token = t;
     }
 
     public Date getFechaExpiracion() {
-        return fechaexpiracion;
+        return _fecha_expiracion;
     }
 
     public void setFechaExpiracion(Date d) {
-        fechaexpiracion = d;
+        _fecha_expiracion = d;
     }
 
-
-
     public boolean isExpirado() {
-        return expirado;
+        return _expirado;
     }
 
     public void setExpirado(boolean e) {
-        expirado = e;
+        _expirado = e;
     }
-	
-    public Usuario getUsuario() {
-        return usuario;
-    }
-    
-    public void setUsuario(Usuario u) {
-        usuario = u;
-    }
-
-    
 }
