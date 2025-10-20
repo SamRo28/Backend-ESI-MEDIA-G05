@@ -1,5 +1,14 @@
 package iso25.g05.esi_media.service;
 
+import java.io.IOException;
+import java.util.Date;
+import java.util.Optional;
+
+import org.bson.types.Binary;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
 import iso25.g05.esi_media.dto.AudioUploadDTO;
 import iso25.g05.esi_media.model.Audio;
 import iso25.g05.esi_media.model.GestordeContenido;
@@ -7,14 +16,7 @@ import iso25.g05.esi_media.model.Token;
 import iso25.g05.esi_media.model.Usuario;
 import iso25.g05.esi_media.repository.AudioRepository;
 import iso25.g05.esi_media.repository.GestorDeContenidoRepository;
-import iso25.g05.esi_media.repository.TokenRepository;
-import org.bson.types.Binary;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
-import java.util.Optional;
-import java.io.IOException;
-import java.util.Date;
+import iso25.g05.esi_media.repository.UsuarioRepository;
 
 /**
  * Servicio para gestión de contenido de audio
@@ -33,7 +35,7 @@ public class AudioService {
     private GestorDeContenidoRepository gestorRepository;
     
     @Autowired
-    private TokenRepository tokenRepository;
+    private UsuarioRepository usuarioRepository;
     
     /**
      * Sube un nuevo archivo de audio validando el token de autorización
@@ -177,25 +179,40 @@ public class AudioService {
      * @return ID del gestor autenticado
      * @throws IllegalArgumentException Si el token es inválido
      */
-    private String validarTokenYObtenerGestorId(String authHeader) {
+    private String validarTokenYObtenerGestorId(String  tokenValue) {
 
-        // 1. Extraer token del header
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            throw new IllegalArgumentException("Header de autorización inválido");
-        }
-        
-        String tokenValue = authHeader.replace("Bearer ", "").trim();
+       
        
         if (tokenValue.isEmpty()) {
             throw new IllegalArgumentException("Token vacío");
         }
         
         // 2. Buscar token en la base de datos
-        Optional<Token> tokenOpt = tokenRepository.findByToken(tokenValue);
+        Optional<Usuario> usuarioOpt = usuarioRepository.findBySesionToken(tokenValue);
+        if (usuarioOpt.isEmpty()) {
+            throw new IllegalArgumentException("Token no válido");
+        }
+
+        Usuario usuario = usuarioOpt.get();
+        
+        Optional<Token> tokenOpt = usuario.getSesionstoken().stream()
+            .filter(t -> {
+                // Intentar comparar por getter típico "getToken()" si existe; usar toString() como fallback
+                try {
+                    String v = t.getToken();
+                    if (tokenValue.equals(v)) return true;
+                } catch (NoSuchMethodError | AbstractMethodError | Exception ignored) {
+                    // ignored
+                }
+                // Fallback: comparar con toString()
+                return tokenValue.equals(String.valueOf(t));
+            })
+            .findFirst();
+
         if (tokenOpt.isEmpty()) {
             throw new IllegalArgumentException("Token no válido");
         }
-        
+
         Token token = tokenOpt.get();
 
         // 3. Verificar que el token no ha expirado
@@ -203,12 +220,6 @@ public class AudioService {
             throw new IllegalArgumentException("Token expirado");
         }
         
-        // 4. Obtener el usuario asociado al token
-        Usuario usuario = token.getUsuario();
-
-        if (usuario == null) {
-            throw new IllegalArgumentException("Token sin usuario asociado");
-        }
         
         // 5. Verificar que el usuario es un gestor de contenido
         Optional<GestordeContenido> gestorOpt = gestorRepository.findById(usuario.getId());
