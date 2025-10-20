@@ -3,6 +3,7 @@ package iso25.g05.esi_media.controller;
 import iso25.g05.esi_media.model.*;
 import iso25.g05.esi_media.repository.*;
 import iso25.g05.esi_media.service.LogService;
+import org.bson.types.ObjectId;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,18 +16,21 @@ import java.util.*;
 public class ContenidoAdminController {
 
     private final UsuarioRepository usuarioRepository;
-    private final ContenidoRepository contenidoRepository; // Videos (colección contenidos)
-    private final AudioRepository audioRepository;         // Audios (colección audios)
+    private final ContenidoRepository contenidoRepository; // Videos base (colecciÃƒÂ³n contenidos)
+    private final VideoRepository videoRepository;         // Videos especÃƒÂ­ficos (colecciÃƒÂ³n videos)
+    private final AudioRepository audioRepository;         // Audios (colecciÃƒÂ³n audios)
     private final GestorDeContenidoRepository gestorRepository;
     private final LogService logService;
 
     public ContenidoAdminController(UsuarioRepository usuarioRepository,
                                     ContenidoRepository contenidoRepository,
+                                    VideoRepository videoRepository,
                                     AudioRepository audioRepository,
                                     GestorDeContenidoRepository gestorRepository,
                                     LogService logService) {
         this.usuarioRepository = usuarioRepository;
         this.contenidoRepository = contenidoRepository;
+        this.videoRepository = videoRepository;
         this.audioRepository = audioRepository;
         this.gestorRepository = gestorRepository;
         this.logService = logService;
@@ -38,6 +42,11 @@ public class ContenidoAdminController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("error", "No autorizado. Se requiere Admin-ID"));
         }
+        // Validar formato de ID para evitar 500 si no es ObjectId
+        if (!ObjectId.isValid(adminId)) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "Admin-ID invÃƒÂ¡lido"));
+        }
 
         Optional<Usuario> adminOpt = usuarioRepository.findById(adminId);
         if (adminOpt.isEmpty() || !(adminOpt.get() instanceof Administrador)) {
@@ -48,26 +57,49 @@ public class ContenidoAdminController {
 
         List<Map<String, Object>> resultado = new ArrayList<>();
 
-        // Videos (almacenados en colección 'contenidos')
-        for (Contenido c : contenidoRepository.findAll()) {
-            Map<String, Object> item = new HashMap<>();
-            item.put("id", c.getId());
-            item.put("titulo", c.gettitulo());
-            item.put("tipo", "Video");
-            item.put("gestorNombre", resolverGestorNombre(c.getgestorId()));
-            resultado.add(item);
+        // Videos (colecciÃƒÂ³n 'contenidos')
+        try {
+            for (Contenido c : contenidoRepository.findAll()) {
+                Map<String, Object> item = new HashMap<>();
+                item.put("id", c.getId());
+                item.put("titulo", c.gettitulo());
+                item.put("tipo", "Video");
+                item.put("gestorNombre", resolverGestorNombre(c.getgestorId()));
+                resultado.add(item);
+            }
+        } catch (Exception e) {
+            System.err.println("[ContenidoAdminController] Error listando videos: " + e.getMessage());
         }
 
-        // Audios (colección 'audios')
-        for (Audio a : audioRepository.findAll()) {
-            Map<String, Object> item = new HashMap<>();
-            item.put("id", a.getId());
-            item.put("titulo", a.gettitulo());
-            item.put("tipo", "Audio");
-            item.put("gestorNombre", resolverGestorNombre(a.getgestorId()));
-            resultado.add(item);
+        // Videos (colecciÃƒÂ³n 'videos')
+        try {
+            for (Video v : videoRepository.findAll()) {
+                Map<String, Object> item = new HashMap<>();
+                item.put("id", v.getId());
+                item.put("titulo", v.gettitulo());
+                item.put("tipo", "Video");
+                item.put("gestorNombre", resolverGestorNombre(v.getgestorId()));
+                resultado.add(item);
+            }
+        } catch (Exception e) {
+            System.err.println("[ContenidoAdminController] Error listando videos (colecciÃƒÂ³n videos): " + e.getMessage());
         }
 
+        // Audios (colecciÃƒÂ³n 'audios')
+        try {
+            for (Audio a : audioRepository.findAll()) {
+                Map<String, Object> item = new HashMap<>();
+                item.put("id", a.getId());
+                item.put("titulo", a.gettitulo());
+                item.put("tipo", "Audio");
+                item.put("gestorNombre", resolverGestorNombre(a.getgestorId()));
+                resultado.add(item);
+            }
+        } catch (Exception e) {
+            System.err.println("[ContenidoAdminController] Error listando audios: " + e.getMessage());
+        }
+
+                System.out.println("[ContenidoAdminController] Total contenidos a devolver: " + resultado.size());
         return ResponseEntity.ok(resultado);
     }
 
@@ -85,7 +117,7 @@ public class ContenidoAdminController {
                     .body(Map.of("error", "Acceso denegado. Solo administradores"));
         }
 
-        // Buscar primero en videos (colección contenidos)
+        // Buscar primero en videos (colecciÃƒÂ³n contenidos)
         Optional<Contenido> cOpt = contenidoRepository.findById(id);
         if (cOpt.isPresent()) {
             Contenido c = cOpt.get();
@@ -112,10 +144,8 @@ public class ContenidoAdminController {
         d.put("duracion", c.getduracion());
         if (c instanceof Video v) {
             d.put("resolucion", v.getresolucion());
+            d.put("url", v.geturl());
         }
-        d.put("estado", c.isestado());
-        d.put("fechaEstado", c.getfechaestadoautomatico());
-        d.put("fechaDisponibleHasta", c.getfechadisponiblehasta());
         d.put("vip", c.isvip());
         d.put("edadMinima", c.getedadvisualizacion());
         d.put("gestorId", c.getgestorId());
@@ -130,4 +160,3 @@ public class ContenidoAdminController {
                 .orElse(null);
     }
 }
-
