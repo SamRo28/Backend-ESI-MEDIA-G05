@@ -97,6 +97,11 @@ public class UserService {
         Optional<Codigorecuperacion> existingCode = this.codigorecuperacionRepository.findById(codigoRecuperacionId);
         if (existingCode.isPresent() && existingCode.get().getcodigo().equals(code)) {
             Usuario user = existingCode.get().getunnamedUsuario();
+
+            if (!user.isThreeFactorAutenticationEnabled()) {
+               user.setThreeFactorAutenticationEnabled(true);
+            }
+
             return generateAndSaveToken(user);
         }
         return null;
@@ -168,15 +173,20 @@ public class UserService {
         }
     }
 
-    public boolean confirm2faCode(Map<String, String> data) {
+    public Usuario confirm2faCode(Map<String, String> data) {
         int code = Integer.parseInt(data.get("code"));
         String email = data.get("email");
         boolean valid = false;
         Optional<Usuario> existingUser = this.usuarioRepository.findByEmail(email);
+
         if (existingUser.isPresent() ) {
             String secret = existingUser.get().getSecretkey();
-            valid = gAuth.authorize(secret, code);
+            valid = gAuth.authorize(secret, code);    
+            
+            if (existingUser.get().isThreeFactorAutenticationEnabled() && valid) {
+                    generateAndSaveToken(existingUser.get());
+                }
         }
-        return valid;
+        return existingUser.orElse(null);
     }
 }

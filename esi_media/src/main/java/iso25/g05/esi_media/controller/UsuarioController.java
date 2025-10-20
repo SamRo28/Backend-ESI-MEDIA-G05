@@ -116,7 +116,7 @@ public class UsuarioController {
     }
 
     @PostMapping("/verify2FACode")
-    public boolean confirm2faCode(@RequestBody Map<String, String> data) {
+    public Usuario confirm2faCode(@RequestBody Map<String, String> data) {
         return userService.confirm2faCode(data);
     }   
     
