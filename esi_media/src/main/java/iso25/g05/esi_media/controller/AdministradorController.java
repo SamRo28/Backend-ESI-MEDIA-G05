@@ -1,8 +1,12 @@
 package iso25.g05.esi_media.controller;
 
+import iso25.g05.esi_media.dto.AdministradorGestionDTO;
 import iso25.g05.esi_media.dto.CrearAdministradorRequest;
+import iso25.g05.esi_media.dto.GestorGestionDTO;
+import iso25.g05.esi_media.dto.VisualizadorGestionDTO;
 import iso25.g05.esi_media.model.Administrador;
 import iso25.g05.esi_media.repository.AdministradorRepository;
+import iso25.g05.esi_media.service.UsuarioGestionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,24 +17,16 @@ import org.bson.types.ObjectId;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.MongoWriteException;
 import com.mongodb.DBRef;
+import jakarta.validation.Valid;
 
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.List;
 import iso25.g05.esi_media.model.Administrador;
 import iso25.g05.esi_media.service.UserService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.bson.Document;
-
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/administradores")
@@ -42,6 +38,9 @@ public class AdministradorController {
 
     @Autowired
     private MongoTemplate mongoTemplate;
+    
+    @Autowired
+    private UsuarioGestionService usuarioGestionService;
     
     /**
      * Endpoint para crear un nuevo administrador
@@ -196,5 +195,253 @@ public class AdministradorController {
         }
         
         public String getError() { return error; }
+    }
+    
+    // ========== ENDPOINTS DE GESTIÓN DE USUARIOS ==========
+    
+    /**
+     * Obtener todos los visualizadores
+     * GET /administradores/usuarios/visualizadores
+     */
+    @GetMapping("/usuarios/visualizadores")
+    public ResponseEntity<Map<String, Object>> obtenerVisualizadores(
+            @RequestHeader("Authorization") String authHeader) {
+        
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            List<VisualizadorGestionDTO> visualizadores = usuarioGestionService.obtenerVisualizadores(authHeader);
+            
+            response.put("success", true);
+            response.put("data", visualizadores);
+            response.put("total", visualizadores.size());
+            response.put("message", "Visualizadores obtenidos exitosamente");
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (RuntimeException e) {
+            response.put("success", false);
+            response.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+        }
+    }
+    
+    /**
+     * Obtener un visualizador por ID
+     * GET /administradores/usuarios/visualizadores/{id}
+     */
+    @GetMapping("/usuarios/visualizadores/{id}")
+    public ResponseEntity<Map<String, Object>> obtenerVisualizadorPorId(
+            @PathVariable String id,
+            @RequestHeader("Authorization") String authHeader) {
+        
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            VisualizadorGestionDTO visualizador = usuarioGestionService.obtenerVisualizadorPorId(id, authHeader);
+            
+            response.put("success", true);
+            response.put("data", visualizador);
+            response.put("message", "Visualizador obtenido exitosamente");
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (RuntimeException e) {
+            response.put("success", false);
+            response.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        }
+    }
+    
+    /**
+     * Modificar un visualizador
+     * PUT /administradores/usuarios/visualizadores/{id}
+     */
+    @PutMapping("/usuarios/visualizadores/{id}")
+    public ResponseEntity<Map<String, Object>> modificarVisualizador(
+            @PathVariable String id,
+            @Valid @RequestBody VisualizadorGestionDTO dto,
+            @RequestHeader("Authorization") String authHeader) {
+        
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            VisualizadorGestionDTO visualizadorActualizado = usuarioGestionService.modificarVisualizador(id, dto, authHeader);
+            
+            response.put("success", true);
+            response.put("data", visualizadorActualizado);
+            response.put("message", "Visualizador modificado exitosamente");
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (RuntimeException e) {
+            response.put("success", false);
+            response.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
+    }
+    
+    /**
+     * Obtener todos los gestores de contenido
+     * GET /administradores/usuarios/gestores
+     */
+    @GetMapping("/usuarios/gestores")
+    public ResponseEntity<Map<String, Object>> obtenerGestores(
+            @RequestHeader("Authorization") String authHeader) {
+        
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            List<GestorGestionDTO> gestores = usuarioGestionService.obtenerGestores(authHeader);
+            
+            response.put("success", true);
+            response.put("data", gestores);
+            response.put("total", gestores.size());
+            response.put("message", "Gestores obtenidos exitosamente");
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (RuntimeException e) {
+            response.put("success", false);
+            response.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+        }
+    }
+    
+    /**
+     * Obtener un gestor por ID
+     * GET /administradores/usuarios/gestores/{id}
+     */
+    @GetMapping("/usuarios/gestores/{id}")
+    public ResponseEntity<Map<String, Object>> obtenerGestorPorId(
+            @PathVariable String id,
+            @RequestHeader("Authorization") String authHeader) {
+        
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            GestorGestionDTO gestor = usuarioGestionService.obtenerGestorPorId(id, authHeader);
+            
+            response.put("success", true);
+            response.put("data", gestor);
+            response.put("message", "Gestor obtenido exitosamente");
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (RuntimeException e) {
+            response.put("success", false);
+            response.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        }
+    }
+    
+    /**
+     * Modificar un gestor de contenido
+     * PUT /administradores/usuarios/gestores/{id}
+     */
+    @PutMapping("/usuarios/gestores/{id}")
+    public ResponseEntity<Map<String, Object>> modificarGestor(
+            @PathVariable String id,
+            @Valid @RequestBody GestorGestionDTO dto,
+            @RequestHeader("Authorization") String authHeader) {
+        
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            GestorGestionDTO gestorActualizado = usuarioGestionService.modificarGestor(id, dto, authHeader);
+            
+            response.put("success", true);
+            response.put("data", gestorActualizado);
+            response.put("message", "Gestor modificado exitosamente");
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (RuntimeException e) {
+            response.put("success", false);
+            response.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
+    }
+    
+    /**
+     * Obtener todos los administradores
+     * GET /administradores/usuarios/administradores
+     */
+    @GetMapping("/usuarios/administradores")
+    public ResponseEntity<Map<String, Object>> obtenerAdministradores(
+            @RequestHeader("Authorization") String authHeader) {
+        
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            List<AdministradorGestionDTO> administradores = usuarioGestionService.obtenerAdministradores(authHeader);
+            
+            response.put("success", true);
+            response.put("data", administradores);
+            response.put("total", administradores.size());
+            response.put("message", "Administradores obtenidos exitosamente");
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (RuntimeException e) {
+            response.put("success", false);
+            response.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+        }
+    }
+    
+    /**
+     * Obtener un administrador por ID
+     * GET /administradores/usuarios/administradores/{id}
+     */
+    @GetMapping("/usuarios/administradores/{id}")
+    public ResponseEntity<Map<String, Object>> obtenerAdministradorPorId(
+            @PathVariable String id,
+            @RequestHeader("Authorization") String authHeader) {
+        
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            AdministradorGestionDTO administrador = usuarioGestionService.obtenerAdministradorPorId(id, authHeader);
+            
+            response.put("success", true);
+            response.put("data", administrador);
+            response.put("message", "Administrador obtenido exitosamente");
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (RuntimeException e) {
+            response.put("success", false);
+            response.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        }
+    }
+    
+    /**
+     * Modificar un administrador
+     * PUT /administradores/usuarios/administradores/{id}
+     */
+    @PutMapping("/usuarios/administradores/{id}")
+    public ResponseEntity<Map<String, Object>> modificarAdministrador(
+            @PathVariable String id,
+            @Valid @RequestBody AdministradorGestionDTO dto,
+            @RequestHeader("Authorization") String authHeader) {
+        
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            AdministradorGestionDTO administradorActualizado = usuarioGestionService.modificarAdministrador(id, dto, authHeader);
+            
+            response.put("success", true);
+            response.put("data", administradorActualizado);
+            response.put("message", "Administrador modificado exitosamente");
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (RuntimeException e) {
+            response.put("success", false);
+            response.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
     }
 }
