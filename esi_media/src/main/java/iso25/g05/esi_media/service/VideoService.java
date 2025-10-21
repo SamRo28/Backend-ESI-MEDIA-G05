@@ -1,19 +1,21 @@
 package iso25.g05.esi_media.service;
 
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.Date;
+import java.util.Optional;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
 import iso25.g05.esi_media.dto.VideoUploadDTO;
-import iso25.g05.esi_media.model.Video;
 import iso25.g05.esi_media.model.GestordeContenido;
 import iso25.g05.esi_media.model.Token;
 import iso25.g05.esi_media.model.Usuario;
-import iso25.g05.esi_media.repository.VideoRepository;
+import iso25.g05.esi_media.model.Video;
 import iso25.g05.esi_media.repository.GestorDeContenidoRepository;
-import iso25.g05.esi_media.repository.TokenRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import java.util.Optional;
-import java.net.URL;
-import java.net.MalformedURLException;
-import java.util.Date;
+import iso25.g05.esi_media.repository.UsuarioRepository;
+import iso25.g05.esi_media.repository.VideoRepository;
 
 /**
  * Servicio para gestión de contenido de video
@@ -29,7 +31,7 @@ public class VideoService {
     private GestorDeContenidoRepository gestorRepository;
     
     @Autowired
-    private TokenRepository tokenRepository;
+    private UsuarioRepository usuarioRepository;
     
     /**
      * Sube un nuevo video por URL validando el token de autorización
@@ -161,39 +163,51 @@ public class VideoService {
      * @return ID del gestor autenticado
      * @throws IllegalArgumentException Si el token es inválido
      */
-    private String validarTokenYObtenerGestorId(String authHeader) {
-        // 1. Extraer token del header
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            throw new IllegalArgumentException("Header de autorización inválido");
-        }
-        
-        String tokenValue = authHeader.replace("Bearer ", "").trim();
+    private String validarTokenYObtenerGestorId(String  tokenValue) {
+
+       
+       
         if (tokenValue.isEmpty()) {
             throw new IllegalArgumentException("Token vacío");
         }
         
         // 2. Buscar token en la base de datos
-        Optional<Token> tokenOpt = tokenRepository.findByToken(tokenValue);
+        Optional<Usuario> usuarioOpt = usuarioRepository.findBySesionToken(tokenValue);
+        if (usuarioOpt.isEmpty()) {
+            throw new IllegalArgumentException("Token no válido");
+        }
+
+        Usuario usuario = usuarioOpt.get();
+        
+        Optional<Token> tokenOpt = usuario.getSesionstoken().stream()
+            .filter(t -> {
+                // Intentar comparar por getter típico "getToken()" si existe; usar toString() como fallback
+                try {
+                    String v = t.getToken();
+                    if (tokenValue.equals(v)) return true;
+                } catch (NoSuchMethodError | AbstractMethodError | Exception ignored) {
+                    // ignored
+                }
+                // Fallback: comparar con toString()
+                return tokenValue.equals(String.valueOf(t));
+            })
+            .findFirst();
+
         if (tokenOpt.isEmpty()) {
             throw new IllegalArgumentException("Token no válido");
         }
-        
+
         Token token = tokenOpt.get();
-        
+
         // 3. Verificar que el token no ha expirado
         if (token.getFechaExpiracion().before(new Date())) {
             throw new IllegalArgumentException("Token expirado");
         }
         
-        // 4. Obtener el usuario asociado al token
-        Usuario usuario = token.getUsuario();
-
-        if (usuario == null) {
-            throw new IllegalArgumentException("Token sin usuario asociado");
-        }
         
         // 5. Verificar que el usuario es un gestor de contenido
         Optional<GestordeContenido> gestorOpt = gestorRepository.findById(usuario.getId());
+        
         if (gestorOpt.isEmpty()) {
             throw new IllegalArgumentException("El usuario no es un gestor de contenido");
         }
