@@ -5,6 +5,8 @@ public class Video extends Contenido {
     private String url;
     private String resolucion;
 
+	public Video() { }
+
 	public Video(String id, String titulo, String descripcion, java.util.List<String> tags, double duracion, boolean vip,
             boolean estado, java.util.Date fechaestadoautomatico, java.util.Date fechadisponiblehasta,
             int edadvisualizacion, Object caratula, int nvisualizaciones, String url, String resolucion, String gestorId) {
