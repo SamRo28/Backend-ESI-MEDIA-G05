@@ -23,6 +23,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import iso25.g05.esi_media.model.Administrador;
 import iso25.g05.esi_media.model.GestordeContenido;
+import iso25.g05.esi_media.model.Token;
 import iso25.g05.esi_media.model.Usuario;
 import iso25.g05.esi_media.model.Visualizador;
 import iso25.g05.esi_media.repository.UsuarioRepository;
@@ -58,17 +59,6 @@ public class UsuarioController {
      */
     @PostMapping("/login")
     public Map<String,Object> login(@RequestBody Map<String, String> loginData) {
-        // Check blocked user before attempting login
-        try {
-            String email = loginData.get("email");
-            if (email != null) {
-                Optional<Usuario> maybeUser = usuarioRepository.findByEmail(email);
-                if (maybeUser.isPresent() && maybeUser.get().isBloqueado()) {
-                    throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuario bloqueado");
-                }
-            }
-        } catch (Exception ignored) {}
-
         Usuario loggedInUser = userService.login(loginData);
         if (loggedInUser == null)
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid credentials");
@@ -77,6 +67,7 @@ public class UsuarioController {
             "usuario", loggedInUser
         );
     }
+
 
     /**
      * Login con autenticación de 3 factores
@@ -93,9 +84,10 @@ public class UsuarioController {
     /**
      * Login con autenticación de 3 factores
      */
-    @PostMapping("/confirm3Auth")
-    public Map<String, Object> confirm3Auth(@RequestBody Map<String, String> loginData) {
-        throw new UnsupportedOperationException("confirm3Auth endpoint is not implemented. Use login3Auth instead.");
+    @PostMapping("/verify3AuthCode")
+    public Token confirm3Auth(@RequestBody Map<String, String> loginData) {
+        return userService.confirmLogin3Auth(loginData);
+        
     }
     
     // ==================== ENDPOINTS DE USUARIOS (/api/usuarios) ====================
@@ -121,7 +113,7 @@ public class UsuarioController {
         }
     }
 
-    @PostMapping("/confirm2faCode")
+    @PostMapping("/verify2FACode")
     public boolean confirm2faCode(@RequestBody Map<String, String> data) {
         return userService.confirm2faCode(data) != null;
     }
