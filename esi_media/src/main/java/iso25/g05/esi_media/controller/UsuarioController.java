@@ -70,6 +70,7 @@ public class UsuarioController {
     }
 
 
+
     /**
      * Login con autenticación de 3 factores
      */
@@ -101,16 +102,20 @@ public class UsuarioController {
         try {
             List<Usuario> usuarios = usuarioRepository.findAll();
             logger.info("=== DEBUG LISTAR USUARIOS ===");
+            logger.info("=== DEBUG LISTAR USUARIOS ===");
             for (Usuario u : usuarios) {
+                logger.info("Usuario: {} - Clase: {}", u.getNombre(), u.getClass().getName());
                 logger.info("Usuario: {} - Clase: {}", u.getNombre(), u.getClass().getName());
             }
             List<Map<String, Object>> usuariosFormateados = usuarios.stream()
                 .map(this::formatearUsuario)
                 .toList();
+                
             return ResponseEntity.ok(usuariosFormateados);
         } catch (Exception e) {
             logger.error("{}: {}", MSG, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ArrayList<>());
+            
         }
     }
 
@@ -129,21 +134,27 @@ public class UsuarioController {
         if (usuario instanceof Administrador) {
             rol = "Administrador";
             logger.info("✅ {} es Administrador", usuario.getNombre());
+
         } else if (usuario instanceof GestordeContenido) {
             rol = "Gestor";
             logger.info("✅ {} es Gestor", usuario.getNombre());
+
         } else if (usuario instanceof Visualizador) {
             rol = "Visualizador";
             logger.info("✅ {} es Visualizador", usuario.getNombre());
+
         } else {
             logger.warn("⚠️ {} - Clase no reconocida: {}", usuario.getNombre(), usuario.getClass().getName());
+
         }
         usuarioFormateado.put("rol", rol);
         usuarioFormateado.put(NOMBRE, usuario.getNombre());
         usuarioFormateado.put(APELLIDOS, usuario.getApellidos());
         usuarioFormateado.put(EMAIL, usuario.getEmail());
+       
         usuarioFormateado.put("foto", usuario.getFoto() != null ? usuario.getFoto() : "perfil1.png");
         usuarioFormateado.put(BLOQUEADO, usuario.isBloqueado());
+
         return usuarioFormateado;
     }
     
@@ -160,6 +171,7 @@ public class UsuarioController {
             return ResponseEntity.internalServerError().build();
         }
     }
+    
     
     /**
      * Obtener un usuario por ID
@@ -178,6 +190,7 @@ public class UsuarioController {
         }
     }
     
+    
     /**
      * Buscar usuario por email
      */
@@ -195,6 +208,7 @@ public class UsuarioController {
         }
     }
     
+    
     /**
      * Actualizar perfil del usuario (nombre, apellidos, foto)
      */
@@ -208,19 +222,24 @@ public class UsuarioController {
             }
             Usuario usuario = optionalUsuario.get();
             logger.info("🔍 Usuario antes de actualizar perfil - sesionstoken count: {}", (usuario.sesionstoken != null ? usuario.sesionstoken.size() : "null"));
+            
             // Actualizar campos si están presentes
+           
             if (updates.containsKey(NOMBRE)) {
                 usuario.setNombre(updates.get(NOMBRE));
             }
+            
             if (updates.containsKey(APELLIDOS)) {
                 usuario.setApellidos(updates.get(APELLIDOS));
             }
             if (updates.containsKey("foto")) {
                 usuario.setFoto(updates.get("foto"));
             }
+            
             logger.info("💾 Guardando usuario - sesionstoken count: {}", (usuario.sesionstoken != null ? usuario.sesionstoken.size() : "null"));
             // Guardar en MongoDB
             Usuario updatedUsuario = usuarioRepository.save(usuario);
+            
             logger.info("✅ Usuario guardado - sesionstoken count: {}", (updatedUsuario.sesionstoken != null ? updatedUsuario.sesionstoken.size() : "null"));
             // Construir respuesta con _class incluido (igual que en login)
             Map<String, Object> response = new HashMap<>();
@@ -228,6 +247,7 @@ public class UsuarioController {
             response.put(NOMBRE, updatedUsuario.getNombre());
             response.put(APELLIDOS, updatedUsuario.getApellidos());
             response.put(EMAIL, updatedUsuario.getEmail());
+        
             response.put("foto", updatedUsuario.getFoto());
             response.put(BLOQUEADO, updatedUsuario.isBloqueado());
             response.put("_class", updatedUsuario.getClass().getName());
@@ -260,6 +280,7 @@ public class UsuarioController {
         
     }
     
+    
     /**
      * Eliminar un usuario y su contraseña asociada de manera optimizada
      */
@@ -281,9 +302,15 @@ public class UsuarioController {
                     contraseniaId = usuario.getContrasenia().getId();
                 }
                 
+                
                 // Eliminar usuario inmediatamente para liberar recursos
                 usuarioRepository.deleteById(id);
                 logger.info("Usuario eliminado: {}", id);
+                
+                // Eliminar contraseña después (si existe)
+                if (contraseniaId != null) {
+                    userService.deletePassword(contraseniaId);
+                }
                 
                 // Eliminar contraseña después (si existe)
                 if (contraseniaId != null) {
@@ -300,9 +327,12 @@ public class UsuarioController {
             }
         } catch (Exception e) {
             logger.error("Error al eliminar usuario: {}", e.getMessage(), e);
+            logger.error("Error al eliminar usuario: {}", e.getMessage(), e);
             response.put("error", "Error al eliminar usuario: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
 }
+    
+
     
