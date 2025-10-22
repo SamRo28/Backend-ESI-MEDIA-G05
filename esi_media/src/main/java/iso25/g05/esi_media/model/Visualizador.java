@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
  * Clase Visualizador que extiende Usuario.
  * 
@@ -25,6 +27,8 @@ import java.util.List;
 public class Visualizador extends Usuario {
 
     private String alias;
+    
+    @JsonProperty("fechanac")
     private Date fechanac;
     private boolean vip;
     public List<Lista> listasprivadas = new ArrayList<>();

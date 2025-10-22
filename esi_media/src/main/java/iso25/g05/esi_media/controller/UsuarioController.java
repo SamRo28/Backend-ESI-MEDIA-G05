@@ -1,5 +1,6 @@
 package iso25.g05.esi_media.controller;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -197,7 +198,7 @@ public class UsuarioController {
     /**
      * Actualizar perfil del usuario (nombre, apellidos, foto)
      */
-    @PutMapping("/{id}/profile")
+    /*@PutMapping("/{id}/profile")
     @CrossOrigin(origins = "*")
     public ResponseEntity<?> updateProfile(@PathVariable String id, @RequestBody Map<String, String> updates) {
         try {
@@ -238,6 +239,25 @@ public class UsuarioController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error al actualizar perfil: " + e.getMessage());
         }
+    }*/
+
+    @PutMapping("/{id}/profile")
+    @CrossOrigin(origins = "*")
+    public ResponseEntity<?> updateProfile(@PathVariable String id, @RequestBody Map<String, Object> updates) {
+        String tipo = (String) updates.get("tipo");
+        Map<String, Object> userUpdates = (Map<String, Object>) updates.get("userData");
+        Usuario updatedUser;
+        try {
+            updatedUser = userService.updateUser(id, tipo, userUpdates);
+            return updatedUser != null
+            ? ResponseEntity.ok(updatedUser)
+            : ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error al actualizar perfil");
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error al actualizar perfil: " + e.getMessage());
+        }
+        
     }
     
     /**

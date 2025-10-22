@@ -1,9 +1,19 @@
 package iso25.g05.esi_media.dto;
 
-import jakarta.validation.constraints.*;
-import org.springframework.web.multipart.MultipartFile;
 import java.util.Date;
 import java.util.List;
+
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.web.multipart.MultipartFile;
+
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 /**
  * DTO para subida de archivos de audio
@@ -34,6 +44,7 @@ public class AudioUploadDTO {
     @Max(value = 18, message = "La edad máxima es 18")
     private int edadVisualizacion;
     
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
     private Date fechaDisponibleHasta;
     
     @NotNull(message = "Debe especificar si el contenido es visible")
