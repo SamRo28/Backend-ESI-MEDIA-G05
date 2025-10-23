@@ -1,5 +1,6 @@
 package iso25.g05.esi_media.controller;
 
+import iso25.g05.esi_media.config.MongoTestConfig;
 import iso25.g05.esi_media.dto.CrearAdministradorRequest;
 import org.bson.Document;
 import org.bson.types.ObjectId;
@@ -13,6 +14,7 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.http.*;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.util.Map;
 
@@ -27,10 +29,11 @@ import static org.junit.jupiter.api.Assertions.*;
  * 2. Se asigna automáticamente el rol "Administrador"
  * 3. Validación correcta de todos los campos del formulario
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, classes = {MongoTestConfig.class})
 @TestPropertySource(properties = {
     "spring.data.mongodb.database=esi_media_test"
 })
+@ActiveProfiles("test")
 @DisplayName("Tests para Creación de Administradores - Formulario de Registro")
 public class AdministradorControllerTest {
 

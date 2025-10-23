@@ -228,4 +228,20 @@ public class VisualizadorRegistroDTO {
     public void setFoto(String foto) {
         this.foto = foto;
     }
+    
+    /**
+     * Representación en texto del DTO para debugging y logs
+     * Incluye los campos principales sin revelar datos sensibles
+     */
+    @Override
+    public String toString() {
+        return "VisualizadorRegistroDTO{" +
+                "nombre='" + nombre + '\'' +
+                ", apellidos='" + apellidos + '\'' +
+                ", email='" + email + '\'' +
+                ", alias='" + alias + '\'' +
+                ", fecha_nac=" + fecha_nac +
+                ", vip=" + vip +
+                '}';
+    }
 }

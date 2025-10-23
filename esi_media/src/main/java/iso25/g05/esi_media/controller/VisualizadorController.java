@@ -207,4 +207,28 @@ public class VisualizadorController {
         
         return ResponseEntity.ok(respuesta);
     }
+    
+    /**
+     * Endpoint para eliminar un visualizador específico por su ID
+     * 
+     * DELETE /api/visualizador/eliminar/{id}
+     */
+    @DeleteMapping("/eliminar/{id}")
+    public ResponseEntity<Map<String, Object>> eliminarVisualizador(@PathVariable String id) {
+        // Usar el servicio para eliminar el visualizador
+        boolean eliminado = visualizadorService.eliminarVisualizador(id);
+        
+        if (!eliminado) {
+            Map<String, Object> respuesta = new HashMap<>();
+            respuesta.put("mensaje", "Visualizador no encontrado o no se pudo eliminar");
+            respuesta.put("exitoso", false);
+            return ResponseEntity.notFound().build();
+        }
+        
+        Map<String, Object> respuesta = new HashMap<>();
+        respuesta.put("mensaje", "Visualizador eliminado correctamente");
+        respuesta.put("exitoso", true);
+        
+        return ResponseEntity.ok(respuesta);
+    }
 }

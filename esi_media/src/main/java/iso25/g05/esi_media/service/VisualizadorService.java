@@ -400,6 +400,23 @@ public class VisualizadorService {
     public List<Visualizador> buscarPorAlias(String alias) {
         return visualizadorRepository.findByAliasContainingIgnoreCase(alias);
     }
+    
+    /**
+     * Método para eliminar un visualizador específico por ID
+     */
+    public boolean eliminarVisualizador(String id) {
+        if (id == null || id.isEmpty()) {
+            return false;
+        }
+        
+        try {
+            visualizadorRepository.deleteById(id);
+            return true;
+        } catch (Exception e) {
+            logger.error("Error al eliminar visualizador con ID {}: {}", id, e.getMessage());
+            return false;
+        }
+    }
 
     public String activar2FA(String email) {
         String res = "";
