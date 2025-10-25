@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
@@ -97,14 +98,23 @@ public class UsuarioController {
     /**
      * Obtener todos los usuarios - Endpoint compatible con frontend
      */
-    @GetMapping("/listar")
-    public ResponseEntity<List<Map<String, Object>>> listarUsuarios() {
+    @PostMapping("/listar")
+    public ResponseEntity<?> listarUsuarios(@RequestHeader(value = "Authorization", required = false) String token) {
         try {
+            // Verificar que el token esté presente
+            if (token == null || token.trim().isEmpty()) {
+                logger.warn("Intento de acceso sin token al listar usuarios");
+                Map<String, String> error = new HashMap<>();
+                error.put("mensaje", "Token de autorización requerido");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+             
+            
+            logger.info("Acceso autorizado con token: {}", token.substring(0, Math.min(20, token.length())) + "...");
+            
             List<Usuario> usuarios = usuarioRepository.findAll();
             logger.info("=== DEBUG LISTAR USUARIOS ===");
-            logger.info("=== DEBUG LISTAR USUARIOS ===");
             for (Usuario u : usuarios) {
-                logger.info("Usuario: {} - Clase: {}", u.getNombre(), u.getClass().getName());
                 logger.info("Usuario: {} - Clase: {}", u.getNombre(), u.getClass().getName());
             }
             List<Map<String, Object>> usuariosFormateados = usuarios.stream()
@@ -114,8 +124,9 @@ public class UsuarioController {
             return ResponseEntity.ok(usuariosFormateados);
         } catch (Exception e) {
             logger.error("{}: {}", MSG, e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ArrayList<>());
-            
+            Map<String, String> error = new HashMap<>();
+            error.put("mensaje", "Error interno del servidor");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
 
