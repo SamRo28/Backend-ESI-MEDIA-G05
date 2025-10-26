@@ -6,7 +6,7 @@ import org.bson.types.Binary;
 
 public class Audio extends Contenido {
     private Binary fichero;        // Archivo binario real (.mp3)
-    private String mimeType;       // Tipo MIME, ej. "audio/mpeg"
+    private String mimeType;       // Tipo MIME, debe ser "audio/mpeg"
     private long tamanoBytes;      // Tamaño en bytes
 
 	public Audio() { }

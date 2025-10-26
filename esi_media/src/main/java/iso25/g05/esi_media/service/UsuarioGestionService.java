@@ -188,7 +188,7 @@ public class UsuarioGestionService {
         gestor.setalias(dto.getAlias());
         gestor.setcampoespecializacion(dto.getCampoespecializacion());
         gestor.setdescripcion(dto.getDescripcion());
-        // email, bloqueado, fecharegistro, tipocontenidovideooaudio son solo lectura
+        // email, bloqueado, fecharegistro, tipocontenidovideooaudio son solo lectura para este servicio
         
         mongoTemplate.save(gestor, "users");
         return convertirAGestorDTO(gestor);
@@ -230,7 +230,7 @@ public class UsuarioGestionService {
         administrador.setApellidos(dto.getApellidos());
         administrador.setFoto(dto.getFoto());
         administrador.setDepartamento(dto.getDepartamento());
-        // email, bloqueado, fecharegistro son solo lectura
+        // email, bloqueado, fecharegistro son solo lectura para este servicio
         
         mongoTemplate.save(administrador, "users");
         return convertirAAdministradorDTO(administrador);
