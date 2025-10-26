@@ -11,5 +11,5 @@ import iso25.g05.esi_media.model.Audio;
 @Repository
 public interface AudioRepository extends MongoRepository<Audio, String> {
     @Query("{ '_n_visualizaciones' : ?0 }")
-    List<Audio> findByVisualizaciones(int n); // Buscar por número de visualizaciones
+    List<Audio> findByVisualizaciones(int n);
 }

@@ -12,7 +12,7 @@ public class Contenido {
 	protected String titulo;
 	protected String descripcion;
 	protected List<String> tags;
-	protected double duracion;
+	protected double duracion;	// Duración en segundoscler
 	protected boolean vip;
 	protected boolean estado;	// ACLARACION: TRUE: Visible, FALSE: No visible
 

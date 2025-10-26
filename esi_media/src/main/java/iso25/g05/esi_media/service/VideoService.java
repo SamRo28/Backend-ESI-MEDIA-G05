@@ -86,7 +86,7 @@ public class VideoService {
             throw new IllegalArgumentException("Gestor no encontrado con ID: " + gestorId);
         }
 
-        GestordeContenido gestor = gestorOpt.get();        // Verificar que el gestor puede subir video
+        GestordeContenido gestor = gestorOpt.get(); // Verificar que el gestor puede subir video
         if (!"video".equalsIgnoreCase(gestor.gettipocontenidovideooaudio())) {
             throw new IllegalArgumentException("El gestor no está autorizado para subir contenido de video");
         }
@@ -159,7 +159,7 @@ public class VideoService {
     
     /**
      * Valida el token de autorización y extrae el gestorId
-     * @param authHeader Header de autorización "Bearer token"
+     * @param authHeader Header de autorización
      * @return ID del gestor autenticado
      * @throws IllegalArgumentException Si el token es inválido
      */
@@ -181,7 +181,6 @@ public class VideoService {
         
         Optional<Token> tokenOpt = usuario.getSesionstoken().stream()
             .filter(t -> {
-                // Intentar comparar por getter típico "getToken()" si existe; usar toString() como fallback
                 try {
                     String v = t.getToken();
                     if (tokenValue.equals(v)) return true;

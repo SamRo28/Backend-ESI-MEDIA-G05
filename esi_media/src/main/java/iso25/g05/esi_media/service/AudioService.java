@@ -92,7 +92,7 @@ public class AudioService {
             throw new IllegalArgumentException("Gestor no encontrado con ID: " + gestorId);
         }
 
-        GestordeContenido gestor = gestorOpt.get();        // Verificar que el gestor puede subir audio
+        GestordeContenido gestor = gestorOpt.get(); // Verificar que el gestor puede subir audio
         if (!"audio".equalsIgnoreCase(gestor.gettipocontenidovideooaudio())) {
             throw new IllegalArgumentException("El gestor no está autorizado para subir contenido de audio");
         }
@@ -175,7 +175,7 @@ public class AudioService {
     
     /**
      * Valida el token de autorización y extrae el gestorId
-     * @param authHeader Header de autorización "Bearer token"
+     * @param authHeader Header de autorización
      * @return ID del gestor autenticado
      * @throws IllegalArgumentException Si el token es inválido
      */
@@ -197,7 +197,6 @@ public class AudioService {
         
         Optional<Token> tokenOpt = usuario.getSesionstoken().stream()
             .filter(t -> {
-                // Intentar comparar por getter típico "getToken()" si existe; usar toString() como fallback
                 try {
                     String v = t.getToken();
                     if (tokenValue.equals(v)) return true;

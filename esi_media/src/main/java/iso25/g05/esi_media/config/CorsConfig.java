@@ -15,7 +15,7 @@ public class CorsConfig implements WebMvcConfigurer {
                 .allowedHeaders("*")
                 .maxAge(3600);
       
-      COMENTADO POR KEVIN PARA NO CAUSAR CONFLICTO*/
+      COMENTADO PARA NO CAUSAR CONFLICTO TEMPORALMENTE*/
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

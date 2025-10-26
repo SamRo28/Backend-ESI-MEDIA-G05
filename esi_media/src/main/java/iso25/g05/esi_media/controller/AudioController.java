@@ -35,12 +35,11 @@ public class AudioController {
 @PostMapping("/subir")
 public ResponseEntity<Map<String, Object>> subirAudio(
         @Valid @ModelAttribute AudioUploadDTO audioDTO,
-        @RequestHeader("Authorization") String authHeader) {  // ← RESTAURAR ESTO
+        @RequestHeader("Authorization") String authHeader) {
     
     Map<String, Object> response = new HashMap<>();
     
     try {
-        // CAMBIAR: Usar método CON token (como VideoController)
         Audio audioGuardado = audioService.subirAudioConToken(audioDTO, authHeader);
         
         response.put("success", true);
