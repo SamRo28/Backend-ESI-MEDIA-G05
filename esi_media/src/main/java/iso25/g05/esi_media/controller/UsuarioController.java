@@ -1,7 +1,6 @@
 package iso25.g05.esi_media.controller;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -131,8 +130,13 @@ public class UsuarioController {
     }
 
     @PostMapping("/verify2FACode")
-    public boolean confirm2faCode(@RequestBody Map<String, String> data) {
-        return userService.confirm2faCode(data) != null;
+    public ResponseEntity<?> confirm2faCode(@RequestBody Map<String, String> data) {
+
+        String token = userService.confirm2faCode(data);
+        if (token == null){
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        return ResponseEntity.ok(token);
     }
     
     /**

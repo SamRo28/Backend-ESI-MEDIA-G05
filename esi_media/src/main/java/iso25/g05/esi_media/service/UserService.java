@@ -143,7 +143,7 @@ public class UserService {
         }
     }
 
-    public Usuario confirm2faCode(Map<String, String> data) {
+    public String confirm2faCode(Map<String, String> data) {
         int code = Integer.parseInt(data.get("code"));
         String email = data.get("email");
         Optional<Usuario> existingUser = this.usuarioRepository.findByEmail(email);
@@ -151,10 +151,14 @@ public class UserService {
         if (existingUser.isPresent()) {
             String secret = existingUser.get().getSecretkey();
             boolean valid = gAuth.authorize(secret, code);
-            if (existingUser.get().isThreeFactorAutenticationEnabled() && valid) {
-                generateAndSaveToken(existingUser.get());
-            }
-            return valid ? existingUser.get() : null;
+
+            if(valid){
+                if (existingUser.get().isThreeFactorAutenticationEnabled()) {
+                    return "";
+                }
+                return generateAndSaveToken(existingUser.get()).getToken();
+        }
+            
         }
         return null;
     }
