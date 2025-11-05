@@ -1,6 +1,7 @@
 package iso25.g05.esi_media.service;
 
 import java.io.IOException;
+import java.security.MessageDigest;
 import java.util.Map;
 import java.util.Optional;
 
@@ -54,7 +55,7 @@ public class UserService {
 
     public Usuario login(Map<String, String> loginData) {
         String email = loginData.get("email");
-        String password = loginData.get("password");
+        String password = md5Hex(loginData.get("password"));
 
         Optional<Usuario> existingUser = this.usuarioRepository.findByEmail(email);
 
@@ -173,45 +174,6 @@ public class UserService {
         }
     }
 
-    /*
-    public Usuario updateUser(String id, String tipo, Map<String,Object> u){
-        ObjectMapper mapper = new ObjectMapper();
-
-        if(tipo.equals("Administrador")){
-            Optional<Administrador> adminOpt = administradorRepository.findById(id);
-            if(adminOpt.isPresent()){
-                Administrador admin = adminOpt.get();
-                Administrador administradorUpdated = mapper.convertValue(u, Administrador.class);
-                
-                administradorUpdated.setId(admin.getId());
-                administradorUpdated.setContrasenia(admin.getContrasenia());
-                return administradorRepository.save(administradorUpdated);
-            }
-        } else if(tipo.equals("Visualizador")){
-            Optional<Visualizador> visualizadorOpt = visualizadorRepository.findById(id);
-            if(visualizadorOpt.isPresent()){
-                Visualizador visualizador = visualizadorOpt.get();
-                Visualizador visualizadorUpdated = mapper.convertValue(u, Visualizador.class);
-                visualizadorUpdated.setId(visualizador.getId());
-                visualizadorUpdated.setContrasenia(visualizador.getContrasenia());
-                return visualizadorRepository.save(visualizadorUpdated);
-            }
-        }
-                
-        else {
-            Optional<GestordeContenido> gestorOpt = gestorDeContenidoRepository.findById(id);
-            if(gestorOpt.isPresent()){
-                GestordeContenido gestor = gestorOpt.get();
-                GestordeContenido gestorUpdated = mapper.convertValue(u, GestordeContenido.class);
-                gestorUpdated.setId(gestor.getId());
-                gestorUpdated.setContrasenia(gestor.getContrasenia());
-                return gestorDeContenidoRepository.save(gestorUpdated);
-            }
-        }
-        return null;
-
-
-    }*/
 
     public Usuario updateUser(String id, String tipo, Map<String,Object> u) throws IOException{
         ObjectMapper mapper = new ObjectMapper();
@@ -243,6 +205,28 @@ public class UserService {
             }
         }
         return null;
+    }
+
+
+    public Contrasenia hashearContrasenia(Contrasenia c){
+        
+        c.setContraseniaActual(md5Hex(c.getContraseniaActual()));
+
+        return c;
+    }
+
+    private String md5Hex(String input) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("MD5");
+            byte[] digest = md.digest(input.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder();
+            for (byte b : digest) {
+                sb.append(String.format("%02x", b & 0xff));
+            }
+            return sb.toString();
+        } catch (Exception e) {
+            throw new RuntimeException("Error generando MD5", e);
+        }
     }
     
 }
