@@ -1,20 +1,28 @@
 package iso25.g05.esi_media.controller;
 
-import iso25.g05.esi_media.dto.CrearGestorRequest;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.bson.Document;
-import org.bson.types.ObjectId;
-import com.mongodb.client.MongoCollection;
-
+import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.ArrayList;
-import java.util.Calendar;
+
+import org.bson.Document;
+import org.bson.types.ObjectId;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.mongodb.client.MongoCollection;
+
+import iso25.g05.esi_media.dto.CrearGestorRequest;
+import iso25.g05.esi_media.model.Contrasenia;
+import iso25.g05.esi_media.service.UserService;
 
 @RestController
 @RequestMapping("/gestores")
@@ -23,6 +31,9 @@ public class GestorController {
     
     @Autowired
     private MongoTemplate mongoTemplate;
+
+    @Autowired
+    private UserService userService;
     
     /**
      * Endpoint para crear Gestores de Contenido
@@ -45,9 +56,18 @@ public class GestorController {
             cal.add(Calendar.YEAR, 1);
             Date fechaExpiracion = cal.getTime();
             
+            Contrasenia c = new Contrasenia(
+            null, 
+            fechaExpiracion,
+            request.getContrasenia(),
+            new ArrayList<>()
+            );
+
+            Contrasenia contrasenia = userService.hashearContrasenia(c);
+
             Document contraseniaDoc = new Document()
                 .append("fecha_expiracion", fechaExpiracion)
-                .append("contrasenia_actual", request.getContrasenia())
+                .append("contrasenia_actual", contrasenia.getContraseniaActual())
                 .append("contrasenia_usadas", new ArrayList<>())
                 .append("_class", "iso25.g05.esi_media.model.Contrasenia");
             

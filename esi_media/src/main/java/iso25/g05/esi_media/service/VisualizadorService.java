@@ -10,6 +10,7 @@ import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.warrenstrange.googleauth.GoogleAuthenticator;
@@ -42,6 +43,9 @@ import jakarta.validation.Validator;
 @Service
 public class VisualizadorService {
     
+    @Autowired
+    private UserService userService;
+
     /**
      * Repositorio general para operaciones de usuario (unicidad de email, etc.)
      */
@@ -266,12 +270,14 @@ public class VisualizadorService {
         
         // TEMPORAL: Sin objeto Contrasenia para evitar relaciones circulares problemáticas
         // PASO 1: Crear contraseña con nuevo constructor sin referencia de usuario
-        Contrasenia contrasenia = new Contrasenia(
+        Contrasenia c = new Contrasenia(
             null, // ID será generado por MongoDB
             new Date(System.currentTimeMillis() + (365L * 24 * 60 * 60 * 1000)), // Expira en 1 año
             dto.getContrasenia(), // Contraseña actual
             new ArrayList<>() // Lista de contraseñas anteriores vacía
         );
+
+        Contrasenia contrasenia = userService.hashearContrasenia(c);
         
         // PASO 2: GUARDAR contraseña en MongoDB para que obtenga ID
     logger.debug("Guardando contraseña en MongoDB...");
