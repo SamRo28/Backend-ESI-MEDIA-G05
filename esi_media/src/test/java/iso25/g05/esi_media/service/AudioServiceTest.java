@@ -247,4 +247,50 @@ class AudioServiceTest {
             audioService.obtenerAudiosPorGestor("noexiste");
         });
     }
+
+    @Test
+    void testValidacionesDeSeguridad() throws IOException {
+        // Arrange
+        when(gestorRepository.findById("gestor123")).thenReturn(Optional.of(gestorMock));
+        when(audioRepository.save(any(Audio.class))).thenReturn(audioMock);
+        when(archivoMock.getBytes()).thenReturn(new byte[1024]);
+        when(archivoMock.getContentType()).thenReturn("audio/mpeg");
+        when(archivoMock.getSize()).thenReturn(1024L);
+        when(archivoMock.getOriginalFilename()).thenReturn("test.mp3");
+        
+        // Mock magic bytes de MP3 (ID3 tag)
+        byte[] mp3Bytes = {0x49, 0x44, 0x33, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+        when(archivoMock.getInputStream()).thenReturn(new java.io.ByteArrayInputStream(mp3Bytes));
+
+        // Act - Debe ejecutarse sin lanzar excepción
+        assertDoesNotThrow(() -> audioService.subirAudio(audioDTO, "gestor123"));
+
+        // Assert - Verificar que se guardó el audio
+        verify(audioRepository, times(1)).save(any(Audio.class));
+    }
+
+    @Test
+    void testValidacionesDeSeguridad_MagicBytesInvalidos() throws IOException {
+        // Arrange
+        when(gestorRepository.findById("gestor123")).thenReturn(Optional.of(gestorMock));
+        when(archivoMock.getContentType()).thenReturn("audio/mpeg");
+        when(archivoMock.getSize()).thenReturn(1024L);
+        when(archivoMock.getOriginalFilename()).thenReturn("test.mp3");
+        
+        // Mock magic bytes de WAV (formato no válido)
+        byte[] wavBytes = {0x52, 0x49, 0x46, 0x46, 0x00, 0x00, 0x00, 0x00, 0x57, 0x41, 0x56, 0x45};
+        when(archivoMock.getInputStream()).thenReturn(new java.io.ByteArrayInputStream(wavBytes));
+
+        // Act & Assert
+        IllegalArgumentException exception = assertThrows(
+            IllegalArgumentException.class,
+            () -> audioService.subirAudio(audioDTO, "gestor123")
+        );
+        
+        assertTrue(exception.getMessage().contains("Se requiere un archivo MP3"));
+        assertTrue(exception.getMessage().contains("wav"));
+        
+        // Verificar que NO se guardó el audio
+        verify(audioRepository, never()).save(any(Audio.class));
+    }
 }
