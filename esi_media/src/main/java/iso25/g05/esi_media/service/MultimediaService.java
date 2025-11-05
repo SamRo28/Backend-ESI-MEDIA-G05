@@ -151,6 +151,34 @@ public class MultimediaService {
     }
 
     /**
+     * Valida acceso del visualizador y devuelve el Audio listo para streaming.
+     *
+     * @param id id del contenido Audio
+     * @param authHeaderOrToken Authorization ("Bearer x" o token) o token en bruto
+     * @return entidad Audio con el fichero binario
+     * @throws PeticionInvalidaException si id es inválido o el contenido no es audio
+     * @throws RecursoNoEncontradoException si no existe o no está visible
+     * @throws AccesoNoAutorizadoException si no cumple edad/VIP o token inválido
+     */
+    public Audio validarYObtenerAudioParaStreaming(String id, String authHeaderOrToken) {
+        if (id == null || id.isBlank()) {
+            throw new PeticionInvalidaException("El id de contenido es obligatorio");
+        }
+
+        Visualizador visualizador = validarYObtenerVisualizador(authHeaderOrToken);
+
+        Optional<Contenido> opt = contenidoRepository.findByIdAndEstadoTrue(id);
+        Contenido contenido = opt.orElseThrow(() -> new RecursoNoEncontradoException("Contenido no encontrado"));
+
+        if (!(contenido instanceof Audio audio)) {
+            throw new PeticionInvalidaException("El contenido solicitado no es de tipo audio");
+        }
+
+        validarAcceso(contenido, visualizador);
+        return audio;
+    }
+
+    /**
      * Valida el token (con o sin prefijo Bearer) y devuelve el Visualizador.
      * 
      * Qué hace: extrae el valor del token, busca al usuario por sesión y exige
