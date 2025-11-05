@@ -1,7 +1,23 @@
 
 package iso25.g05.esi_media.controller;
+import java.time.LocalDate;
+import java.time.Period;
+import java.time.ZoneId;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import iso25.g05.esi_media.dto.PerfilDTO;
 import iso25.g05.esi_media.model.Administrador;
@@ -10,17 +26,6 @@ import iso25.g05.esi_media.model.Usuario;
 import iso25.g05.esi_media.model.Visualizador;
 import iso25.g05.esi_media.repository.UsuarioRepository;
 import iso25.g05.esi_media.service.LogService;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.time.LocalDate;
-import java.time.Period;
-import java.time.ZoneId;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
 
 /**
  * Controlador para la gestión de perfiles de usuario
@@ -112,7 +117,6 @@ public class PerfilController {
      * @return PerfilDTO con la información correspondiente
      */
     private PerfilDTO crearPerfilDTO(Usuario usuario) {
-        String id = usuario.getId();
         String nombre = usuario.getNombre();
         String apellidos = usuario.getApellidos();
         String email = usuario.getEmail();
@@ -123,7 +127,6 @@ public class PerfilController {
         // No hay System.out.println en este método, solo lógica de creación de DTO
         if (usuario instanceof Administrador admin) {
             return new PerfilDTO.Builder()
-                .id(id)
                 .nombre(nombre)
                 .apellidos(apellidos)
                 .email(email)
@@ -135,7 +138,6 @@ public class PerfilController {
                 .build();
         } else if (usuario instanceof GestordeContenido gestor) {
             return new PerfilDTO.Builder()
-                .id(id)
                 .nombre(nombre)
                 .apellidos(apellidos)
                 .email(email)
@@ -151,7 +153,6 @@ public class PerfilController {
         } else if (usuario instanceof Visualizador visualizador) {
             Integer edad = calcularEdad(visualizador.getFechaNac());
             return new PerfilDTO.Builder()
-                .id(id)
                 .nombre(nombre)
                 .apellidos(apellidos)
                 .email(email)
@@ -167,7 +168,6 @@ public class PerfilController {
         } else {
             // Usuario genérico (por si acaso)
             return new PerfilDTO.Builder()
-                .id(id)
                 .nombre(nombre)
                 .apellidos(apellidos)
                 .email(email)

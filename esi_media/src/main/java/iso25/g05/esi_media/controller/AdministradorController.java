@@ -10,6 +10,7 @@ import org.bson.Document;
 import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +25,7 @@ import com.mongodb.client.MongoCollection;
 
 import iso25.g05.esi_media.dto.CrearAdministradorRequest;
 import iso25.g05.esi_media.model.Contrasenia;
+import iso25.g05.esi_media.repository.ContraseniaComunRepository;
 import iso25.g05.esi_media.service.UserService;
 
 @RestController
@@ -33,6 +35,9 @@ public class AdministradorController {
     private static final Logger logger = LoggerFactory.getLogger(AdministradorController.class);
     private final UserService userService;
     private final MongoTemplate mongoTemplate;
+
+    @Autowired
+    private ContraseniaComunRepository contraseniaComunRepository;
 
     public AdministradorController(UserService userService, MongoTemplate mongoTemplate) {
         this.userService = userService;
@@ -109,6 +114,13 @@ public class AdministradorController {
             if (logger.isInfoEnabled()) {
                 logger.info("📝 Insertando contraseña: {}", contraseniaDoc.toJson());
             }
+            
+            if(contraseniaComunRepository.existsById(c.getContraseniaActual())){
+                Map<String, Object> error = new HashMap<>();
+                error.put("mensaje", "La contraseña está en la lista de contraseñas comunes");
+                return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(error);
+            }
+
             contraseniasCollection.insertOne(contraseniaDoc);
             ObjectId contraseniaObjectId = contraseniaDoc.getObjectId("_id");
             String contraseniaId = contraseniaObjectId.toString();

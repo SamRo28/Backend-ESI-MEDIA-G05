@@ -22,6 +22,7 @@ import com.mongodb.client.MongoCollection;
 
 import iso25.g05.esi_media.dto.CrearGestorRequest;
 import iso25.g05.esi_media.model.Contrasenia;
+import iso25.g05.esi_media.repository.ContraseniaComunRepository;
 import iso25.g05.esi_media.service.UserService;
 
 @RestController
@@ -34,6 +35,9 @@ public class GestorController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private ContraseniaComunRepository contraseniaComunRepository;
     
     /**
      * Endpoint para crear Gestores de Contenido
@@ -70,6 +74,12 @@ public class GestorController {
                 .append("contrasenia_actual", contrasenia.getContraseniaActual())
                 .append("contrasenia_usadas", new ArrayList<>())
                 .append("_class", "iso25.g05.esi_media.model.Contrasenia");
+
+            if(contraseniaComunRepository.existsById(c.getContraseniaActual())){
+                Map<String, Object> error = new HashMap<>();
+                error.put("mensaje", "La contraseña está en la lista de contraseñas comunes");
+                return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(error);
+            }
             
             System.out.println("📝 Base de datos actual: " + mongoTemplate.getDb().getName());
             System.out.println("📝 Colección: " + contraseniasCollection.getNamespace());

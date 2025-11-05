@@ -205,12 +205,12 @@ public class VideoService {
         
         
         // 5. Verificar que el usuario es un gestor de contenido
-        Optional<GestordeContenido> gestorOpt = gestorRepository.findById(usuario.getId());
+        Optional<GestordeContenido> gestorOpt = gestorRepository.findById(usuario.getEmail());
         
         if (gestorOpt.isEmpty()) {
             throw new IllegalArgumentException("El usuario no es un gestor de contenido");
         }
         
-        return usuario.getId();
+        return usuario.getEmail();
     }
 }

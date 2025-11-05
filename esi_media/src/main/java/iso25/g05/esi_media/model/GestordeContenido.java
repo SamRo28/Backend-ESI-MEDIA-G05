@@ -3,6 +3,8 @@ package iso25.g05.esi_media.model;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.data.mongodb.core.index.Indexed;
+
 /**
  * GestordeContenido - hereda de Usuario
  * NO necesita @Document porque Usuario ya lo tiene
@@ -10,6 +12,7 @@ import java.util.List;
  */
 public class GestordeContenido extends Usuario {
 
+	@Indexed(unique = true)
 	private String alias;
 	private String descripcion;
 	private String campoespecializacion;

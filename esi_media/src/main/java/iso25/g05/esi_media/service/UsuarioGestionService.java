@@ -1,5 +1,16 @@
 package iso25.g05.esi_media.service;
 
+import java.util.Date;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.stereotype.Service;
+
 import iso25.g05.esi_media.dto.AdministradorGestionDTO;
 import iso25.g05.esi_media.dto.GestorGestionDTO;
 import iso25.g05.esi_media.dto.VisualizadorGestionDTO;
@@ -9,16 +20,6 @@ import iso25.g05.esi_media.model.Token;
 import iso25.g05.esi_media.model.Usuario;
 import iso25.g05.esi_media.model.Visualizador;
 import iso25.g05.esi_media.repository.TokenRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.query.Criteria;
-import org.springframework.data.mongodb.core.query.Query;
-import org.springframework.stereotype.Service;
-
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * Servicio para gestión de usuarios por administradores
@@ -239,7 +240,6 @@ public class UsuarioGestionService {
     // Métodos de conversión
     private VisualizadorGestionDTO convertirAVisualizadorDTO(Visualizador visualizador) {
         VisualizadorGestionDTO dto = new VisualizadorGestionDTO();
-        dto.setId(visualizador.getId());
         dto.setNombre(visualizador.getNombre());
         dto.setApellidos(visualizador.getApellidos());
         dto.setEmail(visualizador.getEmail());
@@ -254,7 +254,6 @@ public class UsuarioGestionService {
     
     private GestorGestionDTO convertirAGestorDTO(GestordeContenido gestor) {
         GestorGestionDTO dto = new GestorGestionDTO();
-        dto.setId(gestor.getId());
         dto.setNombre(gestor.getNombre());
         dto.setApellidos(gestor.getApellidos());
         dto.setEmail(gestor.getEmail());
@@ -270,7 +269,6 @@ public class UsuarioGestionService {
     
     private AdministradorGestionDTO convertirAAdministradorDTO(Administrador administrador) {
         AdministradorGestionDTO dto = new AdministradorGestionDTO();
-        dto.setId(administrador.getId());
         dto.setNombre(administrador.getNombre());
         dto.setApellidos(administrador.getApellidos());
         dto.setEmail(administrador.getEmail());

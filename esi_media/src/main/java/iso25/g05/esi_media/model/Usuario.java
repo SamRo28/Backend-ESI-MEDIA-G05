@@ -7,6 +7,7 @@ import java.util.List;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+
 /**
  * Clase base para usuarios del sistema (Visualizador, Administrador, Gestor).
  * 
@@ -29,19 +30,21 @@ public class Usuario {
      * Identificador único generado por MongoDB
      * @Id - Marca este campo como el identificador único en la base de datos (similar a una clave primaria)
      */
-    @Id // Indica a MongoDB que este campo es el identificador único del documento
-    private String id;
+
 
     protected String nombre;
     protected String apellidos;
+
+    @Id
     protected String email;
+
     protected Object foto;
     protected boolean bloqueado;
 
-
+    @org.springframework.data.mongodb.core.mapping.DBRef
     public List<Codigorecuperacion> codigosrecuperacion = new ArrayList<>();
     
-
+    @org.springframework.data.mongodb.core.mapping.DBRef
     public List<Token> sesionstoken = new ArrayList<>();
 
     @org.springframework.data.mongodb.core.mapping.DBRef
@@ -154,15 +157,6 @@ public class Usuario {
 
     public void setThreeFactorAutenticationEnabled(boolean threeFactorAutenticationEnabled) {
         this.threeFactorAutenticationEnabled = threeFactorAutenticationEnabled;
-    }
-
-    // Getters faltantes para id y foto
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
     }
 
     public Object getFoto() {

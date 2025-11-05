@@ -21,9 +21,11 @@ import iso25.g05.esi_media.dto.VisualizadorRegistroDTO;
 import iso25.g05.esi_media.model.Contrasenia;
 import iso25.g05.esi_media.model.Usuario;
 import iso25.g05.esi_media.model.Visualizador;
+import iso25.g05.esi_media.repository.ContraseniaComunRepository;
 import iso25.g05.esi_media.repository.ContraseniaRepository;
 import iso25.g05.esi_media.repository.UsuarioRepository;
 import iso25.g05.esi_media.repository.VisualizadorRepository;
+import iso25.g05.esi_media.service.VisualizadorService.RegistroException;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 
@@ -45,6 +47,9 @@ public class VisualizadorService {
     
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private ContraseniaComunRepository contraseniaComunRepository;
 
     /**
      * Repositorio general para operaciones de usuario (unicidad de email, etc.)
@@ -260,7 +265,7 @@ public class VisualizadorService {
      * PROPÓSITO: Tomar los datos "en crudo" del formulario y armar todos los objetos
      * necesarios para que el sistema funcione (Visualizador + Contrasenia)
      */
-    private Visualizador crearVisualizador(VisualizadorRegistroDTO dto) {
+    private Visualizador crearVisualizador(VisualizadorRegistroDTO dto) throws Exception {
         
         // PASO 1: Aplicar regla de negocio del alias
         // Si el usuario no escribió alias (o escribió espacios vacíos), usar su nombre
@@ -278,6 +283,11 @@ public class VisualizadorService {
         );
 
         Contrasenia contrasenia = userService.hashearContrasenia(c);
+
+        if(contraseniaComunRepository.existsById(contrasenia.getContraseniaActual())){
+            throw new Exception("La contraseña está en la lista de contraseñas comunes");
+        }
+
         
         // PASO 2: GUARDAR contraseña en MongoDB para que obtenga ID
     logger.debug("Guardando contraseña en MongoDB...");

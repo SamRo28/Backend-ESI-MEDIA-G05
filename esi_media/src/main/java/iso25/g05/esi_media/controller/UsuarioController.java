@@ -144,7 +144,7 @@ public class UsuarioController {
      */
     private Map<String, Object> formatearUsuario(Usuario usuario) {
         Map<String, Object> usuarioFormateado = new HashMap<>();
-        usuarioFormateado.put("id", usuario.getId());
+
         String rol = "Visualizador";
         if (usuario instanceof Administrador) {
             rol = "Administrador";

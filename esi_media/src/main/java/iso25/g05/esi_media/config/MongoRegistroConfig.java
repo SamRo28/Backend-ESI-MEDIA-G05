@@ -1,13 +1,14 @@
 package iso25.g05.esi_media.config;
 
-import com.mongodb.client.MongoClient;
-import com.mongodb.client.MongoClients;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
 import org.springframework.data.mongodb.config.AbstractMongoClientConfiguration;
 import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
+
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 
 /**
  * Configuración de MongoDB específica para el sistema de registro.
@@ -31,7 +32,8 @@ import org.springframework.data.mongodb.repository.config.EnableMongoRepositorie
     basePackages = "iso25.g05.esi_media.repository",
     includeFilters = @org.springframework.context.annotation.ComponentScan.Filter(
         type = org.springframework.context.annotation.FilterType.REGEX,
-        pattern = ".*(Usuario|Visualizador|Administrador|GestorDeContenido|Contrasenia|Token|CodigoRecuperacion|Audio|Video|Contenido)Repository"
+        // Añade "ContraseniaComun" a la lista
+        pattern = ".*(Usuario|Visualizador|Administrador|GestorDeContenido|Contrasenia|Token|CodigoRecuperacion|Audio|Video|Contenido|ContraseniaComun)Repository"
     )
 )
 public class MongoRegistroConfig extends AbstractMongoClientConfiguration {

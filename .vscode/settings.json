@@ -1,7 +1,7 @@
 {
     "java.configuration.updateBuildConfiguration": "interactive",
     "sonarlint.connectedMode.project": {
-        "connectionId": "http-seralu4-esi-uclm-es-1521-",
+        "connectionId": "SQCalidad2025",
         "projectKey": "2025-g05-backend"
     },
     "java.debug.settings.onBuildFailureProceed": true

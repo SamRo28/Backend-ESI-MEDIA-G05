@@ -8,6 +8,7 @@ public class Codigorecuperacion {
 	protected String id;
 	private String codigo;
 	private String fechaexpiracion;
+	@org.springframework.data.mongodb.core.mapping.DBRef
 	public Usuario unnamedUsuario;
 
     // Constructor completo (original)
