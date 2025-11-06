@@ -1,6 +1,7 @@
 package iso25.g05.esi_media.service;
 
 import java.io.IOException;
+import java.security.MessageDigest;
 import java.util.Map;
 import java.util.Optional;
 
@@ -54,7 +55,7 @@ public class UserService {
 
     public Usuario login(Map<String, String> loginData) {
         String email = loginData.get("email");
-        String password = loginData.get("password");
+        String password = md5Hex(loginData.get("password"));
 
         Optional<Usuario> existingUser = this.usuarioRepository.findByEmail(email);
 
@@ -243,6 +244,27 @@ public class UserService {
             }
         }
         return null;
+    }
+
+    public Contrasenia hashearContrasenia(Contrasenia c){
+        
+        c.setContraseniaActual(md5Hex(c.getContraseniaActual()));
+
+        return c;
+    }
+
+    private String md5Hex(String input) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("MD5");
+            byte[] digest = md.digest(input.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder();
+            for (byte b : digest) {
+                sb.append(String.format("%02x", b & 0xff));
+            }
+            return sb.toString();
+        } catch (Exception e) {
+            throw new RuntimeException("Error generando MD5", e);
+        }
     }
     
 }
