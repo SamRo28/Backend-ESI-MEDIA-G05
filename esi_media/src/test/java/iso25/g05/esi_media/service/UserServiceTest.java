@@ -40,12 +40,15 @@ class UserServiceTest {
         loginData.put("password", "password");
 
         Usuario user = new Usuario();
+        user.setId("user123");
         user.setEmail("test@example.com");
-        Contrasenia contrasenia = new Contrasenia("1", null, "password", null);
+        // MD5 hash of "password" is "5f4dcc3b5aa765d61d8327deb882cf99"
+        Contrasenia contrasenia = new Contrasenia("1", null, "5f4dcc3b5aa765d61d8327deb882cf99", null);
         user.setContrasenia(contrasenia);
         user.setTwoFactorAutenticationEnabled(false);
 
         when(usuarioRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
+        when(usuarioRepository.save(any(Usuario.class))).thenReturn(user);
 
         Usuario result = userService.login(loginData);
 

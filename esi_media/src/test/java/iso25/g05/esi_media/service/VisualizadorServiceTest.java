@@ -1,10 +1,5 @@
 package iso25.g05.esi_media.service;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-import org.mockito.MockedStatic;
-
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -12,19 +7,29 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-import com.warrenstrange.googleauth.GoogleAuthenticator;
-import com.warrenstrange.googleauth.GoogleAuthenticatorKey;
-import com.warrenstrange.googleauth.GoogleAuthenticatorQRGenerator;
-
-import iso25.g05.esi_media.config.MongoTestConfig;
-
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import org.mockito.MockitoAnnotations;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.test.util.ReflectionTestUtils;
+
+import com.warrenstrange.googleauth.GoogleAuthenticatorQRGenerator;
 
 import iso25.g05.esi_media.dto.VisualizadorRegistroDTO;
 import iso25.g05.esi_media.model.Contrasenia;
@@ -57,6 +62,12 @@ class VisualizadorServiceTest {
     @Mock
     private Validator validator;
     
+    @Mock
+    private UserService userService;
+    
+    @Mock
+    private iso25.g05.esi_media.repository.ContraseniaComunRepository contraseniaComunRepository;
+    
     @InjectMocks
     private VisualizadorService visualizadorService;
     
@@ -64,6 +75,10 @@ class VisualizadorServiceTest {
     void setUp() {
         // Inicializar los mocks
         MockitoAnnotations.openMocks(this);
+        
+        // Inyectar manualmente los campos @Autowired que no están en el constructor
+        ReflectionTestUtils.setField(visualizadorService, "userService", userService);
+        ReflectionTestUtils.setField(visualizadorService, "contraseniaComunRepository", contraseniaComunRepository);
     }
     
     /**
@@ -142,6 +157,8 @@ class VisualizadorServiceTest {
         // Configurar mocks
         when(validator.validate(any(VisualizadorRegistroDTO.class))).thenReturn(violacionesVacias);
         when(usuarioRepository.existsByEmail(anyString())).thenReturn(false);
+        when(contraseniaComunRepository.existsById(anyString())).thenReturn(false);
+        when(userService.hashearContrasenia(any(Contrasenia.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(contraseniaRepository.save(any(Contrasenia.class))).thenAnswer(invocation -> {
             Contrasenia contrasenia = invocation.getArgument(0);
             contrasenia.setId("contrasenia123");
@@ -273,6 +290,8 @@ class VisualizadorServiceTest {
         // Configurar mocks
         when(validator.validate(any(VisualizadorRegistroDTO.class))).thenReturn(violacionesVacias);
         when(usuarioRepository.existsByEmail(anyString())).thenReturn(false);
+        when(contraseniaComunRepository.existsById(anyString())).thenReturn(false);
+        when(userService.hashearContrasenia(any(Contrasenia.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(contraseniaRepository.save(any(Contrasenia.class))).thenAnswer(invocation -> {
             Contrasenia contrasenia = invocation.getArgument(0);
             contrasenia.setId("contrasenia123");
@@ -288,7 +307,7 @@ class VisualizadorServiceTest {
         assertFalse(resultado.isExitoso(), "El registro debe fallar cuando hay error de base de datos");
         assertNull(resultado.getVisualizador(), "No debe crearse un visualizador");
         assertFalse(resultado.getErrores().isEmpty(), "Debe haber errores en el resultado");
-        assertTrue(resultado.getMensaje().contains("email duplicado"), 
+        assertTrue(resultado.getErrores().stream().anyMatch(e -> e.toLowerCase().contains("email")), 
                   "El mensaje debe mencionar el problema específico");
         
         // Verificar que contraseniaRepository fue llamado pero visualizadorRepository causó excepción
@@ -310,6 +329,8 @@ class VisualizadorServiceTest {
         // Configurar mocks
         when(validator.validate(any(VisualizadorRegistroDTO.class))).thenReturn(violacionesVacias);
         when(usuarioRepository.existsByEmail(anyString())).thenReturn(false);
+        when(contraseniaComunRepository.existsById(anyString())).thenReturn(false);
+        when(userService.hashearContrasenia(any(Contrasenia.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(contraseniaRepository.save(any(Contrasenia.class))).thenAnswer(invocation -> {
             Contrasenia contrasenia = invocation.getArgument(0);
             contrasenia.setId("contrasenia123");
