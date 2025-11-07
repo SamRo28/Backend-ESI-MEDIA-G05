@@ -5,6 +5,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.Random;
 
 public class Codigorecuperacion {
+	private static final Random RANDOM = new Random();
+	
 	protected String id;
 	private String codigo;
 	private String fechaexpiracion;
@@ -29,9 +31,8 @@ public class Codigorecuperacion {
     }
 
     private String generarCodigo6Digitos() {
-        Random random = new Random();
-        int codigo = 100000 + random.nextInt(900000); // Genera número entre 100000 y 999999
-        return String.valueOf(codigo);
+        int codigoGenerado = 100000 + RANDOM.nextInt(900000); // Genera número entre 100000 y 999999
+        return String.valueOf(codigoGenerado);
     }
 
     private String calcularFechaExpiracion() {
