@@ -31,7 +31,7 @@ import org.springframework.data.mongodb.repository.config.EnableMongoRepositorie
     basePackages = "iso25.g05.esi_media.repository",
     includeFilters = @org.springframework.context.annotation.ComponentScan.Filter(
         type = org.springframework.context.annotation.FilterType.REGEX,
-        pattern = ".*(Usuario|Visualizador|Administrador|GestorDeContenido|Contrasenia|Token|CodigoRecuperacion|Audio|Video|Contenido)Repository"
+        pattern = ".*(Usuario|Visualizador|Administrador|GestorDeContenido|Contrasenia|Token|CodigoRecuperacion|Audio|Video|Contenido|Lista)Repository"
     )
 )
 public class MongoRegistroConfig extends AbstractMongoClientConfiguration {
