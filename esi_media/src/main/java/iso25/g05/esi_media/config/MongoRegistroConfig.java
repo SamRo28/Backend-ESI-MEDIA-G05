@@ -32,8 +32,7 @@ import com.mongodb.client.MongoClients;
     basePackages = "iso25.g05.esi_media.repository",
     includeFilters = @org.springframework.context.annotation.ComponentScan.Filter(
         type = org.springframework.context.annotation.FilterType.REGEX,
-        // Añade "ContraseniaComun" a la lista
-        pattern = ".*(Usuario|Visualizador|Administrador|GestorDeContenido|Contrasenia|Token|CodigoRecuperacion|Audio|Video|Contenido|ContraseniaComun)Repository"
+        pattern = ".*(Usuario|Visualizador|Administrador|GestorDeContenido|Contrasenia|Token|CodigoRecuperacion|Audio|Video|Contenido|Lista|ContraseniaComun)Repository"
     )
 )
 public class MongoRegistroConfig extends AbstractMongoClientConfiguration {

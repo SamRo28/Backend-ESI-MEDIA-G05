@@ -14,6 +14,7 @@ public class GestordeContenido extends Usuario {
 	private String descripcion;
 	private String campoespecializacion;
 	private String tipocontenidovideooaudio;
+	@org.springframework.data.mongodb.core.mapping.DBRef
 	public List<Lista> listasgeneradas;
 	private List<String> contenidos_subidos = new ArrayList<>();	// Lista de IDs de contenidos subidos por el gestor
 

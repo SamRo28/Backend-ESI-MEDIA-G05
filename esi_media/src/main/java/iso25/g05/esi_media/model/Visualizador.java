@@ -31,9 +31,11 @@ public class Visualizador extends Usuario {
     @JsonProperty("fechanac")
     private Date fechanac;
     private boolean vip;
+    @org.springframework.data.mongodb.core.mapping.DBRef
     public List<Lista> listasprivadas = new ArrayList<>();
+    
+    @org.springframework.data.mongodb.core.mapping.DBRef
     public List<Contenido> contenidofav = new ArrayList<>();
-
     // Constructor vacío requerido por MongoDB
     public Visualizador() {
         super();
