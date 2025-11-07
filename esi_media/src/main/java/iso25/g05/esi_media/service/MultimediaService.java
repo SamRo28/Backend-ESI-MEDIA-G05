@@ -57,15 +57,55 @@ public class MultimediaService {
      * @throws PeticionInvalidaException si falta token
      * @throws AccesoNoAutorizadoException si el token no es válido o no es visualizador
      */
-    public Page<ContenidoResumenDTO> listarContenidos(Pageable pageable, String authHeaderOrToken) {
+    public Page<ContenidoResumenDTO> listarContenidos(Pageable pageable, String authHeaderOrToken, String tipo) {
         Visualizador visualizador = validarYObtenerVisualizador(authHeaderOrToken);
         int edad = calcularEdad(visualizador.getFechaNac());
 
-        Page<Contenido> pagina = visualizador.isVip()
-                ? contenidoRepository.findByEstadoTrueAndEdadvisualizacionLessThanEqual(edad, pageable)
-                : contenidoRepository.findByEstadoTrueAndVipFalseAndEdadvisualizacionLessThanEqual(edad, pageable);
+        Page<Contenido> pagina;
+        boolean filtrar = (tipo != null && !tipo.isBlank());
+        String className = null;
+        if (filtrar) {
+            if ("VIDEO".equalsIgnoreCase(tipo)) className = Video.class.getName();
+            else if ("AUDIO".equalsIgnoreCase(tipo)) className = Audio.class.getName();
+        }
+
+        if (filtrar && className != null) {
+            // Intento 1: filtrado por _class exacto
+            pagina = visualizador.isVip()
+                    ? contenidoRepository.findByEstadoTrueAndEdadvisualizacionLessThanEqualAndClass(edad, className, pageable)
+                    : contenidoRepository.findByEstadoTrueAndVipFalseAndEdadvisualizacionLessThanEqualAndClass(edad, className, pageable);
+            // Si la página viene mezclada (heurística simple), usar fallback por campos característicos
+            boolean mezclado = pagina.getContent().stream().anyMatch(c -> {
+                boolean esVideoEsperado = "VIDEO".equalsIgnoreCase(tipo) && c instanceof Audio;
+                boolean esAudioEsperado = "AUDIO".equalsIgnoreCase(tipo) && c instanceof Video;
+                return esVideoEsperado || esAudioEsperado;
+            });
+            if (mezclado) {
+                if ("VIDEO".equalsIgnoreCase(tipo)) {
+                    pagina = visualizador.isVip()
+                            ? contenidoRepository.findVideos(edad, pageable)
+                            : contenidoRepository.findVideosNoVip(edad, pageable);
+                } else if ("AUDIO".equalsIgnoreCase(tipo)) {
+                    pagina = visualizador.isVip()
+                            ? contenidoRepository.findAudios(edad, pageable)
+                            : contenidoRepository.findAudiosNoVip(edad, pageable);
+                }
+            }
+        } else {
+            pagina = visualizador.isVip()
+                    ? contenidoRepository.findByEstadoTrueAndEdadvisualizacionLessThanEqual(edad, pageable)
+                    : contenidoRepository.findByEstadoTrueAndVipFalseAndEdadvisualizacionLessThanEqual(edad, pageable);
+        }
 
         return pagina.map(ContenidoMapper::aResumen);
+    }
+
+    /**
+     * Sobrecarga para compatibilidad con código y tests existentes que no pasan parámetro tipo.
+     * Delegamos en la versión extendida con tipo = null (sin filtrado por clase en repositorio).
+     */
+    public Page<ContenidoResumenDTO> listarContenidos(Pageable pageable, String authHeaderOrToken) {
+        return listarContenidos(pageable, authHeaderOrToken, null);
     }
 
     /**

@@ -12,6 +12,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.HttpHeaders;
+import java.util.Map;
 
 /**
  * Controlador REST para reproducción/listado de contenido multimedia por visualizadores.
@@ -48,12 +49,25 @@ public class MultimediaController {
      * @return Page de ContenidoResumenDTO
      */
     @GetMapping
-    public ResponseEntity<Page<ContenidoResumenDTO>> listarContenidos(
+    public ResponseEntity<?> listarContenidos(
             Pageable pageable,
-            @RequestHeader("Authorization") String authHeader) {
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @RequestParam(value = "tipo", required = false) String tipo) {
 
-        Page<ContenidoResumenDTO> pagina = multimediaService.listarContenidos(pageable, authHeader);
-        return ResponseEntity.ok(pagina);
+        if (authHeader == null || authHeader.isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("mensaje", "No autenticado"));
+        }
+        try {
+            Page<ContenidoResumenDTO> pagina = multimediaService.listarContenidos(pageable, authHeader, tipo);
+            return ResponseEntity.ok(pagina);
+        } catch (Exception e) {
+            // Fallback genérico para evitar 500 sin mensaje claro
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of(
+                            "mensaje", "Error interno del servidor",
+                            "detalle", e.getMessage() != null ? e.getMessage() : ""));
+        }
     }
 
     /**
