@@ -5,6 +5,7 @@ import java.util.Date;
 import java.util.List;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 /**
@@ -34,7 +35,10 @@ public class Usuario {
 
     protected String nombre;
     protected String apellidos;
+
+    @Indexed(unique = true, sparse = true)
     protected String email;
+    
     protected Object foto;
     protected boolean bloqueado;
 

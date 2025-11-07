@@ -1,6 +1,7 @@
 package iso25.g05.esi_media.service;
 
 import java.io.IOException;
+import java.security.MessageDigest;
 import java.util.Map;
 import java.util.Optional;
 
@@ -11,7 +12,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.warrenstrange.googleauth.GoogleAuthenticator;
 
-import iso25.g05.esi_media.dto.CrearAdministradorRequest;
 import iso25.g05.esi_media.model.Administrador;
 import iso25.g05.esi_media.model.Codigorecuperacion;
 import iso25.g05.esi_media.model.Contrasenia;
@@ -21,6 +21,7 @@ import iso25.g05.esi_media.model.Usuario;
 import iso25.g05.esi_media.model.Visualizador;
 import iso25.g05.esi_media.repository.AdministradorRepository;
 import iso25.g05.esi_media.repository.CodigoRecuperacionRepository;
+import iso25.g05.esi_media.repository.ContraseniaComunRepository;
 import iso25.g05.esi_media.repository.ContraseniaRepository;
 import iso25.g05.esi_media.repository.GestorDeContenidoRepository;
 import iso25.g05.esi_media.repository.UsuarioRepository;
@@ -49,12 +50,15 @@ public class UserService {
 
     @Autowired
     private GestorDeContenidoRepository gestorDeContenidoRepository;
+    
+    @Autowired
+    private ContraseniaComunRepository contraseniaComunRepository;
 
     private final GoogleAuthenticator gAuth = new GoogleAuthenticator();
 
     public Usuario login(Map<String, String> loginData) {
         String email = loginData.get("email");
-        String password = loginData.get("password");
+        String password = md5Hex(loginData.get("password"));
 
         Optional<Usuario> existingUser = this.usuarioRepository.findByEmail(email);
 
@@ -103,46 +107,6 @@ public class UserService {
         return null;
     }
 
-    public Administrador crearAdministrador(CrearAdministradorRequest request, String adminActual) {
-        verificarPermisosCreacion(adminActual);
-        verificarEmailUnico(request.getEmail());
-
-        Contrasenia contrasenia = new Contrasenia(
-            null,
-            null,
-            request.getContrasenia(),
-            new java.util.ArrayList<>()
-        );
-
-        Administrador nuevoAdmin = new Administrador(
-            request.getApellidos(),
-            false,
-            contrasenia,
-            request.getEmail(),
-            request.getFoto(),
-            request.getNombre(),
-            request.getDepartamento()
-        );
-
-        return administradorRepository.save(nuevoAdmin);
-    }
-
-    private void verificarPermisosCreacion(String adminId) {
-        Optional<Administrador> adminActual = administradorRepository.findById(adminId);
-        if (adminActual.isEmpty()) {
-            throw new RuntimeException("Administrador no encontrado");
-        }
-    }
-
-    private void verificarEmailUnico(String email) {
-        if (usuarioRepository.existsByEmail(email)) {
-            throw new RuntimeException("El email ya existe en el sistema");
-        }
-        if (administradorRepository.existsByEmail(email)) {
-            throw new RuntimeException("El email ya existe en el sistema");
-        }
-    }
-
     public String confirm2faCode(Map<String, String> data) {
         int code = Integer.parseInt(data.get("code"));
         String email = data.get("email");
@@ -173,45 +137,7 @@ public class UserService {
         }
     }
 
-    /*
-    public Usuario updateUser(String id, String tipo, Map<String,Object> u){
-        ObjectMapper mapper = new ObjectMapper();
 
-        if(tipo.equals("Administrador")){
-            Optional<Administrador> adminOpt = administradorRepository.findById(id);
-            if(adminOpt.isPresent()){
-                Administrador admin = adminOpt.get();
-                Administrador administradorUpdated = mapper.convertValue(u, Administrador.class);
-                
-                administradorUpdated.setId(admin.getId());
-                administradorUpdated.setContrasenia(admin.getContrasenia());
-                return administradorRepository.save(administradorUpdated);
-            }
-        } else if(tipo.equals("Visualizador")){
-            Optional<Visualizador> visualizadorOpt = visualizadorRepository.findById(id);
-            if(visualizadorOpt.isPresent()){
-                Visualizador visualizador = visualizadorOpt.get();
-                Visualizador visualizadorUpdated = mapper.convertValue(u, Visualizador.class);
-                visualizadorUpdated.setId(visualizador.getId());
-                visualizadorUpdated.setContrasenia(visualizador.getContrasenia());
-                return visualizadorRepository.save(visualizadorUpdated);
-            }
-        }
-                
-        else {
-            Optional<GestordeContenido> gestorOpt = gestorDeContenidoRepository.findById(id);
-            if(gestorOpt.isPresent()){
-                GestordeContenido gestor = gestorOpt.get();
-                GestordeContenido gestorUpdated = mapper.convertValue(u, GestordeContenido.class);
-                gestorUpdated.setId(gestor.getId());
-                gestorUpdated.setContrasenia(gestor.getContrasenia());
-                return gestorDeContenidoRepository.save(gestorUpdated);
-            }
-        }
-        return null;
-
-
-    }*/
 
     public Usuario updateUser(String id, String tipo, Map<String,Object> u) throws IOException{
         ObjectMapper mapper = new ObjectMapper();
@@ -243,6 +169,80 @@ public class UserService {
             }
         }
         return null;
+    }
+
+    public Contrasenia hashearContrasenia(Contrasenia c){
+        
+        c.setContraseniaActual(md5Hex(c.getContraseniaActual()));
+
+        return c;
+    }
+
+    private String md5Hex(String input) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("MD5");
+            byte[] digest = md.digest(input.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder();
+            for (byte b : digest) {
+                sb.append(String.format("%02x", b & 0xff));
+            }
+            return sb.toString();
+        } catch (Exception e) {
+            throw new RuntimeException("Error generando MD5", e);
+        }
+    }
+    
+    /**
+     * Valida que el email no existe en el sistema
+     * @param email Email a validar
+     * @throws RuntimeException si el email ya está registrado o es inválido
+     */
+    public void validarEmailUnico(String email) {
+        if (email == null || email.trim().isEmpty()) {
+            throw new RuntimeException("El email es obligatorio");
+        }
+        
+        if (usuarioRepository.existsByEmail(email)) {
+            throw new RuntimeException("El email ya está registrado en el sistema");
+        }
+    }
+    
+    /**
+     * Crea y valida una contraseña
+     * @param contraseniaTextoPlano La contraseña en texto plano
+     * @return La contraseña hasheada y guardada
+     * @throws RuntimeException si la contraseña es común o inválida
+     */
+    public Contrasenia crearYValidarContrasenia(String contraseniaTextoPlano) {
+        if (contraseniaTextoPlano == null || contraseniaTextoPlano.trim().isEmpty()) {
+            throw new RuntimeException("La contraseña es obligatoria");
+        }
+        
+        // Calcular fecha de expiración (1 año desde ahora)
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        cal.add(java.util.Calendar.YEAR, 1);
+        java.util.Date fechaExpiracion = cal.getTime();
+        
+        // Crear objeto contraseña
+        Contrasenia contrasenia = new Contrasenia(
+            null,
+            fechaExpiracion,
+            contraseniaTextoPlano,
+            new java.util.ArrayList<>()
+        );
+        
+        // Hashear la contraseña
+        contrasenia = hashearContrasenia(contrasenia);
+        
+        // Validar que no sea una contraseña común
+        if (contraseniaComunRepository.existsById(contrasenia.getContraseniaActual())) {
+            throw new RuntimeException("La contraseña proporcionada está en la lista de contraseñas comunes");
+        }
+        
+        // Guardar la contraseña en la base de datos
+        contrasenia = contraseniaRepository.save(contrasenia);
+        
+        return contrasenia;
     }
     
 }
