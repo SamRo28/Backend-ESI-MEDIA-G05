@@ -1,5 +1,29 @@
 package iso25.g05.esi_media.service;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.web.multipart.MultipartFile;
+
 import iso25.g05.esi_media.dto.AudioUploadDTO;
 import iso25.g05.esi_media.model.Audio;
 import iso25.g05.esi_media.model.GestordeContenido;
@@ -8,23 +32,6 @@ import iso25.g05.esi_media.model.Usuario;
 import iso25.g05.esi_media.repository.AudioRepository;
 import iso25.g05.esi_media.repository.GestorDeContenidoRepository;
 import iso25.g05.esi_media.repository.UsuarioRepository;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.web.multipart.MultipartFile;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class AudioServiceTest {
@@ -90,6 +97,11 @@ class AudioServiceTest {
         when(archivoMock.getContentType()).thenReturn("audio/mpeg");
         when(archivoMock.getOriginalFilename()).thenReturn("test.mp3");
         when(archivoMock.getBytes()).thenReturn(new byte[]{1, 2, 3});
+        
+        // Mock magic bytes de MP3 (ID3 tag)
+        byte[] mp3Bytes = {0x49, 0x44, 0x33, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+        when(archivoMock.getInputStream()).thenReturn(new java.io.ByteArrayInputStream(mp3Bytes));
+        
         when(audioRepository.save(any(Audio.class))).thenReturn(audioMock);
         when(gestorRepository.save(any(GestordeContenido.class))).thenReturn(gestorMock);
 
@@ -159,6 +171,7 @@ class AudioServiceTest {
         when(gestorRepository.findById("gestor123")).thenReturn(Optional.of(gestorMock));
         when(archivoMock.isEmpty()).thenReturn(false);
         when(archivoMock.getSize()).thenReturn(1024L);
+        when(archivoMock.getOriginalFilename()).thenReturn("test.mp3");
         when(archivoMock.getContentType()).thenReturn("video/mp4");
 
         // Act & Assert
@@ -192,6 +205,11 @@ class AudioServiceTest {
         when(archivoMock.getContentType()).thenReturn("audio/mpeg");
         when(archivoMock.getOriginalFilename()).thenReturn("test.mp3");
         when(archivoMock.getBytes()).thenReturn(new byte[]{1, 2, 3});
+        
+        // Mock magic bytes de MP3 (ID3 tag)
+        byte[] mp3Bytes = {0x49, 0x44, 0x33, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+        when(archivoMock.getInputStream()).thenReturn(new java.io.ByteArrayInputStream(mp3Bytes));
+        
         when(audioRepository.save(any(Audio.class))).thenReturn(audioMock);
         when(gestorRepository.save(any(GestordeContenido.class))).thenReturn(gestorMock);
 
