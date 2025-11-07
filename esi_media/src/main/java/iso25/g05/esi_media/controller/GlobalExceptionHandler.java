@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 /**
  * Manejador global de excepciones para respuestas de error consistentes.
@@ -71,6 +72,19 @@ public class GlobalExceptionHandler {
      * Fallback para cualquier error no contemplado.
      * No forma parte estricta del paso 7, pero aporta robustez mínima.
      */
+        @ExceptionHandler(MaxUploadSizeExceededException.class)
+        public ResponseEntity<ErrorRespuestaDTO> handleMaxUpload(MaxUploadSizeExceededException ex,
+                                                                                                                         HttpServletRequest request) {
+                ErrorRespuestaDTO body = new ErrorRespuestaDTO(
+                                HttpStatus.PAYLOAD_TOO_LARGE.value(),
+                                HttpStatus.PAYLOAD_TOO_LARGE.getReasonPhrase(),
+                                "El archivo supera el tamaño máximo permitido",
+                                request.getRequestURI()
+                );
+                log.warn("413 Payload Too Large en {}: {}", request.getRequestURI(), ex.getMessage());
+                return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).body(body);
+        }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorRespuestaDTO> handleGenerico(Exception ex, HttpServletRequest request) {
         ErrorRespuestaDTO body = new ErrorRespuestaDTO(

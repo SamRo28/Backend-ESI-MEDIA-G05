@@ -185,7 +185,8 @@ public class MultimediaService {
             return v.geturl();
         }
         if (contenido instanceof Audio a) {
-            return "/multimedia/audio/" + a.getId();
+            // Usar URL absoluta para evitar que el <audio> la trate como ruta relativa en 4200
+            return "http://localhost:8080/multimedia/audio/" + a.getId();
         }
         return ""; // por defecto vacío si no es tipo reconocido
     }

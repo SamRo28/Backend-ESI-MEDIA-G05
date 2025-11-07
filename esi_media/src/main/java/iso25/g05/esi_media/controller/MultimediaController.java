@@ -122,8 +122,9 @@ public class MultimediaController {
      */
     @GetMapping("/audio/{id}")
     public ResponseEntity<byte[]> streamAudio(
-            @PathVariable String id,
-        @RequestHeader("Authorization") String authHeader) {
+        @PathVariable String id,
+        @RequestHeader(value = "Authorization", required = false) String authHeader,
+        @RequestParam(value = "auth", required = false) String authQueryParam) {
 
         /*
          * Paso 1: Validaciones previas de acceso y tipo de contenido
@@ -132,7 +133,9 @@ public class MultimediaController {
          * - También valida reglas de negocio: edad mínima del contenido y condición VIP del usuario cuando aplique.
          * - Si algo falla, el servicio lanzará excepciones (400/403/404) y este método responderá en consecuencia.
          */
-        Audio audio = multimediaService.validarYObtenerAudioParaStreaming(id, authHeader);
+    // Permitir token vía cabecera o query (?auth=TOKEN) para habilitar reproducción directa desde etiquetas <audio>
+    String token = (authHeader != null && !authHeader.isBlank()) ? authHeader : authQueryParam;
+    Audio audio = multimediaService.validarYObtenerAudioParaStreaming(id, token);
 
         /*
          * Paso 2: Cargar el binario del audio
