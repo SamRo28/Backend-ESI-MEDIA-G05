@@ -1,5 +1,6 @@
 package iso25.g05.esi_media.controller;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -16,6 +17,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import iso25.g05.esi_media.dto.CrearAdministradorRequest;
+import iso25.g05.esi_media.model.Administrador;
+import iso25.g05.esi_media.service.AdministradorService;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -30,55 +37,28 @@ import iso25.g05.esi_media.service.UserService;
 @RequestMapping("/administradores")
 @CrossOrigin(origins = "*")
 public class AdministradorController {
-    private static final Logger logger = LoggerFactory.getLogger(AdministradorController.class);
-    private final UserService userService;
-    private final MongoTemplate mongoTemplate;
+    
+    @Autowired
+    private final AdministradorService administradorService;
 
-    public AdministradorController(UserService userService, MongoTemplate mongoTemplate) {
-        this.userService = userService;
-        this.mongoTemplate = mongoTemplate;
+    public AdministradorController(AdministradorService administradorService) {
+        this.administradorService = administradorService;
     }
     
-    /**
-     * Endpoint para crear un nuevo administrador
-     * @param request Datos del administrador a crear
-     * @param adminActualId ID del administrador que realiza la petición (cabecera)
-     * @return Respuesta con el administrador creado
-     */
-    @PostMapping("/crear")
-    public ResponseEntity<Object> crearAdministrador(
-            @RequestBody CrearAdministradorRequest request,
-            @RequestHeader("Admin-ID") String adminActualId) {
-        
-        try {
-            userService.crearAdministrador(request, adminActualId);
-            // No devolver información sensible como contraseñas
-            AdminResponse response = new AdminResponse(
-                "temp-id",
-                "temp-nombre",
-                "temp-apellidos",
-                "temp@email.com",
-                "temp-dept",
-                "ADMINISTRADOR",
-                new java.util.Date()
-            );
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(new ErrorResponse(e.getMessage()));
-        }
-    }
     
     /**
      * Endpoint simplificado para crear administradores (sin autenticación requerida)
-     * Utiliza inserción directa a MongoDB en la colección 'users'
+     * @param request Datos del administrador a crear
+     * @return Respuesta con el administrador creado
      */
     @PostMapping("/crear-simple")
-    public ResponseEntity<Map<String, Object>> crearAdministradorSimple(@RequestBody CrearAdministradorRequest request) {
-    logger.info("=== CREACIÓN BYPASS ÍNDICE CORRUPTO ===");
-    logger.info("Datos recibidos: {}", request);
+    public ResponseEntity<Object> crearAdministradorSimple(@RequestBody CrearAdministradorRequest request) {
         
         try {
+            Administrador nuevoAdmin = administradorService.crearAdministradorSimple(request);
+            return ResponseEntity.status(HttpStatus.CREATED).body(nuevoAdmin);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(e);
             logger.info("Procesando: {} {} - {}", request.getNombre(), request.getApellidos(), request.getEmail());
             
             // Paso 1: Crear documento de contraseña en la colección 'contrasenias'
@@ -152,52 +132,6 @@ public class AdministradorController {
         } catch (Exception e) {
             logger.error("ERROR en creación: {}", e.getMessage(), e);
             
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("mensaje", "Error al crear usuario: " + e.getMessage());
-            errorResponse.put("solucion", "Contacte al administrador para resolver problemas de índice en MongoDB");
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
-    }
-    
-    // Clase interna para la respuesta
-    public static class AdminResponse {
-        private String id;
-        private String nombre;
-        private String apellidos;
-        private String email;
-        private String departamento;
-        private String tipoAdministrador;
-        private java.util.Date fechaRegistro;
-        
-        public AdminResponse(String id, String nombre, String apellidos, String email, 
-                           String departamento, String tipoAdministrador, java.util.Date fechaRegistro) {
-            this.id = id;
-            this.nombre = nombre;
-            this.apellidos = apellidos;
-            this.email = email;
-            this.departamento = departamento;
-            this.tipoAdministrador = tipoAdministrador;
-            this.fechaRegistro = fechaRegistro;
-        }
-        
-        // Getters
-        public String getId() { return id; }
-        public String getNombre() { return nombre; }
-        public String getApellidos() { return apellidos; }
-        public String getEmail() { return email; }
-        public String getDepartamento() { return departamento; }
-        public String getTipoAdministrador() { return tipoAdministrador; }
-        public java.util.Date getFechaRegistro() { return fechaRegistro; }
-    }
-    
-    // Clase interna para errores
-    public static class ErrorResponse {
-        private String error;
-        
-        public ErrorResponse(String error) {
-            this.error = error;
-        }
-        
-        public String getError() { return error; }
     }
 }

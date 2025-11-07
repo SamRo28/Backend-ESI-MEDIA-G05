@@ -50,18 +50,24 @@ public ResponseEntity<Map<String, Object>> subirAudio(
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
         
     } catch (IllegalArgumentException e) {
+        // Errores de validación (MIME type, extensión, magic bytes, etc.)
         response.put("success", false);
         response.put("message", "Error de validación: " + e.getMessage());
+        response.put("errorType", "VALIDATION_ERROR");
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         
     } catch (IOException e) {
+        // Errores procesando el archivo (lectura, magic bytes, etc.)
         response.put("success", false);
         response.put("message", "Error procesando el archivo: " + e.getMessage());
+        response.put("errorType", "FILE_PROCESSING_ERROR");
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         
     } catch (Exception e) {
+        // Otros errores no esperados
         response.put("success", false);
         response.put("message", "Error interno del servidor: " + e.getMessage());
+        response.put("errorType", "INTERNAL_ERROR");
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
 }
