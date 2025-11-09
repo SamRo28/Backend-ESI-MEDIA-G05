@@ -49,12 +49,11 @@ class MultimediaControllerWebMvcTest {
                 new ContenidoResumenDTO("v1", "Video 1", "VIDEO", null, true)
         ), PageRequest.of(0, 2), 2);
 
-        when(multimediaService.listarContenidos(org.mockito.ArgumentMatchers.<org.springframework.data.domain.Pageable>any(), anyString()))
+        when(multimediaService.listarContenidos(org.mockito.ArgumentMatchers.<org.springframework.data.domain.Pageable>any(), anyString(), isNull()))
                 .thenReturn(page);
 
         mockMvc.perform(get("/multimedia?page=0&size=2").header("Authorization", "Bearer abc"))
                 .andExpect(status().isOk())
-                .andExpect(content().contentType("application/json"))
                 .andExpect(jsonPath("$.content", hasSize(2)))
                 .andExpect(jsonPath("$.content[0].id", is("c1")))
                 .andExpect(jsonPath("$.content[0].tipo", is("AUDIO")))

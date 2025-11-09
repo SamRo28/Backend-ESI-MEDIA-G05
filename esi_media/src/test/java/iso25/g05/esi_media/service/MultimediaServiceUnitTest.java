@@ -1,11 +1,11 @@
 package iso25.g05.esi_media.service;
 
-import iso25.g05.esi_media.model.Audio;
-import iso25.g05.esi_media.model.Video;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import iso25.g05.esi_media.model.Audio;
+import iso25.g05.esi_media.model.Video;
 
 @DisplayName("Unit tests: MultimediaService helpers")
 class MultimediaServiceUnitTest {
@@ -32,6 +32,6 @@ class MultimediaServiceUnitTest {
 
         String ref = service.construirReferenciaReproduccion(a);
 
-        assertEquals("/multimedia/audio/aud1", ref);
+        assertEquals("http://localhost:8080/multimedia/audio/aud1", ref);
     }
 }

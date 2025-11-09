@@ -10,6 +10,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
  * NO necesita @Document porque Usuario ya lo tiene
  * Spring Data MongoDB usará el discriminador _class para identificar el tipo
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class GestordeContenido extends Usuario {
 
 	private String alias;

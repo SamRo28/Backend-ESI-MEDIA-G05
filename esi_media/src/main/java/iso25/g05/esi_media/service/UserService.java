@@ -2,11 +2,16 @@ package iso25.g05.esi_media.service;
 
 import java.io.IOException;
 import java.security.MessageDigest;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -16,6 +21,7 @@ import iso25.g05.esi_media.model.Administrador;
 import iso25.g05.esi_media.model.Codigorecuperacion;
 import iso25.g05.esi_media.model.Contrasenia;
 import iso25.g05.esi_media.model.GestordeContenido;
+import iso25.g05.esi_media.model.IpLoginAttempt;
 import iso25.g05.esi_media.model.Token;
 import iso25.g05.esi_media.model.Usuario;
 import iso25.g05.esi_media.model.Visualizador;
@@ -24,6 +30,7 @@ import iso25.g05.esi_media.repository.CodigoRecuperacionRepository;
 import iso25.g05.esi_media.repository.ContraseniaComunRepository;
 import iso25.g05.esi_media.repository.ContraseniaRepository;
 import iso25.g05.esi_media.repository.GestorDeContenidoRepository;
+import iso25.g05.esi_media.repository.IpLoginAttemptRepository;
 import iso25.g05.esi_media.repository.UsuarioRepository;
 import iso25.g05.esi_media.repository.VisualizadorRepository;
 
@@ -54,9 +61,27 @@ public class UserService {
     @Autowired
     private ContraseniaComunRepository contraseniaComunRepository;
 
+    @Autowired
+    private IpLoginAttemptRepository ipLoginAttemptRepository;
+
     private final GoogleAuthenticator gAuth = new GoogleAuthenticator();
 
-    public Usuario login(Map<String, String> loginData) {
+    public Usuario login(Map<String, String> loginData, String ipAddress) {
+        
+        IpLoginAttempt attempt = ipLoginAttemptRepository.findById(ipAddress)
+                .orElse(new IpLoginAttempt(ipAddress));
+
+        if (attempt.isCurrentlyBlocked()) {
+            String message = "Demasiados intentos fallidos. Su IP está bloqueada.";
+            if (attempt.getBlockedUntil() == null) {
+                message = "Su IP ha sido bloqueada permanentemente.";
+            } else {
+                long durationSeconds = (attempt.getBlockedUntil().getTime() - new Date().getTime()) / 1000;
+                message = "Su IP está bloqueada. Inténtelo de nuevo en " + Math.max(0, durationSeconds) + " segundos.";
+            }
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, message);
+        }
+        
         String email = loginData.get("email");
         String password = md5Hex(loginData.get("password"));
 
@@ -64,6 +89,9 @@ public class UserService {
 
         if (existingUser.isPresent() && existingUser.get().getContrasenia() != null
                 && existingUser.get().getContrasenia().getContraseniaActual().equals(password)) {
+            
+            attempt.resetAllOnSuccess(); 
+            ipLoginAttemptRepository.save(attempt);
             if (!existingUser.get().isTwoFactorAutenticationEnabled()) {
                 generateAndSaveToken(existingUser.get());
                 return existingUser.get();
@@ -71,6 +99,24 @@ public class UserService {
                 return existingUser.get();
             }
         }
+        
+
+        attempt.incrementFailedAttempts();
+        boolean justBlocked = attempt.checkAndApplyProgressiveBlock(); 
+        ipLoginAttemptRepository.save(attempt);
+        
+        if (justBlocked) {
+            // El bloqueo se acaba de activar, lanzamos una excepción específica
+            String message;
+            if (attempt.getBlockedUntil() == null) {
+                message = "Demasiados intentos fallidos. Su IP ha sido bloqueada permanentemente.";
+            } else {
+                long durationSeconds = (attempt.getBlockedUntil().getTime() - new Date().getTime()) / 1000;
+                message = "Demasiados intentos fallidos. Su IP ha sido bloqueada por " + Math.max(0, durationSeconds) + " segundos.";
+            }
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, message);
+        }
+        
         return null;
     }
 
@@ -236,6 +282,7 @@ public class UserService {
         
         // Hashear la contraseña
         contrasenia = hashearContrasenia(contrasenia);
+        contrasenia.getContraseniasUsadas().add(contrasenia.getContraseniaActual());
         
         // Validar que no sea una contraseña común
         if (contraseniaComunRepository.existsById(contrasenia.getContraseniaActual())) {
@@ -246,6 +293,75 @@ public class UserService {
         contrasenia = contraseniaRepository.save(contrasenia);
         
         return contrasenia;
+    }
+
+    //  ----------------------------------MÉTODOS DE CAMBIAR CONTRASEÑA------------------------------------------
+    public boolean cambiarContrasenia(String email, String contraseniaNueva){
+        boolean res = false;
+        Optional<Usuario> userOpt = usuarioRepository.findByEmail(email);
+
+        if(userOpt.isPresent()){
+            Usuario user = userOpt.get();
+            String nuevoHash = md5Hex(contraseniaNueva);
+
+            if (contraseniaComunRepository.existsById(nuevoHash)) {
+                throw new RuntimeException("La contraseña proporcionada está en la lista de contraseñas comunes");
+            }
+
+            Contrasenia c = user.getContrasenia();
+            user.setContrasenia(comprobarContraseniasAntiguas(c,nuevoHash));
+            res = true;
+
+        }
+        return res;
+    }
+
+    public Contrasenia comprobarContraseniasAntiguas(Contrasenia c, String contraseniaNueva){
+        List<String> listaActual = new ArrayList<String>();
+        List<String> listaNueva = new ArrayList<String>();
+
+        listaActual = c.getContraseniasUsadas();
+        
+        if(listaActual.contains(contraseniaNueva)){
+            throw new RuntimeException("La contraseña proporcionada ya ha sido usada");
+        }
+        else{
+            if(listaActual.size()==5){
+                for(int i = 1; i<5; i++){
+                    
+                    listaNueva.add(listaActual.get(i));
+                    
+                }
+            }
+            else{
+                listaNueva.addAll(listaActual);
+            }
+        }
+
+        listaNueva.add(contraseniaNueva);
+        c.setContraseniasUsadas(listaNueva);
+        c.setContraseniaActual(contraseniaNueva);
+        return c;
+    }
+
+
+    public Usuario login(Map<String, String> loginData) {
+        // Llamada simple sin lógica de IP
+        String email = loginData.get("email");
+        String password = md5Hex(loginData.get("password"));
+
+        Optional<Usuario> existingUser = this.usuarioRepository.findByEmail(email);
+
+        if (existingUser.isPresent() && existingUser.get().getContrasenia() != null
+                && existingUser.get().getContrasenia().getContraseniaActual().equals(password)) {
+            if (!existingUser.get().isTwoFactorAutenticationEnabled()) {
+                generateAndSaveToken(existingUser.get());
+                return existingUser.get();
+            } else {
+                return existingUser.get();
+            }
+        }
+        return null;
     }
     
 }
