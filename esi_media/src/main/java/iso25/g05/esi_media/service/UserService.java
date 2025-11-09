@@ -2,6 +2,8 @@ package iso25.g05.esi_media.service;
 
 import java.io.IOException;
 import java.security.MessageDigest;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -236,6 +238,7 @@ public class UserService {
         
         // Hashear la contraseña
         contrasenia = hashearContrasenia(contrasenia);
+        contrasenia.getContraseniasUsadas().add(contrasenia.getContraseniaActual());
         
         // Validar que no sea una contraseña común
         if (contraseniaComunRepository.existsById(contrasenia.getContraseniaActual())) {
@@ -246,6 +249,55 @@ public class UserService {
         contrasenia = contraseniaRepository.save(contrasenia);
         
         return contrasenia;
+    }
+
+    //  ----------------------------------MÉTODOS DE CAMBIAR CONTRASEÑA------------------------------------------
+    public boolean cambiarContrasenia(String email, String contraseniaNueva){
+        boolean res = false;
+        Optional<Usuario> userOpt = usuarioRepository.findByEmail(email);
+
+        if(userOpt.isPresent()){
+            Usuario user = userOpt.get();
+            String nuevoHash = md5Hex(contraseniaNueva);
+
+            if (contraseniaComunRepository.existsById(nuevoHash)) {
+                throw new RuntimeException("La contraseña proporcionada está en la lista de contraseñas comunes");
+            }
+
+            Contrasenia c = user.getContrasenia();
+            user.setContrasenia(comprobarContraseniasAntiguas(c,nuevoHash));
+            res = true;
+
+        }
+        return res;
+    }
+
+    public Contrasenia comprobarContraseniasAntiguas(Contrasenia c, String contraseniaNueva){
+        List<String> listaActual = new ArrayList<String>();
+        List<String> listaNueva = new ArrayList<String>();
+
+        listaActual = c.getContraseniasUsadas();
+        
+        if(listaActual.contains(contraseniaNueva)){
+            throw new RuntimeException("La contraseña proporcionada ya ha sido usada");
+        }
+        else{
+            if(listaActual.size()==5){
+                for(int i = 1; i<5; i++){
+                    
+                    listaNueva.add(listaActual.get(i));
+                    
+                }
+            }
+            else{
+                listaNueva.addAll(listaActual);
+            }
+        }
+
+        listaNueva.add(contraseniaNueva);
+        c.setContraseniasUsadas(listaNueva);
+        c.setContraseniaActual(contraseniaNueva);
+        return c;
     }
     
 }

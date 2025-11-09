@@ -282,6 +282,7 @@ public class VisualizadorService {
         );
 
         Contrasenia contrasenia = userService.hashearContrasenia(c);
+        contrasenia.getContraseniasUsadas().add(contrasenia.getContraseniaActual());
 
         if(contraseniaComunRepository.existsById(contrasenia.getContraseniaActual())){
             throw new Exception("La contraseña está en la lista de contraseñas comunes");
