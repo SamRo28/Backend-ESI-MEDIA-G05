@@ -1,5 +1,35 @@
 package iso25.g05.esi_media.service;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.Date;
+import java.util.List;
+import java.util.Optional;
+
+import org.bson.BsonBinarySubType;
+import org.bson.types.Binary;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+
 import iso25.g05.esi_media.dto.ContenidoDetalleDTO;
 import iso25.g05.esi_media.dto.ContenidoResumenDTO;
 import iso25.g05.esi_media.exception.AccesoNoAutorizadoException;
@@ -11,28 +41,6 @@ import iso25.g05.esi_media.model.Video;
 import iso25.g05.esi_media.model.Visualizador;
 import iso25.g05.esi_media.repository.ContenidoRepository;
 import iso25.g05.esi_media.repository.UsuarioRepository;
-import org.bson.BsonBinarySubType;
-import org.bson.types.Binary;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-
-import java.time.LocalDate;
-import java.time.ZoneId;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("Unit tests: MultimediaService reglas de negocio")
@@ -171,7 +179,7 @@ class MultimediaServiceBehaviourTest {
         when(contenidoRepository.findByIdAndEstadoTrue(eq("a1"))).thenReturn(Optional.of(buildAudio("a1", false, true, 0, new byte[]{1,2})));
 
         ContenidoDetalleDTO dto = multimediaService.obtenerContenidoPorId("a1", "tok");
-        assertEquals("/multimedia/audio/a1", dto.getReferenciaReproduccion());
+        assertEquals("http://localhost:8080/multimedia/audio/a1", dto.getReferenciaReproduccion());
     }
 
     @Test

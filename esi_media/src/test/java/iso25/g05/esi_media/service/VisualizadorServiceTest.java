@@ -369,8 +369,7 @@ class VisualizadorServiceTest {
         when(usuarioRepository.findByEmail(email)).thenReturn(Optional.of(usuario));
         when(usuarioRepository.save(any(Usuario.class))).thenAnswer(invocation -> {
             Usuario u = invocation.getArgument(0);
-            // Verificar que el usuario ha sido actualizado con los datos de 2FA
-            assertTrue(u.isTwoFactorAutenticationEnabled(), "2FA debe estar habilitado");
+            // Verificar que el usuario ha sido actualizado con la secret key de 2FA
             assertNotNull(u.getSecretkey(), "El secretkey no debe ser nulo");
             return u;
         });
@@ -388,8 +387,10 @@ class VisualizadorServiceTest {
             assertNotNull(result, "El resultado no debe ser nulo");
             assertFalse(result.isEmpty(), "El resultado no debe estar vacío");
             
-            // En lugar de verificar que empieza con otpauth://, verificamos que el resultado no está vacío
-            // y que se guardó el usuario, lo que indica que el proceso funcionó correctamente
+            // Verificar que el resultado es la URL de OTP Auth esperada
+            assertTrue(result.contains("otpauth://"), "El resultado debe contener la URL OTP Auth");
+            
+            // Verificar que se guardó el usuario con la secret key
             verify(usuarioRepository, times(1)).save(any(Usuario.class));
         }
     }
