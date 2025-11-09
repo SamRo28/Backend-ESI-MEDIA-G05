@@ -1,10 +1,13 @@
 package iso25.g05.esi_media.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 /**
  * Administrador - hereda de Usuario
  * NO necesita @Document porque Usuario ya lo tiene
  * Spring Data MongoDB usará el discriminador _class para identificar el tipo
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Administrador extends Usuario {
 	private String departamento;
 
