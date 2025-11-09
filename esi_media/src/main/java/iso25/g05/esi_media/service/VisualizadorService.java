@@ -444,8 +444,7 @@ public class VisualizadorService {
 
             String otpAuthURL = GoogleAuthenticatorQRGenerator.getOtpAuthURL("MiApp", email, key);
             Usuario user = existingUser.get();
-            user.setSecretkey(secret);
-            user.setTwoFactorAutenticationEnabled(true); 
+            user.setSecretkey(secret); 
             usuarioRepository.save(user);
 
             res = otpAuthURL;

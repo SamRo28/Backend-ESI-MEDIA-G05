@@ -113,8 +113,11 @@ public class UserService {
         Optional<Usuario> existingUser = this.usuarioRepository.findByEmail(email);
 
         if (existingUser.isPresent()) {
-            String secret = existingUser.get().getSecretkey();
+            Usuario user = existingUser.get();
+            String secret = user.getSecretkey();
+            user.setTwoFactorAutenticationEnabled(true);
             boolean valid = gAuth.authorize(secret, code);
+            usuarioRepository.save(user);
 
             if(valid){
                 if (existingUser.get().isThreeFactorAutenticationEnabled()) {

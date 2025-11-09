@@ -25,7 +25,7 @@ import iso25.g05.esi_media.repository.UsuarioRepository;
 @Service
 public class AudioService {
     
-    private static final long MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
+    private static final long MAX_FILE_SIZE = 2L * 1024 * 1024; // 2MB
     private static final String[] ALLOWED_MIME_TYPES = {"audio/mpeg", "audio/mp3"};
     
     @Autowired
@@ -198,11 +198,10 @@ public class AudioService {
         }
         
         // WAV: 'RIFF'....'WAVE'
-        if (ubytes[0] == 0x52 && ubytes[1] == 0x49 && ubytes[2] == 0x46 && ubytes[3] == 0x46) {
-            if (bytes.length >= 12 && 
-                ubytes[8] == 0x57 && ubytes[9] == 0x41 && ubytes[10] == 0x56 && ubytes[11] == 0x45) {
-                return "wav";
-            }
+        if (ubytes[0] == 0x52 && ubytes[1] == 0x49 && ubytes[2] == 0x46 && ubytes[3] == 0x46 &&
+            bytes.length >= 12 &&
+            ubytes[8] == 0x57 && ubytes[9] == 0x41 && ubytes[10] == 0x56 && ubytes[11] == 0x45) {
+            return "wav";
         }
         
         // OGG: 'OggS'
