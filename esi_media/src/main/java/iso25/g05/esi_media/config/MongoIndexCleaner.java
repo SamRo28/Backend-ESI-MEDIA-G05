@@ -1,13 +1,16 @@
 package iso25.g05.esi_media.config;
 
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.index.IndexInfo;
-import org.springframework.boot.CommandLineRunner;
-import org.springframework.stereotype.Component;
-
 import java.util.List;
+
+import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.index.IndexInfo;
+import org.springframework.stereotype.Component;
+
+import com.mongodb.client.model.IndexOptions;
 
 /**
  * Limpiador de índices problemáticos en MongoDB.
@@ -109,6 +112,51 @@ public class MongoIndexCleaner implements CommandLineRunner {
         
         // 5. Reportar cuántos eliminamos en total
     logger.info("Total índices eliminados: {}", eliminados);
+
+        // --- AÑADIR: Asegurar índices parciales únicos para todos los campos
+        // anidados que contienen emails y que antes causaban E11000 cuando eran null.
+        // Lista de rutas a normalizar (añadir aquí si aparece otra ruta en el futuro).
+        String[] emailPaths = new String[] {
+                "sesionstoken.usuario.email",
+                "listasprivadas.usuario.email",
+                "listasgeneradas.usuario.email"
+        };
+
+        for (String path : emailPaths) {
+            try {
+                // 1) eliminar cualquier índice existente que tenga esa key
+                try {
+                    for (Document indexDoc : mongoTemplate.getCollection(COLLECTION_USERS).listIndexes()) {
+                        Document keyDoc = (Document) indexDoc.get("key");
+                        if (keyDoc != null && keyDoc.containsKey(path)) {
+                            String indexName = indexDoc.getString("name");
+                            if (indexName != null && !"_id_".equals(indexName)) {
+                                try {
+                                    mongoTemplate.getCollection(COLLECTION_USERS).dropIndex(indexName);
+                                    logger.info("Índice existente eliminado por key: {} ( índice: {} )", path, indexName);
+                                } catch (Exception ex) {
+                                    logger.warn("No se pudo eliminar índice {}: {}", indexName, ex.getMessage());
+                                }
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    logger.warn("Error al listar/eliminar índices existentes para {}: {}", path, e.getMessage());
+                }
+
+                // 2) crear índice parcial único que sólo indexe valores tipo string
+                IndexOptions options = new IndexOptions()
+                        .unique(true)
+                        .partialFilterExpression(new Document(path, new Document("$type", "string")));
+
+                Document indexKey = new Document(path, 1);
+                String creado = mongoTemplate.getCollection(COLLECTION_USERS).createIndex(indexKey, options);
+                logger.info("Índice parcial (solo strings) creado para {}: {}", path, creado);
+
+            } catch (Exception e) {
+                logger.error("No se pudo crear el índice parcial para '{}': {}", path, e.getMessage(), e);
+            }
+        }
     }
     
     /**

@@ -10,6 +10,7 @@ import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.warrenstrange.googleauth.GoogleAuthenticator;
@@ -20,6 +21,7 @@ import iso25.g05.esi_media.dto.VisualizadorRegistroDTO;
 import iso25.g05.esi_media.model.Contrasenia;
 import iso25.g05.esi_media.model.Usuario;
 import iso25.g05.esi_media.model.Visualizador;
+import iso25.g05.esi_media.repository.ContraseniaComunRepository;
 import iso25.g05.esi_media.repository.ContraseniaRepository;
 import iso25.g05.esi_media.repository.UsuarioRepository;
 import iso25.g05.esi_media.repository.VisualizadorRepository;
@@ -42,6 +44,12 @@ import jakarta.validation.Validator;
 @Service
 public class VisualizadorService {
     
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private ContraseniaComunRepository contraseniaComunRepository;
+
     /**
      * Repositorio general para operaciones de usuario (unicidad de email, etc.)
      */
@@ -256,7 +264,7 @@ public class VisualizadorService {
      * PROPÓSITO: Tomar los datos "en crudo" del formulario y armar todos los objetos
      * necesarios para que el sistema funcione (Visualizador + Contrasenia)
      */
-    private Visualizador crearVisualizador(VisualizadorRegistroDTO dto) {
+    private Visualizador crearVisualizador(VisualizadorRegistroDTO dto) throws Exception {
         
         // PASO 1: Aplicar regla de negocio del alias
         // Si el usuario no escribió alias (o escribió espacios vacíos), usar su nombre
@@ -266,12 +274,19 @@ public class VisualizadorService {
         
         // TEMPORAL: Sin objeto Contrasenia para evitar relaciones circulares problemáticas
         // PASO 1: Crear contraseña con nuevo constructor sin referencia de usuario
-        Contrasenia contrasenia = new Contrasenia(
+        Contrasenia c = new Contrasenia(
             null, // ID será generado por MongoDB
             new Date(System.currentTimeMillis() + (365L * 24 * 60 * 60 * 1000)), // Expira en 1 año
             dto.getContrasenia(), // Contraseña actual
             new ArrayList<>() // Lista de contraseñas anteriores vacía
         );
+
+        Contrasenia contrasenia = userService.hashearContrasenia(c);
+        contrasenia.getContraseniasUsadas().add(contrasenia.getContraseniaActual());
+
+        if(contraseniaComunRepository.existsById(contrasenia.getContraseniaActual())){
+            throw new Exception("La contraseña está en la lista de contraseñas comunes");
+        }
         
         // PASO 2: GUARDAR contraseña en MongoDB para que obtenga ID
     logger.debug("Guardando contraseña en MongoDB...");
@@ -430,8 +445,7 @@ public class VisualizadorService {
 
             String otpAuthURL = GoogleAuthenticatorQRGenerator.getOtpAuthURL("MiApp", email, key);
             Usuario user = existingUser.get();
-            user.setSecretkey(secret);
-            user.setTwoFactorAutenticationEnabled(true); 
+            user.setSecretkey(secret); 
             usuarioRepository.save(user);
 
             res = otpAuthURL;
