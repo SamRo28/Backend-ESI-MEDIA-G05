@@ -29,6 +29,7 @@ import iso25.g05.esi_media.model.Usuario;
 import iso25.g05.esi_media.model.Visualizador;
 import iso25.g05.esi_media.repository.UsuarioRepository;
 import iso25.g05.esi_media.service.UserService;
+import jakarta.servlet.http.HttpServletRequest;
 
 /**
  * Controlador unificado para gestión de usuarios
@@ -59,16 +60,29 @@ public class UsuarioController {
      * Login de usuario con email y contraseña
      */
     @PostMapping("/login")
-    public Map<String,Object> login(@RequestBody Map<String, String> loginData) {
-        Usuario loggedInUser = userService.login(loginData);
-        if (loggedInUser == null)
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid credentials");
-        return Map.of(
-            "tipo", loggedInUser.getClass().getSimpleName(),
-            "usuario", loggedInUser
-        );
-    }
+    public ResponseEntity<?> login(@RequestBody Map<String, String> loginData, 
+                                    HttpServletRequest request) { // <-- AÑADIR HttpServletRequest
+        
+        String ipAddress = getClientIp(request);
+        try {
+            Usuario loggedInUser = userService.login(loginData, ipAddress);
+            if (loggedInUser == null){
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Credenciales inválidas");
+            }
+        
+            Map<String, Object> res =  Map.of(
+                "tipo", loggedInUser.getClass().getSimpleName(),
+                "usuario", loggedInUser
+                );
+            return ResponseEntity.status(HttpStatus.OK).body(res);
+        } catch (ResponseStatusException e) {
 
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+        }
+         
+        
+        
+    }
 
 
     /**
@@ -346,6 +360,21 @@ public class UsuarioController {
             response.put("error", "Error al eliminar usuario: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
+    }
+
+
+    /**
+     * Método de ayuda para obtener la del cliente
+     */
+    private String getClientIp(HttpServletRequest request) {
+        String remoteAddr = "";
+        if (request != null) {
+            remoteAddr = request.getHeader("X-FORWARDED-FOR");
+            if (remoteAddr == null || "".equals(remoteAddr)) {
+                remoteAddr = request.getRemoteAddr();
+            }
+        }
+        return remoteAddr;
     }
 }
     
