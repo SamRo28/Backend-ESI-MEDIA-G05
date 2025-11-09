@@ -2,16 +2,6 @@ package iso25.g05.esi_media.controller;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-
-import org.bson.Document;
-import org.bson.types.ObjectId;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -23,12 +13,6 @@ import org.springframework.web.bind.annotation.RestController;
 import iso25.g05.esi_media.dto.CrearGestorRequest;
 import iso25.g05.esi_media.model.GestordeContenido;
 import iso25.g05.esi_media.service.GestorService;
-
-import com.mongodb.client.MongoCollection;
-
-import iso25.g05.esi_media.dto.CrearGestorRequest;
-import iso25.g05.esi_media.model.Contrasenia;
-import iso25.g05.esi_media.service.UserService;
 
 @RestController
 @RequestMapping("/gestores")

@@ -44,6 +44,28 @@ public class CorsConfig implements WebMvcConfigurer {
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
                 .allowCredentials(false);
+        registry.addMapping("/administradores/**")
+                .allowedOriginPatterns("http://localhost:*")
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                .allowedHeaders("*")
+                .allowCredentials(false);
+        registry.addMapping("/listas/**")
+                .allowedOriginPatterns("http://localhost:*")
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                .allowedHeaders("*")
+                .allowCredentials(false);
+                
+        registry.addMapping("/listas/usuario/**")
+                .allowedOriginPatterns("http://localhost:*")
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                .allowedHeaders("*")
+                .allowCredentials(false);
+                
+        registry.addMapping("/listas/gestor/**")
+                .allowedOriginPatterns("http://localhost:*")
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                .allowedHeaders("*")
+                .allowCredentials(false);
     }
 
     @Bean
@@ -57,6 +79,10 @@ public class CorsConfig implements WebMvcConfigurer {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/**", configuration);
         source.registerCorsConfiguration("/gestor/**", configuration);
+        source.registerCorsConfiguration("/administradores/**", configuration);
+        source.registerCorsConfiguration("/listas/**", configuration);
+        source.registerCorsConfiguration("/listas/usuario/**", configuration);
+        source.registerCorsConfiguration("/listas/gestor/**", configuration);
         return source;
 
     }

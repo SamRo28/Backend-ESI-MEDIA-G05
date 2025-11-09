@@ -1,0 +1,331 @@
+package iso25.g05.esi_media.controller;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import iso25.g05.esi_media.dto.PlaylistDto;
+import iso25.g05.esi_media.model.Lista;
+import iso25.g05.esi_media.service.ListaService;
+
+/**
+ * Controlador REST específico para usuarios (visualizadores) en gestión de listas
+ * 
+ * RUTAS:
+ * - POST /listas/usuario - Crear nueva lista
+ * - GET /listas/usuario/mias - Obtener listas propias del usuario
+ * - PUT /listas/usuario/{id} - Editar lista propia
+ * - DELETE /listas/usuario/{id} - Eliminar lista propia
+ * - POST /listas/usuario/{id}/contenidos/{contenidoId} - Añadir contenido a lista
+ * - DELETE /listas/usuario/{id}/contenidos/{contenidoId} - Eliminar contenido de lista
+ */
+@RestController
+@RequestMapping("/listas/usuario")
+@CrossOrigin(origins = "*")
+public class ListaUsuarioController {
+    
+    private static final Logger logger = LoggerFactory.getLogger(ListaUsuarioController.class);
+    
+    @Autowired
+    private ListaService listaService;
+    
+    /**
+     * Crea una nueva lista para el usuario autenticado
+     * POST /listas/usuario
+     */
+    @PostMapping
+    public ResponseEntity<Map<String, Object>> crearLista(
+            @RequestBody PlaylistDto listaDto,
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+        
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            if (authHeader == null || authHeader.trim().isEmpty()) {
+                logger.warn("Intento de crear lista de usuario sin token de autorización");
+                response.put("success", false);
+                response.put("mensaje", "Token de autorización requerido");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+            }
+            
+            String token = extraerToken(authHeader);
+            PlaylistDto listaCreada = listaService.crearListaDesdeDto(listaDto, token);
+            
+            response.put("success", true);
+            response.put("mensaje", "Lista creada correctamente y asociada al usuario.");
+            response.put("lista", listaCreada);
+            
+            logger.info("Lista de usuario creada exitosamente: {} (ID: {})", listaCreada.getNombre(), listaCreada.getId());
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+            
+        } catch (RuntimeException e) {
+            logger.error("Error al crear lista de usuario: {}", e.getMessage());
+            return manejarExcepcion(e, "Error al crear la lista");
+        } catch (Exception e) {
+            logger.error("Error inesperado al crear lista de usuario", e);
+            response.put("success", false);
+            response.put("mensaje", "Error interno del servidor");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+    
+    /**
+     * Obtiene las listas propias del usuario autenticado
+     * GET /listas/usuario/mias
+     */
+    @GetMapping("/mias")
+    public ResponseEntity<Map<String, Object>> obtenerListasUsuario(
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+        
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            if (authHeader == null || authHeader.trim().isEmpty()) {
+                logger.warn("Intento de obtener listas de usuario sin token de autorización");
+                response.put("success", false);
+                response.put("mensaje", "Token de autorización requerido");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+            }
+            
+            String token = extraerToken(authHeader);
+            List<PlaylistDto> listas = listaService.findListasPropias(token);
+            
+            response.put("success", true);
+            response.put("mensaje", "Listas obtenidas exitosamente");
+            response.put("listas", listas);
+            response.put("total", listas.size());
+            
+            logger.info("Listas de usuario obtenidas exitosamente: {} lista(s)", listas.size());
+            return ResponseEntity.ok(response);
+            
+        } catch (RuntimeException e) {
+            logger.error("Error al obtener listas de usuario: {}", e.getMessage());
+            return manejarExcepcion(e, "Error al obtener las listas");
+        } catch (Exception e) {
+            logger.error("Error inesperado al obtener listas de usuario", e);
+            response.put("success", false);
+            response.put("mensaje", "Error interno del servidor");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+    
+    /**
+     * Edita una lista existente del usuario
+     * PUT /listas/usuario/{id}
+     */
+    @PutMapping("/{id}")
+    public ResponseEntity<Map<String, Object>> editarLista(
+            @PathVariable String id,
+            @RequestBody Lista updatedLista,
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+        
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            if (authHeader == null || authHeader.trim().isEmpty()) {
+                logger.warn("Intento de editar lista de usuario {} sin token de autorización", id);
+                response.put("success", false);
+                response.put("mensaje", "Token de autorización requerido");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+            }
+            
+            String token = extraerToken(authHeader);
+            PlaylistDto listaEditada = listaService.updateLista(id, updatedLista, token);
+            
+            response.put("success", true);
+            response.put("mensaje", "Lista actualizada exitosamente");
+            response.put("lista", listaEditada);
+            
+            logger.info("Lista de usuario editada exitosamente: {} (ID: {})", listaEditada.getNombre(), listaEditada.getId());
+            return ResponseEntity.ok(response);
+            
+        } catch (RuntimeException e) {
+            logger.error("Error al editar lista de usuario {}: {}", id, e.getMessage());
+            return manejarExcepcion(e, "Error al editar la lista");
+        } catch (Exception e) {
+            logger.error("Error inesperado al editar lista de usuario {}", id, e);
+            response.put("success", false);
+            response.put("mensaje", "Error interno del servidor");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+    
+    /**
+     * Elimina una lista del usuario
+     * DELETE /listas/usuario/{id}
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Map<String, Object>> eliminarLista(
+            @PathVariable String id,
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+        
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            if (authHeader == null || authHeader.trim().isEmpty()) {
+                logger.warn("Intento de eliminar lista de usuario {} sin token de autorización", id);
+                response.put("success", false);
+                response.put("mensaje", "Token de autorización requerido");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+            }
+            
+            String token = extraerToken(authHeader);
+            listaService.deleteLista(id, token);
+            
+            response.put("success", true);
+            response.put("mensaje", "Lista eliminada exitosamente");
+            
+            logger.info("Lista de usuario eliminada exitosamente: ID {}", id);
+            return ResponseEntity.ok(response);
+            
+        } catch (RuntimeException e) {
+            logger.error("Error al eliminar lista de usuario {}: {}", id, e.getMessage());
+            return manejarExcepcion(e, "Error al eliminar la lista");
+        } catch (Exception e) {
+            logger.error("Error inesperado al eliminar lista de usuario {}", id, e);
+            response.put("success", false);
+            response.put("mensaje", "Error interno del servidor");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+    
+    /**
+     * Añade un contenido a una lista del usuario
+     * POST /listas/usuario/{id}/contenidos/{contenidoId}
+     */
+    @PostMapping("/{id}/contenidos/{contenidoId}")
+    public ResponseEntity<Map<String, Object>> agregarContenido(
+            @PathVariable String id,
+            @PathVariable String contenidoId,
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+        
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            if (authHeader == null || authHeader.trim().isEmpty()) {
+                logger.warn("Intento de añadir contenido a lista de usuario {} sin token de autorización", id);
+                response.put("success", false);
+                response.put("mensaje", "Token de autorización requerido");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+            }
+            
+            String token = extraerToken(authHeader);
+            PlaylistDto listaActualizada = listaService.addContenido(id, contenidoId, token);
+            
+            response.put("success", true);
+            response.put("mensaje", "Contenido añadido a la lista exitosamente");
+            response.put("lista", listaActualizada);
+            response.put("totalContenidos", listaActualizada.getContenidosIds().size());
+            
+            logger.info("Contenido {} añadido a lista de usuario {} exitosamente", contenidoId, id);
+            return ResponseEntity.ok(response);
+            
+        } catch (RuntimeException e) {
+            logger.error("Error al añadir contenido a lista de usuario {}: {}", id, e.getMessage());
+            return manejarExcepcion(e, "Error al añadir contenido a la lista");
+        } catch (Exception e) {
+            logger.error("Error inesperado al añadir contenido a lista de usuario {}", id, e);
+            response.put("success", false);
+            response.put("mensaje", "Error interno del servidor");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+    
+    /**
+     * Elimina un contenido de una lista del usuario
+     * DELETE /listas/usuario/{id}/contenidos/{contenidoId}
+     */
+    @DeleteMapping("/{id}/contenidos/{contenidoId}")
+    public ResponseEntity<Map<String, Object>> eliminarContenido(
+            @PathVariable String id,
+            @PathVariable String contenidoId,
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+        
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            if (authHeader == null || authHeader.trim().isEmpty()) {
+                logger.warn("Intento de eliminar contenido de lista de usuario {} sin token de autorización", id);
+                response.put("success", false);
+                response.put("mensaje", "Token de autorización requerido");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+            }
+            
+            String token = extraerToken(authHeader);
+            PlaylistDto listaActualizada = listaService.removeContenido(id, contenidoId, token);
+            
+            response.put("success", true);
+            response.put("mensaje", "Contenido eliminado de la lista exitosamente");
+            response.put("lista", listaActualizada);
+            response.put("totalContenidos", listaActualizada.getContenidosIds().size());
+            
+            logger.info("Contenido {} eliminado de lista de usuario {} exitosamente", contenidoId, id);
+            return ResponseEntity.ok(response);
+            
+        } catch (RuntimeException e) {
+            logger.error("Error al eliminar contenido de lista de usuario {}: {}", id, e.getMessage());
+            return manejarExcepcion(e, "Error al eliminar contenido de la lista");
+        } catch (Exception e) {
+            logger.error("Error inesperado al eliminar contenido de lista de usuario {}", id, e);
+            response.put("success", false);
+            response.put("mensaje", "Error interno del servidor");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+    
+    /**
+     * Extrae el token del header de autorización
+     */
+    private String extraerToken(String authHeader) {
+        if (authHeader.startsWith("Bearer ")) {
+            return authHeader.substring(7).trim();
+        }
+        return authHeader.trim();
+    }
+    
+    /**
+     * Maneja las excepciones y retorna la respuesta HTTP apropiada
+     */
+    private ResponseEntity<Map<String, Object>> manejarExcepcion(RuntimeException e, String mensajeGenerico) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", false);
+        
+        String mensajeError = e.getMessage();
+        
+        if (mensajeError.contains("Token") && 
+            (mensajeError.contains("inválido") || mensajeError.contains("expirado") || 
+             mensajeError.contains("no proporcionado"))) {
+            response.put("mensaje", mensajeError);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+        }
+        
+        if (mensajeError.contains("no encontrada") || mensajeError.contains("no encontrado")) {
+            response.put("mensaje", mensajeError);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        }
+        
+        if (mensajeError.contains("permisos") || mensajeError.contains("autorizado")) {
+            response.put("mensaje", mensajeError);
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+        }
+        
+        response.put("mensaje", mensajeError != null ? mensajeError : mensajeGenerico);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+}

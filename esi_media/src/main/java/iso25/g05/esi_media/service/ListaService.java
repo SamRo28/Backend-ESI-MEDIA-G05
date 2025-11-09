@@ -1,9 +1,12 @@
 package iso25.g05.esi_media.service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Date;
+
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -159,15 +162,23 @@ public class ListaService {
         if (input.getNombre() == null || input.getNombre().trim().isEmpty()) {
             throw new RuntimeException("El nombre de la lista es obligatorio");
         }
+        
+        if (input.getNombre().trim().length() < 3) {
+            throw new RuntimeException("El nombre debe tener al menos 3 caracteres");
+        }
 
         if (input.getDescripcion() == null || input.getDescripcion().trim().isEmpty()) {
             throw new RuntimeException("La descripción de la lista es obligatoria");
         }
+        
+        if (input.getDescripcion().trim().length() < 10) {
+            throw new RuntimeException("La descripción debe tener al menos 10 caracteres");
+        }
 
         // Crear nueva lista
         Lista lista = new Lista();
-        lista.setNombre(input.getNombre());
-        lista.setDescripcion(input.getDescripcion());
+        lista.setNombre(input.getNombre().trim());
+        lista.setDescripcion(input.getDescripcion().trim());
         lista.setCreadorId(usuario.getId());
         lista.setUsuario(usuario); // Legacy
         lista.setTags(input.getTags() != null ? input.getTags() : lista.getTags());
@@ -175,6 +186,17 @@ public class ListaService {
         
         // Aplicar reglas según tipo de usuario
         aplicarReglasSegunTipoUsuario(lista, usuario);
+        
+        // Validar unicidad del nombre si la lista es visible y el usuario es gestor
+        Optional<GestordeContenido> gestorOpt = gestorRepository.findById(usuario.getId());
+        if (gestorOpt.isPresent() && lista.isVisible()) {
+            Optional<Lista> listaExistente = listaRepository.findByCreadorIdAndNombreAndVisibleIsTrue(
+                usuario.getId(), lista.getNombre()
+            );
+            if (listaExistente.isPresent()) {
+                throw new RuntimeException("El nombre de la lista ya existe entre las visibles");
+            }
+        }
         
         // Inicializar fechas si no están establecidas
         if (lista.getFechaCreacion() == null) {
@@ -184,8 +206,128 @@ public class ListaService {
             lista.setFechaActualizacion(LocalDateTime.now());
         }
 
-        // Guardar y retornar como DTO
+        // Guardar lista primero
         Lista listaGuardada = listaRepository.save(lista);
+        
+        // Si hay contenidos en el input, procesarlos (para compatibilidad con frontend)
+        if (input.getContenidos() != null && !input.getContenidos().isEmpty()) {
+            for (Contenido contenido : input.getContenidos()) {
+                if (contenido != null && contenido.getId() != null) {
+                    Optional<Contenido> contenidoExistente = contenidoRepository.findById(contenido.getId());
+                    if (contenidoExistente.isPresent()) {
+                        listaGuardada.addContenido(contenidoExistente.get());
+                    }
+                }
+            }
+            listaGuardada = listaRepository.save(listaGuardada);
+        }
+        
+        // Actualizar el usuario o gestor creador añadiendo la lista a su colección
+        actualizarUsuarioConLista(usuario.getId(), listaGuardada);
+        
+        return mapToDto(listaGuardada);
+    }
+
+    /**
+     * Crea una nueva lista desde el DTO del frontend
+     * 
+     * @param dto DTO con los datos de la lista desde el frontend
+     * @param token Token de sesión del usuario
+     * @return PlaylistDto con la lista creada
+     * @throws RuntimeException si hay errores de validación o token inválido
+     */
+    public PlaylistDto crearListaDesdeDto(PlaylistDto dto, String token) {
+        // Validar token y obtener usuario
+        Usuario usuario = validarToken(token);
+
+        // Validaciones básicas
+        if (dto == null) {
+            throw new RuntimeException("Los datos de la lista no pueden ser nulos");
+        }
+
+        if (dto.getNombre() == null || dto.getNombre().trim().isEmpty()) {
+            throw new RuntimeException("El nombre de la lista es obligatorio");
+        }
+        
+        if (dto.getNombre().trim().length() < 3) {
+            throw new RuntimeException("El nombre debe tener al menos 3 caracteres");
+        }
+
+        if (dto.getDescripcion() == null || dto.getDescripcion().trim().isEmpty()) {
+            throw new RuntimeException("La descripción de la lista es obligatoria");
+        }
+        
+        if (dto.getDescripcion().trim().length() < 10) {
+            throw new RuntimeException("La descripción debe tener al menos 10 caracteres");
+        }
+
+        // Validar que hay contenidos
+        if (dto.getContenidosIds() == null || dto.getContenidosIds().isEmpty()) {
+            throw new RuntimeException("Debe contener al menos un contenido");
+        }
+
+        // Eliminar duplicados en contenidosIds
+        List<String> contenidosUnicos = dto.getContenidosIds().stream()
+            .distinct()
+            .toList();
+
+        // Crear nueva lista
+        Lista lista = new Lista();
+        lista.setNombre(dto.getNombre().trim());
+        lista.setDescripcion(dto.getDescripcion().trim());
+        lista.setCreadorId(usuario.getId());
+        lista.setUsuario(usuario);
+        
+        // Procesar tags si existen
+        if (dto.getTags() != null && !dto.getTags().isEmpty()) {
+            Set<String> tagsSet = dto.getTags().stream()
+                .filter(tag -> tag != null && !tag.trim().isEmpty())
+                .map(String::trim)
+                .collect(Collectors.toSet());
+            lista.setTags(tagsSet);
+        }
+        
+        lista.setVisible(dto.isVisible());
+        lista.setEspecializacionGestor(dto.getEspecializacionGestor());
+        
+        // Aplicar reglas según tipo de usuario
+        aplicarReglasSegunTipoUsuario(lista, usuario);
+        
+        // Validar unicidad del nombre si la lista es visible y el usuario es gestor
+        Optional<GestordeContenido> gestorOpt = gestorRepository.findById(usuario.getId());
+        if (gestorOpt.isPresent() && lista.isVisible()) {
+            Optional<Lista> listaExistente = listaRepository.findByCreadorIdAndNombreAndVisibleIsTrue(
+                usuario.getId(), lista.getNombre()
+            );
+            if (listaExistente.isPresent()) {
+                throw new RuntimeException("El nombre de la lista ya existe entre las visibles");
+            }
+        }
+        
+        // Establecer fechas
+        lista.setFechaCreacion(LocalDateTime.now());
+        lista.setFechaActualizacion(LocalDateTime.now());
+
+        // Guardar lista primero
+        Lista listaGuardada = listaRepository.save(lista);
+        
+        // Procesar y añadir contenidos
+        for (String contenidoId : contenidosUnicos) {
+            Optional<Contenido> contenidoOpt = contenidoRepository.findById(contenidoId);
+            if (contenidoOpt.isPresent()) {
+                listaGuardada.addContenido(contenidoOpt.get());
+            } else {
+                // Log del contenido no encontrado pero continuar
+                System.out.println("Contenido no encontrado: " + contenidoId);
+            }
+        }
+        
+        // Guardar con contenidos
+        listaGuardada = listaRepository.save(listaGuardada);
+        
+        // Actualizar el usuario o gestor creador añadiendo la lista a su colección
+        actualizarUsuarioConLista(usuario.getId(), listaGuardada);
+        
         return mapToDto(listaGuardada);
     }
 
@@ -461,6 +603,47 @@ public class ListaService {
         
         // Contenido disponible para el visualizador
         return true;
+    }
+    
+    /**
+     * Actualiza el usuario o gestor añadiendo la lista creada a su colección correspondiente
+     * 
+     * @param creadorId ID del usuario creador
+     * @param lista Lista creada para añadir al usuario
+     */
+    private void actualizarUsuarioConLista(String creadorId, Lista lista) {
+        if (creadorId != null) {
+            // OBTENER EL USUARIO REAL PRIMERO
+            Optional<Usuario> usuarioOpt = usuarioRepository.findById(creadorId);
+            if (usuarioOpt.isEmpty()) {
+                return;
+            }
+            
+            Usuario usuario = usuarioOpt.get();
+            
+            // VERIFICAR EL TIPO REAL DEL USUARIO
+            if (usuario instanceof GestordeContenido) {
+                GestordeContenido gestor = (GestordeContenido) usuario;
+                if (gestor.getListasgeneradas() == null) {
+                    gestor.setListasgeneradas(new ArrayList<>());
+                }
+                gestor.getListasgeneradas().add(lista);
+                usuarioRepository.save(gestor);
+                return;
+            }
+            
+            if (usuario instanceof Visualizador) {
+                Visualizador visualizador = (Visualizador) usuario;
+                if (visualizador.listasprivadas == null) {
+                    visualizador.listasprivadas = new ArrayList<>();
+                }
+                visualizador.listasprivadas.add(lista);
+                usuarioRepository.save(visualizador);
+                return;
+            }
+            
+            // Si no es ni gestor ni visualizador, no hacer nada
+        }
     }
     
     /**
