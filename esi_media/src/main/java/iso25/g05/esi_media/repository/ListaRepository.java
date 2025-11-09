@@ -45,4 +45,12 @@ public interface ListaRepository extends MongoRepository<Lista, String> {
      */
     java.util.Optional<Lista> findByCreadorIdAndNombreAndVisibleIsTrue(String creadorId, String nombre);
     
+    /**
+     * Busca todas las listas visibles (públicas) creadas por usuarios específicos
+     * 
+     * @param creadorIds Lista de IDs de creadores (gestores)
+     * @return Lista de listas visibles de los gestores especificados
+     */
+    List<Lista> findByCreadorIdInAndVisibleIsTrue(List<String> creadorIds);
+    
 }

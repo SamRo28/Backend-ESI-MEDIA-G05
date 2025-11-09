@@ -8,6 +8,8 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 /**
  * Clase base para usuarios del sistema (Visualizador, Administrador, Gestor).
  * 
@@ -43,16 +45,19 @@ public class Usuario {
     protected boolean bloqueado;
 
 
+    @JsonIgnore
     public List<Codigorecuperacion> codigosrecuperacion = new ArrayList<>();
     
-
+    @JsonIgnore
     public List<Token> sesionstoken = new ArrayList<>();
 
     @org.springframework.data.mongodb.core.mapping.DBRef
+    @JsonIgnore
     public Contrasenia contrasenia;
 
     protected Date fecharegistro;
 
+    @JsonIgnore
     private String secretkey;
     
     private boolean twoFactorAutenticationEnabled;

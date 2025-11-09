@@ -9,9 +9,12 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import iso25.g05.esi_media.dto.ContenidoResumenDTO;
 import iso25.g05.esi_media.dto.PlaylistDto;
 import iso25.g05.esi_media.model.Contenido;
 import iso25.g05.esi_media.model.GestordeContenido;
@@ -30,6 +33,12 @@ import iso25.g05.esi_media.repository.VisualizadorRepository;
  */
 @Service
 public class ListaService {
+    private static final Logger logger = LoggerFactory.getLogger(ListaService.class);
+
+    public static final String SUCCESS = "success";
+    public static final String PERMISOS_ERROR = "Error de permisos";
+    public static final String LISTAS = "No se encontró la lista solicitada";
+    public static final String TOKEN_ERROR = "Error por token";
 
     @Autowired
     private ListaRepository listaRepository;
@@ -57,13 +66,13 @@ public class ListaService {
      */
     private Usuario validarToken(String token) {
         if (token == null || token.isEmpty()) {
-            throw new RuntimeException("Token no proporcionado");
+            throw new RuntimeException(TOKEN_ERROR);
         }
 
         Optional<Usuario> usuarioOpt = usuarioRepository.findBySesionToken(token);
         
         if (usuarioOpt.isEmpty()) {
-            throw new RuntimeException("Token inválido");
+            throw new RuntimeException(TOKEN_ERROR);
         }
 
         Usuario usuario = usuarioOpt.get();
@@ -74,7 +83,7 @@ public class ListaService {
                 && t.getFechaExpiracion().after(new Date()));
         
         if (!tokenValido) {
-            throw new RuntimeException("Token expirado o inválido");
+            throw new RuntimeException(TOKEN_ERROR);
         }
 
         return usuario;
@@ -105,6 +114,150 @@ public class ListaService {
         );
     }
     
+    /**
+     * Valida los datos básicos de una lista (nombre y descripción)
+     * 
+     * @param input Lista con los datos a validar
+     * @throws RuntimeException si hay errores de validación
+     */
+    private void validarDatosBasicosLista(Lista input) {
+        if (input == null) {
+            throw new RuntimeException("La lista no puede ser nula");
+        }
+
+        validarNombreYDescripcion(input.getNombre(), input.getDescripcion());
+    }
+
+    /**
+     * Valida los datos básicos de un DTO de lista (nombre y descripción)
+     * 
+     * @param dto DTO con los datos a validar
+     * @throws RuntimeException si hay errores de validación
+     */
+    private void validarDatosBasicosDto(PlaylistDto dto) {
+        if (dto == null) {
+            throw new RuntimeException("Los datos de la lista no pueden ser nulos");
+        }
+
+        validarNombreYDescripcion(dto.getNombre(), dto.getDescripcion());
+    }
+
+    /**
+     * Valida nombre y descripción de una lista
+     * 
+     * @param nombre Nombre a validar
+     * @param descripcion Descripción a validar
+     * @throws RuntimeException si hay errores de validación
+     */
+    private void validarNombreYDescripcion(String nombre, String descripcion) {
+        if (nombre == null || nombre.trim().isEmpty()) {
+            throw new RuntimeException("El nombre de la lista es obligatorio");
+        }
+        
+        if (nombre.trim().length() < 3) {
+            throw new RuntimeException("El nombre debe tener al menos 3 caracteres");
+        }
+
+        if (descripcion == null || descripcion.trim().isEmpty()) {
+            throw new RuntimeException("La descripción de la lista es obligatoria");
+        }
+        
+        if (descripcion.trim().length() < 10) {
+            throw new RuntimeException("La descripción debe tener al menos 10 caracteres");
+        }
+    }
+
+    /**
+     * Valida la unicidad del nombre para listas visibles de gestores
+     * 
+     * @param usuario Usuario creador de la lista
+     * @param lista Lista a validar
+     * @throws RuntimeException si ya existe una lista visible con el mismo nombre
+     */
+    private void validarUnicidadNombreLista(Usuario usuario, Lista lista) {
+        if (!esGestorConListaVisible(usuario, lista)) {
+            return; // No aplica validación de unicidad
+        }
+        
+        if (existeListaVisibleConMismoNombre(usuario.getId(), lista.getNombre())) {
+            throw new RuntimeException("El nombre de la lista ya existe entre las visibles");
+        }
+    }
+
+    /**
+     * Verifica si el usuario es gestor y la lista es visible
+     * 
+     * @param usuario Usuario a verificar
+     * @param lista Lista a verificar
+     * @return true si es gestor y la lista es visible
+     */
+    private boolean esGestorConListaVisible(Usuario usuario, Lista lista) {
+        Optional<GestordeContenido> gestorOpt = gestorRepository.findById(usuario.getId());
+        return gestorOpt.isPresent() && lista.isVisible();
+    }
+
+    /**
+     * Verifica si ya existe una lista visible con el mismo nombre para el usuario
+     * 
+     * @param usuarioId ID del usuario
+     * @param nombre Nombre de la lista a verificar
+     * @return true si existe una lista visible con el mismo nombre
+     */
+    private boolean existeListaVisibleConMismoNombre(String usuarioId, String nombre) {
+        Optional<Lista> listaExistente = listaRepository.findByCreadorIdAndNombreAndVisibleIsTrue(
+            usuarioId, nombre
+        );
+        return listaExistente.isPresent();
+    }
+
+    /**
+     * Valida la unicidad global del nombre para listas visibles de gestores
+     * (El nombre debe ser único entre TODOS los gestores, no solo del mismo creador)
+     * 
+     * @param usuario Usuario creador de la lista
+     * @param lista Lista a validar
+     * @throws RuntimeException si ya existe una lista visible con el mismo nombre globalmente
+     */
+    private void validarUnicidadGlobalNombreLista(Usuario usuario, Lista lista) {
+        if (!esGestorConListaVisible(usuario, lista)) {
+            return; // No aplica validación de unicidad global
+        }
+        
+        if (existeListaVisibleGlobalConMismoNombre(lista.getNombre())) {
+            throw new RuntimeException("Ya existe una lista visible con el nombre '" + lista.getNombre() + "'. Los nombres de listas visibles deben ser únicos.");
+        }
+    }
+
+    /**
+     * Verifica si existe una lista visible con el mismo nombre entre TODOS los gestores
+     * 
+     * @param nombre Nombre de la lista a verificar
+     * @return true si existe una lista visible con el mismo nombre globalmente
+     */
+    private boolean existeListaVisibleGlobalConMismoNombre(String nombre) {
+        List<String> idsGestores = obtenerIdsDeGestores();
+        
+        List<Lista> listasVisiblesConMismoNombre = listaRepository
+            .findByCreadorIdInAndVisibleIsTrue(idsGestores)
+            .stream()
+            .filter(l -> l.getNombre().equalsIgnoreCase(nombre))
+            .toList();
+            
+        return !listasVisiblesConMismoNombre.isEmpty();
+    }
+
+    /**
+     * Obtiene los IDs de todos los gestores de contenido
+     * 
+     * @return Lista con los IDs de todos los gestores
+     */
+    private List<String> obtenerIdsDeGestores() {
+        return gestorRepository.findAll()
+            .stream()
+            .map(GestordeContenido::getId)
+            .toList();
+    }
+
     /**
      * Aplica reglas de negocio según el tipo de usuario creador
      * 
@@ -155,25 +308,7 @@ public class ListaService {
         Usuario usuario = validarToken(token);
 
         // Validaciones básicas
-        if (input == null) {
-            throw new RuntimeException("La lista no puede ser nula");
-        }
-
-        if (input.getNombre() == null || input.getNombre().trim().isEmpty()) {
-            throw new RuntimeException("El nombre de la lista es obligatorio");
-        }
-        
-        if (input.getNombre().trim().length() < 3) {
-            throw new RuntimeException("El nombre debe tener al menos 3 caracteres");
-        }
-
-        if (input.getDescripcion() == null || input.getDescripcion().trim().isEmpty()) {
-            throw new RuntimeException("La descripción de la lista es obligatoria");
-        }
-        
-        if (input.getDescripcion().trim().length() < 10) {
-            throw new RuntimeException("La descripción debe tener al menos 10 caracteres");
-        }
+        validarDatosBasicosLista(input);
 
         // Crear nueva lista
         Lista lista = new Lista();
@@ -187,16 +322,8 @@ public class ListaService {
         // Aplicar reglas según tipo de usuario
         aplicarReglasSegunTipoUsuario(lista, usuario);
         
-        // Validar unicidad del nombre si la lista es visible y el usuario es gestor
-        Optional<GestordeContenido> gestorOpt = gestorRepository.findById(usuario.getId());
-        if (gestorOpt.isPresent() && lista.isVisible()) {
-            Optional<Lista> listaExistente = listaRepository.findByCreadorIdAndNombreAndVisibleIsTrue(
-                usuario.getId(), lista.getNombre()
-            );
-            if (listaExistente.isPresent()) {
-                throw new RuntimeException("El nombre de la lista ya existe entre las visibles");
-            }
-        }
+        // Validar unicidad del nombre para listas visibles de gestores
+        validarUnicidadNombreLista(usuario, lista);
         
         // Inicializar fechas si no están establecidas
         if (lista.getFechaCreacion() == null) {
@@ -240,36 +367,23 @@ public class ListaService {
         // Validar token y obtener usuario
         Usuario usuario = validarToken(token);
 
-        // Validaciones básicas
-        if (dto == null) {
-            throw new RuntimeException("Los datos de la lista no pueden ser nulos");
-        }
+        // ============= VALIDACIONES OBLIGATORIAS =============
+        validarDatosBasicosDto(dto);
 
-        if (dto.getNombre() == null || dto.getNombre().trim().isEmpty()) {
-            throw new RuntimeException("El nombre de la lista es obligatorio");
-        }
-        
-        if (dto.getNombre().trim().length() < 3) {
-            throw new RuntimeException("El nombre debe tener al menos 3 caracteres");
-        }
-
-        if (dto.getDescripcion() == null || dto.getDescripcion().trim().isEmpty()) {
-            throw new RuntimeException("La descripción de la lista es obligatoria");
-        }
-        
-        if (dto.getDescripcion().trim().length() < 10) {
-            throw new RuntimeException("La descripción debe tener al menos 10 caracteres");
-        }
-
-        // Validar que hay contenidos
+        // 3. VALIDACIÓN: Que tenga al menos 1 contenido (obligatorio)
         if (dto.getContenidosIds() == null || dto.getContenidosIds().isEmpty()) {
-            throw new RuntimeException("Debe contener al menos un contenido");
+            throw new RuntimeException("La lista debe contener al menos un contenido");
         }
 
-        // Eliminar duplicados en contenidosIds
+        // 4. VALIDACIÓN: Sin elementos repetidos (eliminar duplicados)
         List<String> contenidosUnicos = dto.getContenidosIds().stream()
             .distinct()
             .toList();
+            
+        if (contenidosUnicos.size() != dto.getContenidosIds().size()) {
+            logger.info("Se eliminaron {} elementos duplicados de la lista", 
+                dto.getContenidosIds().size() - contenidosUnicos.size());
+        }
 
         // Crear nueva lista
         Lista lista = new Lista();
@@ -293,16 +407,8 @@ public class ListaService {
         // Aplicar reglas según tipo de usuario
         aplicarReglasSegunTipoUsuario(lista, usuario);
         
-        // Validar unicidad del nombre si la lista es visible y el usuario es gestor
-        Optional<GestordeContenido> gestorOpt = gestorRepository.findById(usuario.getId());
-        if (gestorOpt.isPresent() && lista.isVisible()) {
-            Optional<Lista> listaExistente = listaRepository.findByCreadorIdAndNombreAndVisibleIsTrue(
-                usuario.getId(), lista.getNombre()
-            );
-            if (listaExistente.isPresent()) {
-                throw new RuntimeException("El nombre de la lista ya existe entre las visibles");
-            }
-        }
+        // Validar unicidad global del nombre para listas visibles de gestores
+        validarUnicidadGlobalNombreLista(usuario, lista);
         
         // Establecer fechas
         lista.setFechaCreacion(LocalDateTime.now());
@@ -347,10 +453,10 @@ public class ListaService {
 
         // Buscar la lista existente
         Lista listaExistente = listaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Lista no encontrada"));
+                .orElseThrow(() -> new RuntimeException(LISTAS));
 
-        // Verificar permisos (el usuario debe ser el creador)
-        if (!listaExistente.getCreadorId().equals(usuario.getId())) {
+        // Verificar permisos usando el nuevo método de validación
+        if (!validarPermisosModificacion(usuario, listaExistente)) {
             throw new RuntimeException("No tienes permisos para editar esta lista");
         }
 
@@ -385,8 +491,108 @@ public class ListaService {
     }
 
     /**
+     * Actualiza una lista existente desde un DTO que incluye contenidosIds
+     * Maneja tanto los datos básicos como los contenidos de la lista
+     * 
+     * @param id ID de la lista a actualizar
+     * @param dto DTO con los datos actualizados incluyendo contenidosIds
+     * @param token Token de sesión del usuario
+     * @return PlaylistDto con la lista actualizada
+     * @throws RuntimeException si hay errores de validación, token inválido o sin permisos
+     */
+    public PlaylistDto updateListaDesdeDto(String id, PlaylistDto dto, String token) {
+        // Validar token y obtener usuario
+        Usuario usuario = validarToken(token);
+
+        // Buscar la lista existente
+        Lista listaExistente = listaRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException(LISTAS));
+
+        // Verificar permisos usando el nuevo método de validación
+        if (!validarPermisosModificacion(usuario, listaExistente)) {
+            throw new RuntimeException("No tienes permisos para editar esta lista");
+        }
+
+        // Validaciones básicas del DTO
+        if (dto == null) {
+            throw new RuntimeException("Los datos de actualización no pueden ser nulos");
+        }
+
+        // Validar datos básicos
+        validarNombreYDescripcion(dto.getNombre(), dto.getDescripcion());
+
+        // Validar que tenga al menos 1 contenido
+        if (dto.getContenidosIds() == null || dto.getContenidosIds().isEmpty()) {
+            throw new RuntimeException("La lista debe contener al menos un contenido");
+        }
+
+        // Eliminar duplicados en contenidosIds
+        List<String> contenidosUnicos = dto.getContenidosIds().stream()
+            .distinct()
+            .toList();
+            
+        if (contenidosUnicos.size() != dto.getContenidosIds().size()) {
+            logger.info("Se eliminaron {} elementos duplicados de la lista en actualización", 
+                dto.getContenidosIds().size() - contenidosUnicos.size());
+        }
+
+        // Actualizar campos básicos
+        listaExistente.setNombre(dto.getNombre().trim());
+        listaExistente.setDescripcion(dto.getDescripcion().trim());
+        
+        // Procesar tags si existen
+        if (dto.getTags() != null && !dto.getTags().isEmpty()) {
+            Set<String> tagsSet = dto.getTags().stream()
+                .filter(tag -> tag != null && !tag.trim().isEmpty())
+                .map(String::trim)
+                .collect(Collectors.toSet());
+            listaExistente.setTags(tagsSet);
+        } else {
+            listaExistente.setTags(Set.of()); // Limpiar tags si viene vacío
+        }
+
+        // Actualizar visibilidad y re-aplicar reglas
+        listaExistente.setVisible(dto.isVisible());
+        if (dto.getEspecializacionGestor() != null) {
+            listaExistente.setEspecializacionGestor(dto.getEspecializacionGestor());
+        }
+        aplicarReglasSegunTipoUsuario(listaExistente, usuario);
+
+        // ================ ACTUALIZAR CONTENIDOS ================
+        // Limpiar contenidos actuales
+        listaExistente.getContenidos().clear();
+        
+        // Añadir nuevos contenidos
+        for (String contenidoId : contenidosUnicos) {
+            Optional<Contenido> contenidoOpt = contenidoRepository.findById(contenidoId);
+            if (contenidoOpt.isPresent()) {
+                listaExistente.addContenido(contenidoOpt.get());
+            } else {
+                // Log del contenido no encontrado pero continuar
+                logger.warn("Contenido no encontrado en actualización: {}", contenidoId);
+            }
+        }
+
+        // Validar que al menos quedó un contenido válido después del procesamiento
+        if (listaExistente.getContenidos().isEmpty()) {
+            throw new RuntimeException("No se encontraron contenidos válidos. La lista debe tener al menos un contenido.");
+        }
+        
+        // Actualizar fecha de modificación
+        listaExistente.setFechaActualizacion(LocalDateTime.now());
+
+        // Guardar y retornar como DTO
+        Lista listaActualizada = listaRepository.save(listaExistente);
+        
+        logger.info("Lista actualizada exitosamente: {} (ID: {}) con {} contenido(s)", 
+            listaActualizada.getNombre(), listaActualizada.getId(), listaActualizada.getContenidos().size());
+            
+        return mapToDto(listaActualizada);
+    }
+
+    /**
      * Elimina una lista
-     * Solo el creador puede eliminar su lista
+     * Solo el creador original puede eliminar completamente su lista
      * 
      * @param id ID de la lista a eliminar
      * @param token Token de sesión del usuario
@@ -398,11 +604,11 @@ public class ListaService {
 
         // Buscar la lista existente
         Lista lista = listaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Lista no encontrada"));
+                .orElseThrow(() -> new RuntimeException(LISTAS));
 
-        // Verificar permisos (el usuario debe ser el creador)
-        if (!lista.getCreadorId().equals(usuario.getId())) {
-            throw new RuntimeException("No tienes permisos para eliminar esta lista");
+        // Verificar permisos usando el nuevo método de validación
+        if (!validarPermisosEliminacion(usuario, lista)) {
+            throw new RuntimeException("Solo el creador original puede eliminar completamente la lista");
         }
 
         // Eliminar la lista
@@ -430,8 +636,224 @@ public class ListaService {
     }
 
     /**
+     * Obtiene todas las listas visibles de gestores (accesibles para visualizadores)
+     * 
+     * @param token Token de sesión del usuario
+     * @return Lista de PlaylistDto con las listas visibles de gestores
+     * @throws RuntimeException si el token es inválido
+     */
+    public List<PlaylistDto> findListasVisiblesGestores(String token) {
+        // Validar token y obtener usuario
+        Usuario usuario = validarToken(token);
+
+        // Obtener todos los IDs de gestores
+        List<GestordeContenido> gestores = gestorRepository.findAll();
+        List<String> idsGestores = gestores.stream()
+                .map(GestordeContenido::getId)
+                .toList();
+
+        // Buscar todas las listas visibles creadas por gestores
+        List<Lista> listas = listaRepository.findByCreadorIdInAndVisibleIsTrue(idsGestores);
+        
+        // Filtrar contenidos automáticamente según el usuario que accede
+        List<Lista> listasFiltradas = listas.stream()
+                .map(lista -> filtrarContenidosParaVisualizador(usuario, lista))
+                .filter(lista -> !lista.getContenidos().isEmpty()) // Solo mostrar listas con contenidos visibles
+                .toList();
+        
+        // Mapear a DTOs
+        return listasFiltradas.stream()
+                .map(this::mapToDto)
+                .toList();
+    }
+
+    /**
+     * Obtiene una lista específica por su ID
+     * Valida que el usuario tenga permisos para ver la lista
+     * 
+     * @param id ID de la lista
+     * @param token Token de sesión del usuario
+     * @return PlaylistDto con los datos de la lista
+     * @throws RuntimeException si el token es inválido, la lista no existe o el usuario no tiene permisos
+     */
+    public PlaylistDto findListaById(String id, String token) {
+        // Validar token y obtener usuario
+        Usuario usuario = validarToken(token);
+
+        // Buscar la lista
+        Lista lista = listaRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException(LISTAS));
+
+        // Verificar que el usuario tenga permisos para ver la lista
+        // Solo el creador puede ver sus listas privadas
+        if (!lista.getCreadorId().equals(usuario.getId())) {
+            throw new RuntimeException(PERMISOS_ERROR);
+        }
+        
+        // Mapear a DTO y retornar
+        return mapToDto(lista);
+    }
+
+    /**
+     * Obtiene una lista específica por su ID con validación de permisos mejorada
+     * Permite a visualizadores acceder a listas VISIBLES de gestores (solo lectura)
+     * 
+     * @param id ID de la lista
+     * @param token Token de sesión del usuario
+     * @return PlaylistDto con los datos de la lista
+     * @throws RuntimeException si el token es inválido, la lista no existe o el usuario no tiene permisos
+     */
+    public PlaylistDto findListaByIdConPermisos(String id, String token) {
+        // Validar token y obtener usuario
+        Usuario usuario = validarToken(token);
+
+        // Buscar la lista
+        Lista lista = listaRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException(LISTAS));
+
+        // Validar permisos según tipo de usuario y visibilidad de la lista
+        if (!validarPermisosLectura(usuario, lista)) {
+            throw new RuntimeException(PERMISOS_ERROR);
+        }
+        
+        // Mapear a DTO y retornar
+        return mapToDto(lista);
+    }
+
+    /**
+     * Valida si un usuario puede leer/acceder a una lista específica
+     * 
+     * REGLAS:
+     * - El creador siempre puede acceder a sus propias listas
+     * - Los gestores pueden acceder a listas visibles de otros gestores
+     * - Los visualizadores pueden acceder a listas visibles de gestores
+     * - Nadie puede acceder a listas no visibles de otros usuarios
+     * 
+     * @param usuario Usuario que intenta acceder
+     * @param lista Lista a la que se intenta acceder
+     * @return true si tiene permisos, false en caso contrario
+     */
+    private boolean validarPermisosLectura(Usuario usuario, Lista lista) {
+        // Si es el creador, siempre puede acceder
+        if (lista.getCreadorId().equals(usuario.getId())) {
+            return true;
+        }
+        
+        // Si la lista no es visible, solo el creador puede acceder
+        if (!lista.isVisible()) {
+            return false;
+        }
+        
+        // La lista es visible, verificar si es una lista de gestor
+        Optional<GestordeContenido> creadorGestor = gestorRepository.findById(lista.getCreadorId());
+        if (creadorGestor.isEmpty()) {
+            // No es una lista de gestor, no se puede acceder
+            return false;
+        }
+        
+        // Es una lista visible de gestor, cualquier usuario autenticado puede acceder
+        return true;
+    }
+
+    /**
+     * Valida si un usuario puede modificar (editar/eliminar contenidos) una lista específica
+     * 
+     * REGLAS:
+     * - Solo el creador puede modificar sus propias listas
+     * - Los visualizadores NO pueden modificar listas visibles de gestores
+     * - Los gestores pueden modificar sus propias listas (visibles y no visibles)
+     * 
+     * @param usuario Usuario que intenta modificar
+     * @param lista Lista que se intenta modificar
+     * @return true si tiene permisos, false en caso contrario
+     */
+    private boolean validarPermisosModificacion(Usuario usuario, Lista lista) {
+        // Solo el creador puede modificar la lista
+        return lista.getCreadorId().equals(usuario.getId());
+    }
+
+    /**
+     * Valida si un usuario puede eliminar completamente una lista
+     * 
+     * REGLAS:
+     * - SOLO el creador original puede eliminar completamente la lista
+     * 
+     * @param usuario Usuario que intenta eliminar
+     * @param lista Lista que se intenta eliminar
+     * @return true si tiene permisos, false en caso contrario
+     */
+    private boolean validarPermisosEliminacion(Usuario usuario, Lista lista) {
+        // Solo el creador puede eliminar la lista
+        return lista.getCreadorId().equals(usuario.getId());
+    }
+
+    /**
+     * Obtiene los contenidos de una lista específica
+     * Valida que el usuario tenga permisos para ver la lista
+     * 
+     * @param id ID de la lista
+     * @param token Token de sesión del usuario
+     * @return Lista de contenidos de la lista como DTOs
+     * @throws RuntimeException si el token es inválido, la lista no existe o el usuario no tiene permisos
+     */
+    public List<ContenidoResumenDTO> findContenidosLista(String id, String token) {
+        // Validar token y obtener usuario
+        Usuario usuario = validarToken(token);
+
+        // Buscar la lista
+        Lista lista = listaRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException(LISTAS));
+
+        // Verificar que el usuario tenga permisos para ver la lista
+        // Solo el creador puede ver sus listas privadas
+        if (!lista.getCreadorId().equals(usuario.getId())) {
+            throw new RuntimeException("No tienes permisos para acceder a esta lista");
+        }
+        
+        // Filtrar contenidos según el tipo de usuario
+        Lista listaFiltrada = filtrarContenidosParaVisualizador(usuario, lista);
+        
+        // Convertir los contenidos a DTOs
+        return listaFiltrada.getContenidos().stream()
+                .map(this::mapContenidoToResumenDto)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Obtiene los contenidos de una lista con validación mejorada de permisos y filtrado
+     * Permite acceso a listas visibles de gestores y aplica filtros según tipo de usuario
+     * 
+     * @param id ID de la lista
+     * @param token Token de sesión del usuario
+     * @return Lista de contenidos filtrados de la lista como DTOs
+     * @throws RuntimeException si el token es inválido, la lista no existe o el usuario no tiene permisos
+     */
+    public List<ContenidoResumenDTO> findContenidosListaConFiltrado(String id, String token) {
+        // Validar token y obtener usuario
+        Usuario usuario = validarToken(token);
+
+        // Buscar la lista
+        Lista lista = listaRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException(LISTAS));
+
+        // Verificar que el usuario tenga permisos para ver la lista usando el nuevo método
+        if (!validarPermisosLectura(usuario, lista)) {
+            throw new RuntimeException(PERMISOS_ERROR);
+        }
+        
+        // Filtrar contenidos según el tipo de usuario y las restricciones de negocio
+        Lista listaFiltrada = filtrarContenidosParaVisualizador(usuario, lista);
+        
+        // Convertir los contenidos a DTOs
+        return listaFiltrada.getContenidos().stream()
+                .map(this::mapContenidoToResumenDto)
+                .collect(Collectors.toList());
+    }
+
+    /**
      * Añade un contenido a una lista
      * Valida que el contenido exista y no esté duplicado
+     * Solo permite modificaciones al creador original
      * 
      * @param idLista ID de la lista
      * @param idContenido ID del contenido a añadir
@@ -448,8 +870,8 @@ public class ListaService {
         Lista lista = listaRepository.findById(idLista)
                 .orElseThrow(() -> new RuntimeException("Lista no encontrada"));
 
-        // Verificar permisos (el usuario debe ser el creador)
-        if (!lista.getCreadorId().equals(usuario.getId())) {
+        // Verificar permisos usando el nuevo método de validación
+        if (!validarPermisosModificacion(usuario, lista)) {
             throw new RuntimeException("No tienes permisos para modificar esta lista");
         }
 
@@ -475,6 +897,7 @@ public class ListaService {
     /**
      * Elimina un contenido de una lista
      * Valida que siempre quede al menos 1 contenido
+     * Solo permite modificaciones al creador original
      * 
      * @param idLista ID de la lista
      * @param idContenido ID del contenido a eliminar
@@ -492,11 +915,16 @@ public class ListaService {
         Lista lista = listaRepository.findById(idLista)
                 .orElseThrow(() -> new RuntimeException("Lista no encontrada"));
 
-        // Verificar permisos (el usuario debe ser el creador)
-        if (!lista.getCreadorId().equals(usuario.getId())) {
+        // Verificar permisos usando el nuevo método de validación
+        if (!validarPermisosModificacion(usuario, lista)) {
             throw new RuntimeException("No tienes permisos para modificar esta lista");
         }
 
+        // APLICAR RESTRICCIÓN: Una lista debe tener AL MENOS 1 CONTENIDO
+        if (lista.getContenidos().size() <= 1) {
+            throw new RuntimeException("No se puede eliminar el contenido. La lista debe mantener al menos un contenido.");
+        }
+        
         // Usar el método de la entidad Lista que valida mínimo 1 contenido
         try {
             boolean eliminado = lista.removeContenido(idContenido);
@@ -506,7 +934,7 @@ public class ListaService {
             }
         } catch (IllegalStateException e) {
             // Re-lanzar la excepción de negocio (mínimo 1 contenido)
-            throw new RuntimeException(e.getMessage());
+            throw new RuntimeException("No se puede eliminar el contenido: " + e.getMessage());
         }
         
         // Actualizar fecha de modificación
@@ -673,5 +1101,30 @@ public class ListaService {
         }
         
         return edad;
+    }
+    
+    /**
+     * Mapea un objeto Contenido a ContenidoResumenDTO
+     * 
+     * @param contenido Objeto Contenido a mapear
+     * @return ContenidoResumenDTO con los datos del contenido
+     */
+    private ContenidoResumenDTO mapContenidoToResumenDto(Contenido contenido) {
+        String tipo = "AUDIO"; // Valor por defecto
+        
+        // Determinar el tipo basándose en las subclases
+        if (contenido instanceof iso25.g05.esi_media.model.Video) {
+            tipo = "VIDEO";
+        } else if (contenido instanceof iso25.g05.esi_media.model.Audio) {
+            tipo = "AUDIO";
+        }
+        
+        return new ContenidoResumenDTO(
+            contenido.getId(),
+            contenido.gettitulo(),
+            tipo,
+            contenido.getcaratula(),
+            contenido.isvip()
+        );
     }
 }
