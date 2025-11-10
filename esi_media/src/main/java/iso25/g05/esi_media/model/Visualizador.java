@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
@@ -24,6 +25,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * NO necesita @Document porque Usuario ya lo tiene.
  * Spring Data MongoDB usará el discriminador _class para identificar el tipo.
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Visualizador extends Usuario {
 
     private String alias;

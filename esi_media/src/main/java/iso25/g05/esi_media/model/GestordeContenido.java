@@ -3,11 +3,13 @@ package iso25.g05.esi_media.model;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 /**
  * GestordeContenido - hereda de Usuario
  * NO necesita @Document porque Usuario ya lo tiene
  * Spring Data MongoDB usará el discriminador _class para identificar el tipo
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class GestordeContenido extends Usuario {
 
 	private String alias;
