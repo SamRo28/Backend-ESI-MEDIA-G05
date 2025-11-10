@@ -1,5 +1,37 @@
 package iso25.g05.esi_media.controller;
 
+import java.util.List;
+
+import org.bson.BsonBinarySubType;
+import org.bson.types.Binary;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 import iso25.g05.esi_media.dto.ContenidoDetalleDTO;
 import iso25.g05.esi_media.dto.ContenidoResumenDTO;
 import iso25.g05.esi_media.exception.AccesoNoAutorizadoException;
@@ -7,28 +39,6 @@ import iso25.g05.esi_media.exception.PeticionInvalidaException;
 import iso25.g05.esi_media.exception.RecursoNoEncontradoException;
 import iso25.g05.esi_media.model.Audio;
 import iso25.g05.esi_media.service.MultimediaService;
-import org.bson.BsonBinarySubType;
-import org.bson.types.Binary;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.context.annotation.Import;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
-
-import java.util.List;
-
-import static org.hamcrest.Matchers.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(controllers = MultimediaController.class)
 @Import({GlobalExceptionHandler.class})
@@ -38,7 +48,7 @@ class MultimediaControllerWebMvcTest {
         @Autowired
         private MockMvc mockMvc;
 
-                @MockBean
+        @MockitoBean
                 private MultimediaService multimediaService;
 
     @Test
@@ -49,16 +59,24 @@ class MultimediaControllerWebMvcTest {
                 new ContenidoResumenDTO("v1", "Video 1", "VIDEO", null, true)
         ), PageRequest.of(0, 2), 2);
 
-        when(multimediaService.listarContenidos(org.mockito.ArgumentMatchers.<org.springframework.data.domain.Pageable>any(), anyString(), isNull()))
+        when(multimediaService.listarContenidos(
+                org.mockito.ArgumentMatchers.<org.springframework.data.domain.Pageable>any(), 
+                anyString(), 
+                isNull()))
                 .thenReturn(page);
 
+        // Verificar que el endpoint responde correctamente
         mockMvc.perform(get("/multimedia?page=0&size=2").header("Authorization", "Bearer abc"))
                 .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.content", hasSize(2)))
                 .andExpect(jsonPath("$.content[0].id", is("c1")))
                 .andExpect(jsonPath("$.content[0].tipo", is("AUDIO")))
                 .andExpect(jsonPath("$.content[1].id", is("v1")))
                 .andExpect(jsonPath("$.content[1].vip", is(true)));
+        
+        // Verificar que el servicio fue invocado correctamente
+        verify(multimediaService, times(1)).listarContenidos(any(), anyString(), isNull());
     }
 
     @Test
