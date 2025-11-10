@@ -309,7 +309,12 @@ public class UserService {
             }
 
             Contrasenia c = user.getContrasenia();
-            user.setContrasenia(comprobarContraseniasAntiguas(c,nuevoHash));
+            // Actualizar objeto Contrasenia en memoria
+            Contrasenia actualizado = comprobarContraseniasAntiguas(c, nuevoHash);
+            user.setContrasenia(actualizado);
+            // Persistir cambios (DBRef + documento de contraseñas)
+            contraseniaRepository.save(actualizado);
+            usuarioRepository.save(user);
             res = true;
 
         }
