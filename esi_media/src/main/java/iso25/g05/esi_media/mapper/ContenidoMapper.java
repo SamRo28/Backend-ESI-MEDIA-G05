@@ -43,6 +43,10 @@ public final class ContenidoMapper {
             tipo,
             c.getcaratula(),
             c.isvip(),
+            c.getfechadisponiblehasta(),
+            c.getedadvisualizacion(),
+            c.getnvisualizaciones(),
+            c.gettags(),
             referenciaReproduccion
         );
     }

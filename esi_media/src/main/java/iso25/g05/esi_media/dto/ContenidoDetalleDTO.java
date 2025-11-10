@@ -13,6 +13,11 @@ public class ContenidoDetalleDTO {
     private Object caratula;
     /** Indica si el contenido es VIP (requiere usuario VIP) */
     private boolean vip;
+    // Información adicional de detalle que debe mostrarse al visualizador
+    private java.util.Date fechadisponiblehasta;
+    private int edadvisualizacion;
+    private int nvisualizaciones;
+    private java.util.List<String> tags;
     /**
      * Para VIDEO: será la URL externa (YouTube, etc.).
      * Para AUDIO: será el endpoint del backend, por ejemplo: "/multimedia/audio/{id}".
@@ -22,13 +27,20 @@ public class ContenidoDetalleDTO {
     public ContenidoDetalleDTO() {}
 
     public ContenidoDetalleDTO(String id, String titulo, String descripcion, String tipo,
-                               Object caratula, boolean vip, String referenciaReproduccion) {
+                               Object caratula, boolean vip,
+                               java.util.Date fechadisponiblehasta, int edadvisualizacion,
+                               int nvisualizaciones, java.util.List<String> tags,
+                               String referenciaReproduccion) {
         this.id = id;
         this.titulo = titulo;
         this.descripcion = descripcion;
         this.tipo = tipo;
         this.caratula = caratula;
         this.vip = vip;
+        this.fechadisponiblehasta = fechadisponiblehasta;
+        this.edadvisualizacion = edadvisualizacion;
+        this.nvisualizaciones = nvisualizaciones;
+        this.tags = tags;
         this.referenciaReproduccion = referenciaReproduccion;
     }
 
@@ -49,6 +61,18 @@ public class ContenidoDetalleDTO {
 
     public boolean isVip() { return vip; }
     public void setVip(boolean vip) { this.vip = vip; }
+
+    public java.util.Date getFechaDisponibleHasta() { return fechadisponiblehasta; }
+    public void setFechaDisponibleHasta(java.util.Date fechadisponiblehasta) { this.fechadisponiblehasta = fechadisponiblehasta; }
+
+    public int getEdadVisualizacion() { return edadvisualizacion; }
+    public void setEdadVisualizacion(int edadvisualizacion) { this.edadvisualizacion = edadvisualizacion; }
+
+    public int getNvisualizaciones() { return nvisualizaciones; }
+    public void setNvisualizaciones(int nvisualizaciones) { this.nvisualizaciones = nvisualizaciones; }
+
+    public java.util.List<String> getTags() { return tags; }
+    public void setTags(java.util.List<String> tags) { this.tags = tags; }
 
     public String getReferenciaReproduccion() { return referenciaReproduccion; }
     public void setReferenciaReproduccion(String referenciaReproduccion) { this.referenciaReproduccion = referenciaReproduccion; }
