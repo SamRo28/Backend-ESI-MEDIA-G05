@@ -144,7 +144,13 @@ public class PasswordResetController {
             }
             // Delegar validaciones de contraseÃ±as a la lógica existente
             boolean ok = userService.cambiarContrasenia(user.getEmail(), newPassword);
-            if (ok) { codigoRepo.deleteById(cr.getId()); try { emailService.sendPasswordChangedEmail(user.getEmail()); } catch (Exception ex) { System.err.println("[PasswordReset] No se pudo enviar email de confirmación: " + ex.getMessage()); } // invalidar token (uso único)
+            if (ok) {
+                // Invalidar token (uso único)
+                codigoRepo.deleteById(cr.getId());
+                // Registrar en log de seguridad el cambio de contraseña
+                log.info("[SECURITY][PASSWORD_CHANGE] user={} origin={} at={}", user.getEmail(), "RECOVERY", LocalDateTime.now().format(FORMATTER));
+                // Notificar por correo la confirmación del cambio (best-effort)
+                try { emailService.sendPasswordChangedEmail(user.getEmail()); } catch (Exception ex) { System.err.println("[PasswordReset] No se pudo enviar email de confirmación: " + ex.getMessage()); }
                 resp.put("message", "Contraseña actualizada correctamente");
                 return ResponseEntity.ok(resp);
             } else {
@@ -163,4 +169,3 @@ public class PasswordResetController {
         }
     }
 }
-
