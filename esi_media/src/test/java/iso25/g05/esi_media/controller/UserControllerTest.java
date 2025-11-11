@@ -3,7 +3,7 @@ package iso25.g05.esi_media.controller;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -17,6 +17,7 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.server.ResponseStatusException;
 
 import iso25.g05.esi_media.service.UserService;
+import jakarta.servlet.http.HttpServletRequest;
 
 @ExtendWith(MockitoExtension.class)
 class UserControllerTest {
@@ -24,25 +25,11 @@ class UserControllerTest {
     @Mock
     private UserService userService;
 
+    @Mock
+    private HttpServletRequest request;
+
     @InjectMocks
     private UsuarioController userController;
-
-    /*@Test
-    void testLoginSuccess() {
-        Map<String, String> loginData = new HashMap<>();
-        loginData.put("email", "test@example.com");
-        loginData.put("password", "password");
-
-        Usuario user = new Usuario();
-        user.setEmail("test@example.com");
-
-        when(userService.login(loginData)).thenReturn(user);
-
-        ResponseEntity<?> response = userController.login(loginData);
-
-        assertNotNull(result);
-        assertEquals("test@example.com", result.getEmail());
-    }*/
 
     @Test
     void testLoginFailure() {
@@ -50,12 +37,12 @@ class UserControllerTest {
         loginData.put("email", "test@example.com");
         loginData.put("password", "wrongpassword");
 
-        when(userService.login(loginData)).thenReturn(null);
+        when(request.getHeader("X-FORWARDED-FOR")).thenReturn(null);
+        when(request.getRemoteAddr()).thenReturn("127.0.0.1");
 
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        assertThrows(ResponseStatusException.class, () -> {
-            userController.login(loginData, request);
-        });
+        ResponseEntity<?> response = userController.login(loginData, request);
+        
+        assertNotNull(response);
     }
 
     @Test

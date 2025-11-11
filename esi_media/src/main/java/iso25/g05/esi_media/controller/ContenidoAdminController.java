@@ -153,6 +153,103 @@ public class ContenidoAdminController {
         return d;
     }
 
+    /**
+     * Busca contenidos por titulo para usuarios normales (para crear listas)
+     * No requiere Admin-ID, solo token de usuario válido
+     */
+    @GetMapping("/buscar")
+    public ResponseEntity<?> buscarContenidos(
+            @RequestParam String query,
+            @RequestParam(defaultValue = "10") int limit,
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+        
+        // Validar que el token esté presente (básico)
+        if (authHeader == null || authHeader.trim().isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Token de autorización requerido"));
+        }
+        
+        // Validar query
+        if (query == null || query.trim().length() < 2) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "El query debe tener al menos 2 caracteres"));
+        }
+        
+        // Limitar resultados
+        if (limit <= 0 || limit > 50) limit = 10;
+        
+        List<Map<String, Object>> resultado = new ArrayList<>();
+        String queryLower = query.toLowerCase();
+        
+        try {
+            // Buscar en contenidos (videos base) usando query optimizada
+            List<Contenido> contenidos = contenidoRepository.findByTituloContainingIgnoreCase(query);
+            contenidos.stream()
+                .limit(limit)
+                .forEach(c -> {
+                    Map<String, Object> item = new HashMap<>();
+                    item.put("id", c.getId());
+                    item.put("titulo", c.gettitulo());
+                    item.put("tipo", "Video");
+                    item.put("descripcion", c.getdescripcion());
+                    item.put("duracion", c.getduracion());
+                    resultado.add(item);
+                });
+                
+            // Si necesitamos más resultados, buscar en videos específicos
+            if (resultado.size() < limit) {
+                int remaining = limit - resultado.size();
+                // Nota: VideoRepository y AudioRepository necesitarían métodos similares
+                // Por simplicidad, usamos findAll con filtro por ahora
+                videoRepository.findAll().stream()
+                    .filter(v -> v.gettitulo() != null && 
+                               v.gettitulo().toLowerCase().contains(queryLower))
+                    .limit(remaining)
+                    .forEach(v -> {
+                        Map<String, Object> item = new HashMap<>();
+                        item.put("id", v.getId());
+                        item.put("titulo", v.gettitulo());
+                        item.put("tipo", "Video");
+                        item.put("descripcion", v.getdescripcion());
+                        item.put("duracion", v.getduracion());
+                        item.put("resolucion", v.getresolucion());
+                        resultado.add(item);
+                    });
+            }
+            
+            // Si necesitamos más resultados, buscar en audios
+            if (resultado.size() < limit) {
+                int remaining = limit - resultado.size();
+                audioRepository.findAll().stream()
+                    .filter(a -> a.gettitulo() != null && 
+                               a.gettitulo().toLowerCase().contains(queryLower))
+                    .limit(remaining)
+                    .forEach(a -> {
+                        Map<String, Object> item = new HashMap<>();
+                        item.put("id", a.getId());
+                        item.put("titulo", a.gettitulo());
+                        item.put("tipo", "Audio");
+                        item.put("descripcion", a.getdescripcion());
+                        item.put("duracion", a.getduracion());
+                        resultado.add(item);
+                    });
+            }
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("mensaje", "Búsqueda completada exitosamente");
+            response.put("contenidos", resultado);
+            response.put("total", resultado.size());
+            response.put("query", query);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Error interno del servidor"));
+        }
+    }
+
     private String resolverGestorNombre(String gestorId) {
         if (gestorId == null) return null;
         return gestorRepository.findById(gestorId)
