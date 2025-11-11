@@ -101,6 +101,105 @@ public class MultimediaService {
     }
 
     /**
+     * Lista contenidos visibles y accesibles para el visualizador autenticado con búsqueda por texto.
+     * 
+     * Qué hace: valida al usuario (token), calcula su edad y devuelve un listado
+     * paginado filtrado por visibilidad, edad mínima, VIP y opcionalmente por búsqueda de texto.
+     * 
+     * @param pageable parámetros de paginación (page, size, sort)
+     * @param authHeaderOrToken cabecera Authorization o token en bruto
+     * @param tipo filtro por tipo de contenido (AUDIO/VIDEO)
+     * @param query texto de búsqueda para filtrar por título o descripción
+     * @return página de contenidos en formato resumen
+     */
+    public Page<ContenidoResumenDTO> listarContenidos(Pageable pageable, String authHeaderOrToken, String tipo, String query) {
+        Visualizador visualizador = validarYObtenerVisualizador(authHeaderOrToken);
+        int edad = calcularEdad(visualizador.getFechaNac());
+
+        // Si hay query de búsqueda, usar métodos específicos de búsqueda
+        if (query != null && !query.trim().isEmpty()) {
+            return buscarContenidosConFiltros(pageable, visualizador, edad, tipo, query.trim());
+        }
+
+        // Si no hay query, usar la lógica existente
+        Page<Contenido> pagina;
+        boolean filtrar = (tipo != null && !tipo.isBlank());
+        String className = null;
+        if (filtrar) {
+            if ("VIDEO".equalsIgnoreCase(tipo)) className = Video.class.getName();
+            else if ("AUDIO".equalsIgnoreCase(tipo)) className = Audio.class.getName();
+        }
+
+        if (filtrar && className != null) {
+            // Intento 1: filtrado por _class exacto
+            pagina = visualizador.isVip()
+                    ? contenidoRepository.findByEstadoTrueAndEdadvisualizacionLessThanEqualAndClass(edad, className, pageable)
+                    : contenidoRepository.findByEstadoTrueAndVipFalseAndEdadvisualizacionLessThanEqualAndClass(edad, className, pageable);
+            // Si la página viene mezclada (heurística simple), usar fallback por campos característicos
+            boolean mezclado = pagina.getContent().stream().anyMatch(c -> {
+                boolean esVideoEsperado = "VIDEO".equalsIgnoreCase(tipo) && c instanceof Audio;
+                boolean esAudioEsperado = "AUDIO".equalsIgnoreCase(tipo) && c instanceof Video;
+                return esVideoEsperado || esAudioEsperado;
+            });
+            if (mezclado) {
+                if ("VIDEO".equalsIgnoreCase(tipo)) {
+                    pagina = visualizador.isVip()
+                            ? contenidoRepository.findVideos(edad, pageable)
+                            : contenidoRepository.findVideosNoVip(edad, pageable);
+                } else if ("AUDIO".equalsIgnoreCase(tipo)) {
+                    pagina = visualizador.isVip()
+                            ? contenidoRepository.findAudios(edad, pageable)
+                            : contenidoRepository.findAudiosNoVip(edad, pageable);
+                }
+            }
+        } else {
+            pagina = visualizador.isVip()
+                    ? contenidoRepository.findByEstadoTrueAndEdadvisualizacionLessThanEqual(edad, pageable)
+                    : contenidoRepository.findByEstadoTrueAndVipFalseAndEdadvisualizacionLessThanEqual(edad, pageable);
+        }
+
+        return pagina.map(ContenidoMapper::aResumen);
+    }
+
+    /**
+     * Método auxiliar para buscar contenidos con texto y aplicar todos los filtros.
+     * 
+     * @param pageable parámetros de paginación
+     * @param visualizador usuario autenticado
+     * @param edad edad calculada del usuario
+     * @param tipo filtro por tipo (AUDIO/VIDEO o null)
+     * @param query texto de búsqueda
+     * @return página de contenidos filtrados
+     */
+    private Page<ContenidoResumenDTO> buscarContenidosConFiltros(Pageable pageable, Visualizador visualizador, int edad, String tipo, String query) {
+        Page<Contenido> pagina;
+        
+        if (tipo != null && !tipo.isBlank()) {
+            if ("VIDEO".equalsIgnoreCase(tipo)) {
+                pagina = visualizador.isVip()
+                        ? contenidoRepository.searchVideos(query, edad, pageable)
+                        : contenidoRepository.searchVideosNoVip(query, edad, pageable);
+            } else if ("AUDIO".equalsIgnoreCase(tipo)) {
+                pagina = visualizador.isVip()
+                        ? contenidoRepository.searchAudios(query, edad, pageable)
+                        : contenidoRepository.searchAudiosNoVip(query, edad, pageable);
+            } else {
+                // Tipo no reconocido, buscar en todo
+                pagina = visualizador.isVip()
+                        ? contenidoRepository.searchContenidos(query, edad, pageable)
+                        : contenidoRepository.searchContenidosNoVip(query, edad, pageable);
+            }
+        } else {
+            // Buscar en todos los tipos
+            pagina = visualizador.isVip()
+                    ? contenidoRepository.searchContenidos(query, edad, pageable)
+                    : contenidoRepository.searchContenidosNoVip(query, edad, pageable);
+        }
+
+        return pagina.map(ContenidoMapper::aResumen);
+    }
+
+    /**
      * Sobrecarga para compatibilidad con código y tests existentes que no pasan parámetro tipo.
      * Delegamos en la versión extendida con tipo = null (sin filtrado por clase en repositorio).
      */

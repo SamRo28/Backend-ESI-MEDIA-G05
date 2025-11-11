@@ -48,4 +48,27 @@ public interface ContenidoRepository extends MongoRepository<Contenido, String> 
 
     // Búsqueda por id solo si está visible
     Optional<Contenido> findByIdAndEstadoTrue(String id);
+
+    // Métodos de búsqueda por texto (título y descripción) con filtros
+    
+    // Búsqueda general en contenidos (todos los tipos)
+    @Query("{'estado': true, 'edadvisualizacion': {$lte: ?1}, $or: [{'titulo': {$regex: ?0, $options: 'i'}}, {'descripcion': {$regex: ?0, $options: 'i'}}]}")
+    Page<Contenido> searchContenidos(String query, int edadvisualizacion, Pageable pageable);
+
+    @Query("{'estado': true, 'vip': false, 'edadvisualizacion': {$lte: ?1}, $or: [{'titulo': {$regex: ?0, $options: 'i'}}, {'descripcion': {$regex: ?0, $options: 'i'}}]}")
+    Page<Contenido> searchContenidosNoVip(String query, int edadvisualizacion, Pageable pageable);
+
+    // Búsqueda específica en videos
+    @Query("{'estado': true, 'edadvisualizacion': {$lte: ?1}, 'url': {$exists: true}, $or: [{'titulo': {$regex: ?0, $options: 'i'}}, {'descripcion': {$regex: ?0, $options: 'i'}}]}")
+    Page<Contenido> searchVideos(String query, int edadvisualizacion, Pageable pageable);
+
+    @Query("{'estado': true, 'vip': false, 'edadvisualizacion': {$lte: ?1}, 'url': {$exists: true}, $or: [{'titulo': {$regex: ?0, $options: 'i'}}, {'descripcion': {$regex: ?0, $options: 'i'}}]}")
+    Page<Contenido> searchVideosNoVip(String query, int edadvisualizacion, Pageable pageable);
+
+    // Búsqueda específica en audios
+    @Query("{'estado': true, 'edadvisualizacion': {$lte: ?1}, 'mimeType': {$exists: true}, $or: [{'titulo': {$regex: ?0, $options: 'i'}}, {'descripcion': {$regex: ?0, $options: 'i'}}]}")
+    Page<Contenido> searchAudios(String query, int edadvisualizacion, Pageable pageable);
+
+    @Query("{'estado': true, 'vip': false, 'edadvisualizacion': {$lte: ?1}, 'mimeType': {$exists: true}, $or: [{'titulo': {$regex: ?0, $options: 'i'}}, {'descripcion': {$regex: ?0, $options: 'i'}}]}")
+    Page<Contenido> searchAudiosNoVip(String query, int edadvisualizacion, Pageable pageable);
 }

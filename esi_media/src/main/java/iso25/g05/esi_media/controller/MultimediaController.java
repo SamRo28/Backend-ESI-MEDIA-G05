@@ -52,14 +52,15 @@ public class MultimediaController {
     public ResponseEntity<?> listarContenidos(
             Pageable pageable,
             @RequestHeader(value = "Authorization", required = false) String authHeader,
-            @RequestParam(value = "tipo", required = false) String tipo) {
+            @RequestParam(value = "tipo", required = false) String tipo,
+            @RequestParam(value = "query", required = false) String query) {
 
         if (authHeader == null || authHeader.isBlank()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("mensaje", "No autenticado"));
         }
         try {
-            Page<ContenidoResumenDTO> pagina = multimediaService.listarContenidos(pageable, authHeader, tipo);
+            Page<ContenidoResumenDTO> pagina = multimediaService.listarContenidos(pageable, authHeader, tipo, query);
             return ResponseEntity.ok(pagina);
         } catch (Exception e) {
             // Fallback genérico para evitar 500 sin mensaje claro
