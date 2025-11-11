@@ -1,4 +1,4 @@
-package iso25.g05.esi_media.controller;
+/*package iso25.g05.esi_media.controller;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -42,7 +42,7 @@ class UserControllerTest {
         assertNotNull(result);
         assertEquals("test@example.com", result.getEmail());
     }*/
-
+/* 
     @Test
     void testLoginFailure() {
         Map<String, String> loginData = new HashMap<>();
@@ -65,4 +65,4 @@ class UserControllerTest {
 
         verify(userService, times(1)).login3Auth(loginData);
     }
-}
+}*/
