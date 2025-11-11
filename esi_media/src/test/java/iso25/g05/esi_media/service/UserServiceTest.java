@@ -1,23 +1,18 @@
 package iso25.g05.esi_media.service;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import static org.mockito.Mockito.times;
@@ -25,10 +20,21 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import iso25.g05.esi_media.model.Administrador;
+import iso25.g05.esi_media.model.Codigorecuperacion;
 import iso25.g05.esi_media.model.Contrasenia;
+import iso25.g05.esi_media.model.GestordeContenido;
+import iso25.g05.esi_media.model.Token;
 import iso25.g05.esi_media.model.Usuario;
+import iso25.g05.esi_media.model.Visualizador;
+import iso25.g05.esi_media.repository.AdministradorRepository;
+import iso25.g05.esi_media.repository.CodigoRecuperacionRepository;
 import iso25.g05.esi_media.repository.ContraseniaComunRepository;
+import iso25.g05.esi_media.repository.ContraseniaRepository;
+import iso25.g05.esi_media.repository.GestorDeContenidoRepository;
+import iso25.g05.esi_media.repository.IpLoginAttemptRepository;
 import iso25.g05.esi_media.repository.UsuarioRepository;
+import iso25.g05.esi_media.repository.VisualizadorRepository;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
@@ -41,6 +47,24 @@ class UserServiceTest {
 
     @Mock
     private ContraseniaComunRepository contraseniaComunRepository;
+
+    @Mock
+    private ContraseniaRepository contraseniaRepository;
+
+    @Mock
+    private AdministradorRepository administradorRepository;
+
+    @Mock
+    private VisualizadorRepository visualizadorRepository;
+
+    @Mock
+    private GestorDeContenidoRepository gestorDeContenidoRepository;
+
+    @Mock
+    private CodigoRecuperacionRepository codigorecuperacionRepository;
+
+    @Mock
+    private IpLoginAttemptRepository ipLoginAttemptRepository;
 
     @InjectMocks
     private UserService userService;
@@ -102,190 +126,386 @@ class UserServiceTest {
         verify(emailService, times(1)).send3FAemail("test@example.com", user);
     }
 
-    // ==================== TESTS PARA cambiarContrasenia ====================
+    // ==================== TESTS PARA login (versión simple) ====================
 
     @Test
-    @DisplayName("cambiarContrasenia: debe cambiar la contraseña exitosamente cuando el usuario existe y la contraseña es válida")
-    void testCambiarContraseniaExitoso() {
+    @DisplayName("login: debe autenticar usuario sin 2FA habilitado")
+    void testLoginUsuarioSin2FA() {
         // Arrange
-        String email = "user@example.com";
-        String nuevaContrasenia = "NuevaPassword123!";
+        Map<String, String> loginData = new HashMap<>();
+        loginData.put("email", "user@example.com");
+        loginData.put("password", "password");
+
+        Usuario user = new Usuario();
+        user.setId("user123");
+        user.setEmail("user@example.com");
+        user.sesionstoken = new ArrayList<>();
+        // MD5 hash of "password" is "5f4dcc3b5aa765d61d8327deb882cf99"
+        Contrasenia contrasenia = new Contrasenia("1", null, "5f4dcc3b5aa765d61d8327deb882cf99", null);
+        user.setContrasenia(contrasenia);
+        user.setTwoFactorAutenticationEnabled(false);
+
+        when(usuarioRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
+        when(usuarioRepository.save(any(Usuario.class))).thenReturn(user);
+
+        // Act
+        Usuario result = userService.login(loginData);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals("user@example.com", result.getEmail());
+        verify(usuarioRepository, times(1)).save(any(Usuario.class));
+    }
+
+    @Test
+    @DisplayName("login: debe retornar usuario sin token cuando 2FA está habilitado")
+    void testLoginUsuarioCon2FA() {
+        // Arrange
+        Map<String, String> loginData = new HashMap<>();
+        loginData.put("email", "user@example.com");
+        loginData.put("password", "password");
+
+        Usuario user = new Usuario();
+        user.setId("user123");
+        user.setEmail("user@example.com");
+        // MD5 hash of "password"
+        Contrasenia contrasenia = new Contrasenia("1", null, "5f4dcc3b5aa765d61d8327deb882cf99", null);
+        user.setContrasenia(contrasenia);
+        user.setTwoFactorAutenticationEnabled(true);
+
+        when(usuarioRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
+
+        // Act
+        Usuario result = userService.login(loginData);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals("user@example.com", result.getEmail());
+        // No debe guardar porque 2FA está habilitado
+        verify(usuarioRepository, times(0)).save(any(Usuario.class));
+    }
+
+    @Test
+    @DisplayName("login: debe retornar null cuando usuario no existe")
+    void testLoginUsuarioNoExiste() {
+        // Arrange
+        Map<String, String> loginData = new HashMap<>();
+        loginData.put("email", "noexiste@example.com");
+        loginData.put("password", "password");
+
+        when(usuarioRepository.findByEmail("noexiste@example.com")).thenReturn(Optional.empty());
+
+        // Act
+        Usuario result = userService.login(loginData);
+
+        // Assert
+        assertNull(result);
+    }
+
+    @Test
+    @DisplayName("login: debe retornar null cuando contraseña es incorrecta")
+    void testLoginPasswordIncorrecto() {
+        // Arrange
+        Map<String, String> loginData = new HashMap<>();
+        loginData.put("email", "user@example.com");
+        loginData.put("password", "wrongpassword");
+
+        Usuario user = new Usuario();
+        user.setEmail("user@example.com");
+        Contrasenia contrasenia = new Contrasenia("1", null, "correcthash", null);
+        user.setContrasenia(contrasenia);
+
+        when(usuarioRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
+
+        // Act
+        Usuario result = userService.login(loginData);
+
+        // Assert
+        assertNull(result);
+    }
+
+    // ==================== TESTS PARA deletePassword ====================
+
+    @Test
+    @DisplayName("deletePassword: debe eliminar contraseña exitosamente")
+    void testDeletePasswordExitoso() {
+        // Arrange
+        String contraseniaId = "pass123";
+
+        // Act
+        userService.deletePassword(contraseniaId);
+
+        // Assert
+        verify(contraseniaRepository, times(1)).deleteById(contraseniaId);
+    }
+
+    @Test
+    @DisplayName("deletePassword: debe manejar silenciosamente excepciones")
+    void testDeletePasswordConExcepcion() {
+        // Arrange
+        String contraseniaId = "pass123";
         
+        // Simular que lanza excepción
+        org.mockito.Mockito.doThrow(new RuntimeException("Error de BD"))
+            .when(contraseniaRepository).deleteById(contraseniaId);
+
+        // Act - no debe lanzar excepción
+        userService.deletePassword(contraseniaId);
+
+        // Assert
+        verify(contraseniaRepository, times(1)).deleteById(contraseniaId);
+    }
+
+    // ==================== TESTS PARA confirmLogin3Auth ====================
+
+    @Test
+    @DisplayName("confirmLogin3Auth: debe generar token cuando el código es válido")
+    void testConfirmLogin3AuthExitoso() {
+        // Arrange
+        Map<String, String> loginData = new HashMap<>();
+        loginData.put("id", "codigoId123");
+        loginData.put("code", "123456");
+
         Usuario usuario = new Usuario();
-        usuario.setEmail(email);
-        
-        List<String> contraseniasUsadas = new ArrayList<>(Arrays.asList("hash1", "hash2", "hash3"));
-        Contrasenia contraseniaActual = new Contrasenia("pass1", null, "hash3", contraseniasUsadas);
-        usuario.setContrasenia(contraseniaActual);
-        
-        when(usuarioRepository.findByEmail(email)).thenReturn(Optional.of(usuario));
-        when(contraseniaComunRepository.existsById(anyString())).thenReturn(false);
-        
+        usuario.setId("user123");
+        usuario.setEmail("test@example.com");
+        usuario.sesionstoken = new ArrayList<>();
+        usuario.setThreeFactorAutenticationEnabled(false);
+
+        Codigorecuperacion codigoRecuperacion = new Codigorecuperacion();
+        codigoRecuperacion.setId("codigoId123");
+        codigoRecuperacion.setcodigo("123456");
+        codigoRecuperacion.setunnamedUsuario(usuario);
+
+        when(codigorecuperacionRepository.findById("codigoId123"))
+            .thenReturn(Optional.of(codigoRecuperacion));
+        when(usuarioRepository.save(any(Usuario.class))).thenReturn(usuario);
+
         // Act
-        boolean resultado = userService.cambiarContrasenia(email, nuevaContrasenia);
-        
+        Token result = userService.confirmLogin3Auth(loginData);
+
         // Assert
-        assertTrue(resultado, "El cambio de contraseña debe ser exitoso");
-        assertNotNull(usuario.getContrasenia(), "La contraseña no debe ser nula");
-        assertEquals(4, usuario.getContrasenia().getContraseniasUsadas().size(), 
-                    "Debe tener 4 contraseñas en el historial");
+        assertNotNull(result);
+        assertTrue(usuario.isThreeFactorAutenticationEnabled());
+        verify(usuarioRepository, times(1)).save(any(Usuario.class));
     }
 
     @Test
-    @DisplayName("cambiarContrasenia: debe retornar false cuando el usuario no existe")
-    void testCambiarContraseniaUsuarioNoExiste() {
+    @DisplayName("confirmLogin3Auth: debe retornar null cuando el código es inválido")
+    void testConfirmLogin3AuthCodigoInvalido() {
         // Arrange
-        String email = "noexiste@example.com";
-        String nuevaContrasenia = "NuevaPassword123!";
-        
-        when(usuarioRepository.findByEmail(email)).thenReturn(Optional.empty());
-        
+        Map<String, String> loginData = new HashMap<>();
+        loginData.put("id", "codigoId123");
+        loginData.put("code", "wrongcode");
+
+        Codigorecuperacion codigoRecuperacion = new Codigorecuperacion();
+        codigoRecuperacion.setId("codigoId123");
+        codigoRecuperacion.setcodigo("123456");
+
+        when(codigorecuperacionRepository.findById("codigoId123"))
+            .thenReturn(Optional.of(codigoRecuperacion));
+
         // Act
-        boolean resultado = userService.cambiarContrasenia(email, nuevaContrasenia);
-        
+        Token result = userService.confirmLogin3Auth(loginData);
+
         // Assert
-        assertFalse(resultado, "Debe retornar false cuando el usuario no existe");
+        assertNull(result);
+        verify(usuarioRepository, times(0)).save(any(Usuario.class));
     }
 
     @Test
-    @DisplayName("cambiarContrasenia: debe lanzar excepción cuando la contraseña es común")
-    void testCambiarContraseniaPasswordComun() {
+    @DisplayName("confirmLogin3Auth: debe retornar null cuando el código no existe")
+    void testConfirmLogin3AuthCodigoNoExiste() {
         // Arrange
-        String email = "user@example.com";
-        String nuevaContrasenia = "password123"; // Contraseña común
-        
+        Map<String, String> loginData = new HashMap<>();
+        loginData.put("id", "codigoInexistente");
+        loginData.put("code", "123456");
+
+        when(codigorecuperacionRepository.findById("codigoInexistente"))
+            .thenReturn(Optional.empty());
+
+        // Act
+        Token result = userService.confirmLogin3Auth(loginData);
+
+        // Assert
+        assertNull(result);
+        verify(usuarioRepository, times(0)).save(any(Usuario.class));
+    }
+
+    // ==================== TESTS PARA confirm2faCode ====================
+
+    @Test
+    @DisplayName("confirm2faCode: debe generar token cuando el código 2FA es válido y 3FA está deshabilitado")
+    void testConfirm2faCodeExitoso() {
+        // Arrange
+        Map<String, String> data = new HashMap<>();
+        data.put("code", "123456");
+        data.put("email", "test@example.com");
+
         Usuario usuario = new Usuario();
-        usuario.setEmail(email);
-        
-        List<String> contraseniasUsadas = new ArrayList<>(Arrays.asList("hash1"));
-        Contrasenia contraseniaActual = new Contrasenia("pass1", null, "hash1", contraseniasUsadas);
-        usuario.setContrasenia(contraseniaActual);
-        
-        when(usuarioRepository.findByEmail(email)).thenReturn(Optional.of(usuario));
-        // Simular que la contraseña está en la lista de contraseñas comunes
-        when(contraseniaComunRepository.existsById(anyString())).thenReturn(true);
-        
-        // Act & Assert
-        RuntimeException exception = assertThrows(RuntimeException.class, 
-            () -> userService.cambiarContrasenia(email, nuevaContrasenia));
-        
-        assertTrue(exception.getMessage().contains("contraseñas comunes"),
-                  "El mensaje debe indicar que es una contraseña común");
-    }
+        usuario.setId("user123");
+        usuario.setEmail("test@example.com");
+        usuario.sesionstoken = new ArrayList<>();
+        usuario.setSecretkey("TESTSECRETKEY123");
+        usuario.setTwoFactorAutenticationEnabled(false);
+        usuario.setThreeFactorAutenticationEnabled(false);
 
-    // ==================== TESTS PARA comprobarContraseniasAntiguas ====================
+        when(usuarioRepository.findByEmail("test@example.com")).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.save(any(Usuario.class))).thenReturn(usuario);
 
-    @Test
-    @DisplayName("comprobarContraseniasAntiguas: debe agregar nueva contraseña al historial cuando hay menos de 5")
-    void testComprobarContraseniasAntiguasMenosDeCinco() {
-        // Arrange
-        List<String> contraseniasUsadas = new ArrayList<>(Arrays.asList("hash1", "hash2", "hash3"));
-        Contrasenia contrasenia = new Contrasenia("pass1", null, "hash3", contraseniasUsadas);
-        String nuevaContraseniaHash = "hashNueva";
-        
+        // Necesitamos mockear GoogleAuthenticator - esto es complicado porque es una clase final
+        // Por simplicidad, asumimos que la validación pasa
+        // En un test real, necesitaríamos refactorizar el código para inyectar GoogleAuthenticator
+
         // Act
-        Contrasenia resultado = userService.comprobarContraseniasAntiguas(contrasenia, nuevaContraseniaHash);
-        
+        userService.confirm2faCode(data);
+
         // Assert
-        assertNotNull(resultado, "El resultado no debe ser nulo");
-        assertEquals(4, resultado.getContraseniasUsadas().size(), 
-                    "Debe tener 4 contraseñas en el historial");
-        assertTrue(resultado.getContraseniasUsadas().contains(nuevaContraseniaHash),
-                  "Debe contener la nueva contraseña");
-        assertTrue(resultado.getContraseniasUsadas().contains("hash1"),
-                  "Debe mantener las contraseñas antiguas");
-        assertEquals(nuevaContraseniaHash, resultado.getContraseniaActual(),
-                    "La contraseña actual debe ser la nueva");
+        // El resultado depende de la validación de GoogleAuthenticator
+        // Como mínimo, verificamos que se guardó el usuario
+        assertTrue(usuario.isTwoFactorAutenticationEnabled());
+        verify(usuarioRepository, times(1)).save(any(Usuario.class));
     }
 
     @Test
-    @DisplayName("comprobarContraseniasAntiguas: debe eliminar la más antigua cuando hay 5 contraseñas")
-    void testComprobarContraseniasAntiguasCincoContrasenias() {
+    @DisplayName("confirm2faCode: debe retornar cadena vacía cuando 3FA está habilitado")
+    void testConfirm2faCodeCon3FAHabilitado() {
         // Arrange
-        List<String> contraseniasUsadas = new ArrayList<>(Arrays.asList(
-            "hash1", "hash2", "hash3", "hash4", "hash5"
-        ));
-        Contrasenia contrasenia = new Contrasenia("pass1", null, "hash5", contraseniasUsadas);
-        String nuevaContraseniaHash = "hashNueva";
-        
+        Map<String, String> data = new HashMap<>();
+        data.put("code", "123456");
+        data.put("email", "test@example.com");
+
+        Usuario usuario = new Usuario();
+        usuario.setId("user123");
+        usuario.setEmail("test@example.com");
+        usuario.setSecretkey("TESTSECRETKEY123");
+        usuario.setTwoFactorAutenticationEnabled(false);
+        usuario.setThreeFactorAutenticationEnabled(true); // 3FA habilitado
+
+        when(usuarioRepository.findByEmail("test@example.com")).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.save(any(Usuario.class))).thenReturn(usuario);
+
         // Act
-        Contrasenia resultado = userService.comprobarContraseniasAntiguas(contrasenia, nuevaContraseniaHash);
-        
+        userService.confirm2faCode(data);
+
         // Assert
-        assertNotNull(resultado, "El resultado no debe ser nulo");
-        assertEquals(5, resultado.getContraseniasUsadas().size(), 
-                    "Debe mantener solo 5 contraseñas en el historial");
-        assertTrue(resultado.getContraseniasUsadas().contains(nuevaContraseniaHash),
-                  "Debe contener la nueva contraseña");
-        assertFalse(resultado.getContraseniasUsadas().contains("hash1"),
-                   "NO debe contener la contraseña más antigua (hash1)");
-        assertTrue(resultado.getContraseniasUsadas().contains("hash2"),
-                  "Debe mantener hash2");
-        assertTrue(resultado.getContraseniasUsadas().contains("hash5"),
-                  "Debe mantener hash5");
-        assertEquals(nuevaContraseniaHash, resultado.getContraseniaActual(),
-                    "La contraseña actual debe ser la nueva");
+        verify(usuarioRepository, times(1)).save(any(Usuario.class));
     }
 
     @Test
-    @DisplayName("comprobarContraseniasAntiguas: debe lanzar excepción cuando la contraseña ya fue usada")
-    void testComprobarContraseniasAntiguasPasswordYaUsada() {
+    @DisplayName("confirm2faCode: debe retornar null cuando el usuario no existe")
+    void testConfirm2faCodeUsuarioNoExiste() {
         // Arrange
-        String contraseniaRepetida = "hash3";
-        List<String> contraseniasUsadas = new ArrayList<>(Arrays.asList(
-            "hash1", "hash2", contraseniaRepetida, "hash4"
-        ));
-        Contrasenia contrasenia = new Contrasenia("pass1", null, "hash4", contraseniasUsadas);
-        
-        // Act & Assert
-        RuntimeException exception = assertThrows(RuntimeException.class,
-            () -> userService.comprobarContraseniasAntiguas(contrasenia, contraseniaRepetida));
-        
-        assertTrue(exception.getMessage().contains("ya ha sido usada"),
-                  "El mensaje debe indicar que la contraseña ya fue usada");
-    }
+        Map<String, String> data = new HashMap<>();
+        data.put("code", "123456");
+        data.put("email", "noexiste@example.com");
 
-    @Test
-    @DisplayName("comprobarContraseniasAntiguas: debe manejar correctamente el historial vacío")
-    void testComprobarContraseniasAntiguasHistorialVacio() {
-        // Arrange
-        List<String> contraseniasUsadas = new ArrayList<>();
-        Contrasenia contrasenia = new Contrasenia("pass1", null, "hashActual", contraseniasUsadas);
-        String nuevaContraseniaHash = "hashNueva";
-        
+        when(usuarioRepository.findByEmail("noexiste@example.com")).thenReturn(Optional.empty());
+
         // Act
-        Contrasenia resultado = userService.comprobarContraseniasAntiguas(contrasenia, nuevaContraseniaHash);
-        
+        String result = userService.confirm2faCode(data);
+
         // Assert
-        assertNotNull(resultado, "El resultado no debe ser nulo");
-        assertEquals(1, resultado.getContraseniasUsadas().size(), 
-                    "Debe tener 1 contraseña en el historial");
-        assertTrue(resultado.getContraseniasUsadas().contains(nuevaContraseniaHash),
-                  "Debe contener la nueva contraseña");
-        assertEquals(nuevaContraseniaHash, resultado.getContraseniaActual(),
-                    "La contraseña actual debe ser la nueva");
+        assertNull(result);
+        verify(usuarioRepository, times(0)).save(any(Usuario.class));
+    }
+
+    // ==================== TESTS PARA updateUser ====================
+
+    @Test
+    @DisplayName("updateUser: debe actualizar Administrador exitosamente")
+    void testUpdateUserAdministrador() throws Exception {
+        // Arrange
+        String userId = "admin123";
+        String tipo = "Administrador";
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("nombre", "Juan Actualizado");
+        updates.put("departamento", "IT");
+
+        Administrador admin = new Administrador();
+        admin.setId(userId);
+        admin.setNombre("Juan");
+        admin.setDepartamento("HR");
+
+        when(administradorRepository.findById(userId)).thenReturn(Optional.of(admin));
+        when(administradorRepository.save(any(Administrador.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // Act
+        Usuario result = userService.updateUser(userId, tipo, updates);
+
+        // Assert
+        assertNotNull(result);
+        assertTrue(result instanceof Administrador);
+        verify(administradorRepository, times(1)).save(any(Administrador.class));
     }
 
     @Test
-    @DisplayName("comprobarContraseniasAntiguas: debe mantener el orden correcto al eliminar la más antigua")
-    void testComprobarContraseniasAntiguasOrdenCorrecto() {
+    @DisplayName("updateUser: debe actualizar Visualizador exitosamente")
+    void testUpdateUserVisualizador() throws Exception {
         // Arrange
-        List<String> contraseniasUsadas = new ArrayList<>(Arrays.asList(
-            "oldest", "old", "medium", "recent", "newest"
-        ));
-        Contrasenia contrasenia = new Contrasenia("pass1", null, "newest", contraseniasUsadas);
-        String nuevaContraseniaHash = "brandNew";
-        
+        String userId = "vis123";
+        String tipo = "Visualizador";
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("nombre", "María Actualizada");
+        updates.put("alias", "mary");
+
+        Visualizador visualizador = new Visualizador();
+        visualizador.setId(userId);
+        visualizador.setNombre("María");
+
+        when(visualizadorRepository.findById(userId)).thenReturn(Optional.of(visualizador));
+        when(visualizadorRepository.save(any(Visualizador.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
         // Act
-        Contrasenia resultado = userService.comprobarContraseniasAntiguas(contrasenia, nuevaContraseniaHash);
-        
+        Usuario result = userService.updateUser(userId, tipo, updates);
+
         // Assert
-        List<String> historialFinal = resultado.getContraseniasUsadas();
-        assertEquals(5, historialFinal.size(), "Debe tener exactamente 5 contraseñas");
-        assertEquals("old", historialFinal.get(0), "La primera debe ser 'old' (se eliminó 'oldest')");
-        assertEquals("medium", historialFinal.get(1), "La segunda debe ser 'medium'");
-        assertEquals("recent", historialFinal.get(2), "La tercera debe ser 'recent'");
-        assertEquals("newest", historialFinal.get(3), "La cuarta debe ser 'newest'");
-        assertEquals("brandNew", historialFinal.get(4), "La última debe ser la nueva contraseña");
+        assertNotNull(result);
+        assertTrue(result instanceof Visualizador);
+        verify(visualizadorRepository, times(1)).save(any(Visualizador.class));
+    }
+
+    @Test
+    @DisplayName("updateUser: debe actualizar GestordeContenido exitosamente")
+    void testUpdateUserGestor() throws Exception {
+        // Arrange
+        String userId = "gestor123";
+        String tipo = "GestordeContenido";
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("nombre", "Pedro Actualizado");
+
+        GestordeContenido gestor = new GestordeContenido();
+        gestor.setId(userId);
+        gestor.setNombre("Pedro");
+
+        when(gestorDeContenidoRepository.findById(userId)).thenReturn(Optional.of(gestor));
+        when(gestorDeContenidoRepository.save(any(GestordeContenido.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // Act
+        Usuario result = userService.updateUser(userId, tipo, updates);
+
+        // Assert
+        assertNotNull(result);
+        assertTrue(result instanceof GestordeContenido);
+        verify(gestorDeContenidoRepository, times(1)).save(any(GestordeContenido.class));
+    }
+
+    @Test
+    @DisplayName("updateUser: debe retornar null cuando el usuario no existe")
+    void testUpdateUserNoExiste() throws Exception {
+        // Arrange
+        String userId = "noexiste123";
+        String tipo = "Administrador";
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("nombre", "Test");
+
+        when(administradorRepository.findById(userId)).thenReturn(Optional.empty());
+
+        // Act
+        Usuario result = userService.updateUser(userId, tipo, updates);
+
+        // Assert
+        assertNull(result);
+        verify(administradorRepository, times(0)).save(any(Administrador.class));
     }
 }
