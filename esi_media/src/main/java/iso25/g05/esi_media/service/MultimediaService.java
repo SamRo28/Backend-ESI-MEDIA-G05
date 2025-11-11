@@ -69,11 +69,11 @@ public class MultimediaService {
             else if ("AUDIO".equalsIgnoreCase(tipo)) className = Audio.class.getName();
         }
 
-        if (filtrar && className != null) {
+    if (filtrar && className != null) {
             // Intento 1: filtrado por _class exacto
-            pagina = visualizador.isVip()
-                    ? contenidoRepository.findByEstadoTrueAndEdadvisualizacionLessThanEqualAndClass(edad, className, pageable)
-                    : contenidoRepository.findByEstadoTrueAndVipFalseAndEdadvisualizacionLessThanEqualAndClass(edad, className, pageable);
+        pagina = visualizador.isVip()
+            ? contenidoRepository.findByEstadoTrueAndEdadvisualizacionLessThanEqualAndClass(edad, className, pageable)
+            : contenidoRepository.findByEstadoTrueAndVipFalseAndEdadvisualizacionLessThanEqualAndClass(edad, className, pageable);
             // Si la página viene mezclada (heurística simple), usar fallback por campos característicos
             boolean mezclado = pagina.getContent().stream().anyMatch(c -> {
                 boolean esVideoEsperado = "VIDEO".equalsIgnoreCase(tipo) && c instanceof Audio;
@@ -91,10 +91,11 @@ public class MultimediaService {
                             : contenidoRepository.findAudiosNoVip(edad, pageable);
                 }
             }
-        } else {
-            pagina = visualizador.isVip()
-                    ? contenidoRepository.findByEstadoTrueAndEdadvisualizacionLessThanEqual(edad, pageable)
-                    : contenidoRepository.findByEstadoTrueAndVipFalseAndEdadvisualizacionLessThanEqual(edad, pageable);
+    } else {
+        // Usamos los métodos legacy esperados por los tests, cuyos @Query ya incluyen el caso {$exists:false}
+        pagina = visualizador.isVip()
+            ? contenidoRepository.findByEstadoTrueAndEdadvisualizacionLessThanEqual(edad, pageable)
+            : contenidoRepository.findByEstadoTrueAndVipFalseAndEdadvisualizacionLessThanEqual(edad, pageable);
         }
 
         return pagina.map(ContenidoMapper::aResumen);
