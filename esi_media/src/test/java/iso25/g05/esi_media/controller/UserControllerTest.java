@@ -13,6 +13,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.server.ResponseStatusException;
 
 import iso25.g05.esi_media.service.UserService;
@@ -51,8 +52,9 @@ class UserControllerTest {
 
         when(userService.login(loginData)).thenReturn(null);
 
+        MockHttpServletRequest request = new MockHttpServletRequest();
         assertThrows(ResponseStatusException.class, () -> {
-            userController.login(loginData);
+            userController.login(loginData, request);
         });
     }
 

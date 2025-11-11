@@ -1,4 +1,4 @@
-﻿package iso25.g05.esi_media.controller;
+package iso25.g05.esi_media.controller;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
