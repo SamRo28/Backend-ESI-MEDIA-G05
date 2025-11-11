@@ -23,6 +23,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 
+import iso25.g05.esi_media.EsiMediaApplication;
 import iso25.g05.esi_media.config.MongoTestConfig;
 import iso25.g05.esi_media.dto.CrearGestorRequest;
 
@@ -36,7 +37,7 @@ import iso25.g05.esi_media.dto.CrearGestorRequest;
  * 3. Validación correcta de todos los campos del formulario
  * 4. Campos específicos: alias, especialidad, tipoContenido, descripción
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, classes = {MongoTestConfig.class})
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, classes = {EsiMediaApplication.class, MongoTestConfig.class})
 @TestPropertySource(properties = {
     "spring.data.mongodb.database=esi_media_test"
 })

@@ -32,14 +32,8 @@ public class CorsConfig implements WebMvcConfigurer {
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/api/**")
-                .allowedOriginPatterns("http://localhost:*")
-                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-                .allowedHeaders("*")
-                .allowCredentials(false);
-
-                
-        registry.addMapping("/gestor/**")
+        // Configuración global para todos los endpoints
+        registry.addMapping("/**")
                 .allowedOriginPatterns("http://localhost:*")
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
@@ -55,9 +49,7 @@ public class CorsConfig implements WebMvcConfigurer {
         configuration.setAllowCredentials(false);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/api/**", configuration);
-        source.registerCorsConfiguration("/gestor/**", configuration);
+        source.registerCorsConfiguration("/**", configuration);
         return source;
-
     }
 }

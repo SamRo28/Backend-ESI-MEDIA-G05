@@ -15,6 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import org.mockito.InjectMocks;
@@ -367,12 +368,10 @@ class VisualizadorServiceTest {
         
         // Configurar mock del repositorio
         when(usuarioRepository.findByEmail(email)).thenReturn(Optional.of(usuario));
-        when(usuarioRepository.save(any(Usuario.class))).thenAnswer(invocation -> {
-            Usuario u = invocation.getArgument(0);
-            // Verificar que el usuario ha sido actualizado con la secret key de 2FA
-            assertNotNull(u.getSecretkey(), "El secretkey no debe ser nulo");
-            return u;
-        });
+        
+        // Capturar el usuario guardado para verificar después
+        ArgumentCaptor<Usuario> usuarioCaptor = ArgumentCaptor.forClass(Usuario.class);
+        when(usuarioRepository.save(usuarioCaptor.capture())).thenAnswer(invocation -> invocation.getArgument(0));
         
         // Mock para GoogleAuthenticatorQRGenerator
         try (MockedStatic<GoogleAuthenticatorQRGenerator> mockedStatic = mockStatic(GoogleAuthenticatorQRGenerator.class)) {
@@ -390,8 +389,14 @@ class VisualizadorServiceTest {
             // Verificar que el resultado es la URL de OTP Auth esperada
             assertTrue(result.contains("otpauth://"), "El resultado debe contener la URL OTP Auth");
             
-            // Verificar que se guardó el usuario con la secret key
+            // Verificar que se guardó el usuario
             verify(usuarioRepository, times(1)).save(any(Usuario.class));
+            
+            // Verificar que el usuario guardado tiene la clave secreta configurada
+            Usuario usuarioGuardado = usuarioCaptor.getValue();
+            assertNotNull(usuarioGuardado, "El usuario guardado no debe ser nulo");
+            assertNotNull(usuarioGuardado.getSecretkey(), "El secretkey no debe ser nulo");
+            assertFalse(usuarioGuardado.getSecretkey().isEmpty(), "El secretkey no debe estar vacío");
         }
     }
     
