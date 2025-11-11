@@ -83,7 +83,12 @@ class MultimediaControllerWebMvcTest {
     @DisplayName("GET /multimedia/{id} devuelve 200 con detalle")
     void obtenerDetalle_ok() throws Exception {
         ContenidoDetalleDTO detalle = new ContenidoDetalleDTO(
-                "c1", "Canción 1", "Desc", "AUDIO", null, false, "/multimedia/audio/c1");
+                                "c1", "Canción 1", "Desc", "AUDIO", null, false,
+                                null, // fechadisponiblehasta
+                                0,    // edadvisualizacion
+                                0,    // nvisualizaciones
+                                java.util.List.of("tag1"), // tags
+                                "/multimedia/audio/c1");
 
         when(multimediaService.obtenerContenidoPorId(eq("c1"), anyString()))
                 .thenReturn(detalle);
@@ -93,7 +98,8 @@ class MultimediaControllerWebMvcTest {
                 .andExpect(content().contentType("application/json"))
                 .andExpect(jsonPath("$.id", is("c1")))
                 .andExpect(jsonPath("$.tipo", is("AUDIO")))
-                .andExpect(jsonPath("$.referenciaReproduccion", is("/multimedia/audio/c1")));
+                .andExpect(jsonPath("$.referenciaReproduccion", is("/multimedia/audio/c1")))
+                .andExpect(jsonPath("$.tags[0]", is("tag1")));
     }
 
     @Test

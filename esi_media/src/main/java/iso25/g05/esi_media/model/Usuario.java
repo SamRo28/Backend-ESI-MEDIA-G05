@@ -4,9 +4,12 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 /**
  * Clase base para usuarios del sistema (Visualizador, Administrador, Gestor).
@@ -24,6 +27,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
  * - @JsonIgnore: Evita la serialización circular en JSON cuando hay relaciones bidireccionales
  */
 @Document(collection = "users") // Define que esta clase se guardará en la colección "users" de MongoDB
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Usuario {
     
     /**
@@ -43,16 +47,19 @@ public class Usuario {
     protected boolean bloqueado;
 
 
+    @JsonIgnore
     public List<Codigorecuperacion> codigosrecuperacion = new ArrayList<>();
     
-
+    @JsonIgnore
     public List<Token> sesionstoken = new ArrayList<>();
 
     @org.springframework.data.mongodb.core.mapping.DBRef
+    @JsonIgnore
     public Contrasenia contrasenia;
 
     protected Date fecharegistro;
 
+    @JsonIgnore
     private String secretkey;
     
     private boolean twoFactorAutenticationEnabled;
