@@ -299,15 +299,15 @@ public class UserService {
 
         if(userOpt.isPresent()){
             Usuario user = userOpt.get();
-            String nuevoHash = md5Hex(contraseniaNueva);
 
-            if (contraseniaComunRepository.existsById(nuevoHash)) {
+
+            if (contraseniaComunRepository.existsById(contraseniaNueva)) {
                 throw new RuntimeException("La contraseña proporcionada está en la lista de contraseñas comunes");
             }
 
             Contrasenia c = user.getContrasenia();
             // Actualizar objeto Contrasenia en memoria
-            Contrasenia actualizado = comprobarContraseniasAntiguas(c, nuevoHash);
+            Contrasenia actualizado = comprobarContraseniasAntiguas(c, contraseniaNueva);
             user.setContrasenia(actualizado);
             // Persistir cambios (DBRef + documento de contraseñas)
             contraseniaRepository.save(actualizado);
