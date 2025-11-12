@@ -268,13 +268,15 @@ public class VisualizadorService {
             dto.getContrasenia(), // Contraseña actual
             new ArrayList<>() // Lista de contraseñas anteriores vacía
         );
+        
+        if(contraseniaComunRepository.existsById(c.getContraseniaActual())){
+            throw new Exception("La contraseña está en la lista de contraseñas comunes");
+        }
 
         Contrasenia contrasenia = userService.hashearContrasenia(c);
         contrasenia.getContraseniasUsadas().add(contrasenia.getContraseniaActual());
 
-        if(contraseniaComunRepository.existsById(contrasenia.getContraseniaActual())){
-            throw new Exception("La contraseña está en la lista de contraseñas comunes");
-        }
+        
         
         // PASO 2: GUARDAR contraseña en MongoDB para que obtenga ID
     logger.debug("Guardando contraseña en MongoDB...");
