@@ -1,5 +1,25 @@
 package iso25.g05.esi_media.service;
 
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import org.mockito.junit.jupiter.MockitoExtension;
+
 import iso25.g05.esi_media.dto.VideoUploadDTO;
 import iso25.g05.esi_media.model.GestordeContenido;
 import iso25.g05.esi_media.model.Token;
@@ -8,21 +28,6 @@ import iso25.g05.esi_media.model.Video;
 import iso25.g05.esi_media.repository.GestorDeContenidoRepository;
 import iso25.g05.esi_media.repository.UsuarioRepository;
 import iso25.g05.esi_media.repository.VideoRepository;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class VideoServiceTest {
@@ -69,12 +74,11 @@ class VideoServiceTest {
 
         usuarioMock = new Usuario();
         usuarioMock.setId("gestor123");
-        usuarioMock.setSesionstoken(new ArrayList<>());
 
         tokenMock = new Token();
         tokenMock.setToken("valid-token");
         tokenMock.setFechaExpiracion(new Date(System.currentTimeMillis() + 3600000));
-        usuarioMock.getSesionstoken().add(tokenMock);
+        usuarioMock.setSesionstoken(tokenMock);
     }
 
     @Test

@@ -10,6 +10,8 @@ import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -64,6 +66,8 @@ public class UserService {
     @Autowired
     private IpLoginAttemptRepository ipLoginAttemptRepository;
 
+    private final PasswordEncoder encoder = new BCryptPasswordEncoder(10);
+
     private final GoogleAuthenticator gAuth = new GoogleAuthenticator();
 
     public Usuario login(Map<String, String> loginData, String ipAddress) {
@@ -83,12 +87,12 @@ public class UserService {
         }
         
         String email = loginData.get("email");
-        String password = md5Hex(loginData.get("password"));
+        String password = loginData.get("password");
 
         Optional<Usuario> existingUser = this.usuarioRepository.findByEmail(email);
 
         if (existingUser.isPresent() && existingUser.get().getContrasenia() != null
-                && existingUser.get().getContrasenia().getContraseniaActual().equals(password)) {
+                && encoder.matches(password,existingUser.get().getContrasenia().getContraseniaActual())) {
             
             attempt.resetAllOnSuccess(); 
             ipLoginAttemptRepository.save(attempt);
@@ -122,7 +126,7 @@ public class UserService {
 
     private Token generateAndSaveToken(Usuario user) {
         Token token = new Token();
-        user.sesionstoken.add(token);
+        user.setSesionstoken(token);
         this.usuarioRepository.save(user);
         return token;
     }
@@ -222,23 +226,13 @@ public class UserService {
 
     public Contrasenia hashearContrasenia(Contrasenia c){
         
-        c.setContraseniaActual(md5Hex(c.getContraseniaActual()));
+        c.setContraseniaActual(encoder.encode(c.getContraseniaActual()));
 
         return c;
     }
 
     private String md5Hex(String input) {
-        try {
-            MessageDigest md = MessageDigest.getInstance("MD5");
-            byte[] digest = md.digest(input.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-            StringBuilder sb = new StringBuilder();
-            for (byte b : digest) {
-                sb.append(String.format("%02x", b & 0xff));
-            }
-            return sb.toString();
-        } catch (Exception e) {
-            throw new RuntimeException("Error generando MD5", e);
-        }
+        return encoder.encode(input);
     }
     
     /**
