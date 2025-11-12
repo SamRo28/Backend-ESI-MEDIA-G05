@@ -170,9 +170,11 @@ public class VideoService {
         if (tokenValue.isEmpty()) {
             throw new IllegalArgumentException("Token vacío");
         }
+
+        String token1 = tokenValue.replace("Bearer ", "").trim();
         
         // 2. Buscar token en la base de datos
-        Optional<Usuario> usuarioOpt = usuarioRepository.findBySesionToken(tokenValue);
+        Optional<Usuario> usuarioOpt = usuarioRepository.findBySesionToken(token1);
         if (usuarioOpt.isEmpty()) {
             throw new IllegalArgumentException("Token no válido");
         }
