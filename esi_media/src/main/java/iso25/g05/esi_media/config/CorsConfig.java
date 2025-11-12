@@ -1,34 +1,23 @@
 package iso25.g05.esi_media.config;
 
 
-/**
- * Configuración de CORS para permitir comunicación con el frontend Angular
- 
-@Configuration
-public class CorsConfig implements WebMvcConfigurer {
-    
-    @Override
-    public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/**")
-                .allowedOrigins("*") // Cuando esté en producción, especificar SOLO el dominio del frontend
-                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-                .allowedHeaders("*")
-                .maxAge(3600);
-      
-      COMENTADO PARA NO CAUSAR CONFLICTO TEMPORALMENTE*/
+import java.util.Arrays;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-
-import java.util.Arrays;
 
 @Configuration
 public class CorsConfig implements WebMvcConfigurer {
+
+    @Autowired
+    private LoggingInterceptor loggingInterceptor; // <-- 1. Inyecta el interceptor
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
@@ -38,6 +27,13 @@ public class CorsConfig implements WebMvcConfigurer {
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
                 .allowCredentials(false);
+    }
+
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) { // <-- 2. AÑADE ESTE MÉTODO
+        registry.addInterceptor(loggingInterceptor)
+                .addPathPatterns("/**") // Aplica a todas las rutas
+                .excludePathPatterns("/error"); // Opcional: excluye las páginas de error de Spring
     }
 
     @Bean
