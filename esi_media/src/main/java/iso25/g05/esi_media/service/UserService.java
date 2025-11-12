@@ -70,6 +70,7 @@ public class UserService {
 
     private final GoogleAuthenticator gAuth = new GoogleAuthenticator();
 
+    private String EMAIL = "email";
     
     public Usuario login(Map<String, String> loginData, String ipAddress) {
         
@@ -87,7 +88,7 @@ public class UserService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, message);
         }
         
-        String email = loginData.get("email");
+        String email = loginData.get(EMAIL);
         String password = loginData.get("password");
 
         Optional<Usuario> existingUser = this.usuarioRepository.findByEmail(email);
@@ -133,7 +134,7 @@ public class UserService {
     }
 
     public String login3Auth(Map<String, String> loginData) {
-        String email = loginData.get("email");
+        String email = loginData.get(EMAIL);
         Optional<Usuario> existingUser = this.usuarioRepository.findByEmail(email);
         if (existingUser.isPresent()) {
             Codigorecuperacion cr = emailService.send3FAemail(email, existingUser.get());
@@ -160,7 +161,7 @@ public class UserService {
 
     public String confirm2faCode(Map<String, String> data) {
         int code = Integer.parseInt(data.get("code"));
-        String email = data.get("email");
+        String email = data.get(EMAIL);
         Optional<Usuario> existingUser = this.usuarioRepository.findByEmail(email);
 
         if (existingUser.isPresent()) {
@@ -349,7 +350,7 @@ public class UserService {
 
     public Usuario login(Map<String, String> loginData) {
         // Llamada simple sin lógica de IP
-        String email = loginData.get("email");
+        String email = loginData.get(EMAIL);
         String password = md5Hex(loginData.get("password"));
 
         Optional<Usuario> existingUser = this.usuarioRepository.findByEmail(email);
