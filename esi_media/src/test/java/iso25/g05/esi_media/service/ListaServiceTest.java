@@ -1,22 +1,45 @@
 package iso25.g05.esi_media.service;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import static org.mockito.ArgumentMatchers.any;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import iso25.g05.esi_media.dto.PlaylistDto;
-import iso25.g05.esi_media.model.*;
-import iso25.g05.esi_media.repository.*;
+import iso25.g05.esi_media.model.Audio;
+import iso25.g05.esi_media.model.Contenido;
+import iso25.g05.esi_media.model.GestordeContenido;
+import iso25.g05.esi_media.model.Lista;
+import iso25.g05.esi_media.model.Token;
+import iso25.g05.esi_media.model.Usuario;
+import iso25.g05.esi_media.model.Visualizador;
+import iso25.g05.esi_media.repository.ContenidoRepository;
+import iso25.g05.esi_media.repository.GestorDeContenidoRepository;
+import iso25.g05.esi_media.repository.ListaRepository;
+import iso25.g05.esi_media.repository.UsuarioRepository;
+import iso25.g05.esi_media.repository.VisualizadorRepository;
 
 /**
  * Tests unitarios para ListaService
@@ -73,9 +96,7 @@ class ListaServiceTest {
         gestor.setNombre("Gestor Test");
         gestor.setEmail("gestor@test.com");
         gestor.setcampoespecializacion("Música");
-        List<Token> tokensGestor = new ArrayList<>();
-        tokensGestor.add(tokenValido);
-        gestor.setSesionstoken(tokensGestor);
+        gestor.setSesionstoken(tokenValido);
 
         // Configurar visualizador
         visualizador = new Visualizador();
@@ -86,9 +107,7 @@ class ListaServiceTest {
         fechaNacimiento.set(2000, Calendar.JANUARY, 1);
         visualizador.setFechaNac(fechaNacimiento.getTime());
         visualizador.setVip(false);
-        List<Token> tokensVisu = new ArrayList<>();
-        tokensVisu.add(tokenValido);
-        visualizador.setSesionstoken(tokensVisu);
+        visualizador.setSesionstoken(tokenValido);
 
         // Configurar lista válida
         listaValida = new Lista();
@@ -556,9 +575,8 @@ class ListaServiceTest {
 
         Usuario usuarioConTokenExpirado = new GestordeContenido();
         usuarioConTokenExpirado.setId("usuario-test");
-        List<Token> tokensExpirados = new ArrayList<>();
-        tokensExpirados.add(tokenExpirado);
-        usuarioConTokenExpirado.setSesionstoken(tokensExpirados);
+
+        usuarioConTokenExpirado.setSesionstoken(tokenExpirado);
 
         when(usuarioRepository.findBySesionToken("token-expirado"))
             .thenReturn(Optional.of(usuarioConTokenExpirado));
@@ -588,9 +606,7 @@ class ListaServiceTest {
 
         Usuario usuarioConTokenMarcado = new GestordeContenido();
         usuarioConTokenMarcado.setId("usuario-test");
-        List<Token> tokens = new ArrayList<>();
-        tokens.add(tokenMarcadoExpirado);
-        usuarioConTokenMarcado.setSesionstoken(tokens);
+        usuarioConTokenMarcado.setSesionstoken(tokenMarcadoExpirado);
 
         when(usuarioRepository.findBySesionToken("token-marcado-expirado"))
             .thenReturn(Optional.of(usuarioConTokenMarcado));
@@ -854,9 +870,7 @@ class ListaServiceTest {
         admin.setId("admin-id");
         admin.setNombre("Admin");
         admin.setEmail("admin@test.com");
-        List<Token> tokensAdmin = new ArrayList<>();
-        tokensAdmin.add(tokenValido);
-        admin.setSesionstoken(tokensAdmin);
+        admin.setSesionstoken(tokenValido);
 
         Lista inputLista = new Lista();
         inputLista.setNombre("Lista Admin");

@@ -8,6 +8,7 @@ import iso25.g05.esi_media.exception.RecursoNoEncontradoException;
 import iso25.g05.esi_media.mapper.ContenidoMapper;
 import iso25.g05.esi_media.model.Audio;
 import iso25.g05.esi_media.model.Contenido;
+import iso25.g05.esi_media.model.GestordeContenido;
 import iso25.g05.esi_media.model.Usuario;
 import iso25.g05.esi_media.model.Video;
 import iso25.g05.esi_media.model.Visualizador;
@@ -58,7 +59,15 @@ public class MultimediaService {
      * @throws AccesoNoAutorizadoException si el token no es válido o no es visualizador
      */
     public Page<ContenidoResumenDTO> listarContenidos(Pageable pageable, String authHeaderOrToken, String tipo) {
-        Visualizador visualizador = validarYObtenerVisualizador(authHeaderOrToken);
+        Usuario usuario = validarYObtenerUsuarioAutorizado(authHeaderOrToken);
+        
+        // Si es Gestor de Contenido, puede ver todos los contenidos sin restricciones
+        if (usuario instanceof GestordeContenido) {
+            return listarTodosLosContenidos(pageable, tipo);
+        }
+        
+        // Si es Visualizador, aplicar las restricciones normales
+        Visualizador visualizador = (Visualizador) usuario;
         int edad = calcularEdad(visualizador.getFechaNac());
 
         Page<Contenido> pagina;
@@ -114,7 +123,19 @@ public class MultimediaService {
      * @return página de contenidos en formato resumen
      */
     public Page<ContenidoResumenDTO> listarContenidos(Pageable pageable, String authHeaderOrToken, String tipo, String query) {
-        Visualizador visualizador = validarYObtenerVisualizador(authHeaderOrToken);
+        Usuario usuario = validarYObtenerUsuarioAutorizado(authHeaderOrToken);
+        
+        // Si es Gestor de Contenido, puede ver todos los contenidos sin restricciones
+        if (usuario instanceof GestordeContenido) {
+            // Si hay query de búsqueda
+            if (query != null && !query.trim().isEmpty()) {
+                return buscarTodosLosContenidos(pageable, tipo, query.trim());
+            }
+            return listarTodosLosContenidos(pageable, tipo);
+        }
+        
+        // Si es Visualizador, aplicar las restricciones normales
+        Visualizador visualizador = (Visualizador) usuario;
         int edad = calcularEdad(visualizador.getFechaNac());
 
         // Si hay query de búsqueda, usar métodos específicos de búsqueda
@@ -229,11 +250,27 @@ public class MultimediaService {
             throw new PeticionInvalidaException("El id de contenido es obligatorio");
         }
 
-        Visualizador visualizador = validarYObtenerVisualizador(authHeaderOrToken);
+        Usuario usuario = validarYObtenerUsuarioAutorizado(authHeaderOrToken);
 
-        Optional<Contenido> opt = contenidoRepository.findByIdAndEstadoTrue(id);
+        Optional<Contenido> opt;
+        // Si es Gestor de Contenido, puede acceder a contenidos con cualquier estado
+        if (usuario instanceof GestordeContenido) {
+            opt = contenidoRepository.findByIdForGestor(id);
+        } else {
+            // Para Visualizadores, solo contenidos con estado true
+            opt = contenidoRepository.findByIdAndEstadoTrue(id);
+        }
+        
         Contenido contenido = opt.orElseThrow(() -> new RecursoNoEncontradoException("Contenido no encontrado"));
 
+        // Si es Gestor de Contenido, puede acceder sin restricciones
+        if (usuario instanceof GestordeContenido) {
+            String referencia = construirReferenciaReproduccion(contenido);
+            return ContenidoMapper.aDetalle(contenido, referencia);
+        }
+        
+        // Si es Visualizador, aplicar validaciones de acceso
+        Visualizador visualizador = (Visualizador) usuario;
         validarAcceso(contenido, visualizador);
 
         String referencia = construirReferenciaReproduccion(contenido);
@@ -306,33 +343,43 @@ public class MultimediaService {
             throw new PeticionInvalidaException("El id de contenido es obligatorio");
         }
 
-        Visualizador visualizador = validarYObtenerVisualizador(authHeaderOrToken);
+        Usuario usuario = validarYObtenerUsuarioAutorizado(authHeaderOrToken);
 
-        Optional<Contenido> opt = contenidoRepository.findByIdAndEstadoTrue(id);
+        Optional<Contenido> opt;
+        // Si es Gestor de Contenido, puede acceder a contenidos con cualquier estado
+        if (usuario instanceof GestordeContenido) {
+            opt = contenidoRepository.findByIdForGestor(id);
+        } else {
+            // Para Visualizadores, solo contenidos con estado true
+            opt = contenidoRepository.findByIdAndEstadoTrue(id);
+        }
+        
         Contenido contenido = opt.orElseThrow(() -> new RecursoNoEncontradoException("Contenido no encontrado"));
 
         if (!(contenido instanceof Audio audio)) {
             throw new PeticionInvalidaException("El contenido solicitado no es de tipo audio");
         }
 
+        // Si es Gestor de Contenido, puede acceder sin restricciones
+        if (usuario instanceof GestordeContenido) {
+            return audio;
+        }
+        
+        // Si es Visualizador, aplicar validaciones de acceso
+        Visualizador visualizador = (Visualizador) usuario;
         validarAcceso(contenido, visualizador);
         return audio;
     }
 
     /**
-     * Valida el token (con o sin prefijo Bearer) y devuelve el Visualizador.
-     * 
-     * Qué hace: extrae el valor del token, busca al usuario por sesión y exige
-     * que sea un Visualizador para continuar.
-     * 
-     * Por qué: solo los visualizadores están habilitados para consumir multimedia.
+     * Valida el token y devuelve el Usuario autorizado (Visualizador o GestordeContenido).
      * 
      * @param authHeaderOrToken cabecera Authorization o token en bruto
-     * @return visualizador autenticado
+     * @return usuario autenticado (Visualizador o GestordeContenido)
      * @throws PeticionInvalidaException si no se manda token
-     * @throws AccesoNoAutorizadoException si el token es inválido o no es visualizador
+     * @throws AccesoNoAutorizadoException si el token es inválido o no es un tipo de usuario autorizado
      */
-    private Visualizador validarYObtenerVisualizador(String authHeaderOrToken) {
+    private Usuario validarYObtenerUsuarioAutorizado(String authHeaderOrToken) {
         String token = extraerToken(authHeaderOrToken);
         if (token == null || token.isBlank()) {
             throw new PeticionInvalidaException("Token de autorización requerido");
@@ -344,11 +391,79 @@ public class MultimediaService {
         }
 
         Usuario usuario = usuarioOpt.get();
-        if (!(usuario instanceof Visualizador visualizador)) {
-            throw new AccesoNoAutorizadoException("Solo los visualizadores pueden acceder a contenidos multimedia");
+        if (!(usuario instanceof Visualizador) && !(usuario instanceof GestordeContenido)) {
+            throw new AccesoNoAutorizadoException("Solo los visualizadores y gestores de contenido pueden acceder a contenidos multimedia");
         }
 
-        return visualizador;
+        return usuario;
+    }
+
+    /**
+     * Lista todos los contenidos sin restricciones de edad, VIP o estado (para Gestores de Contenido).
+     * 
+     * @param pageable parámetros de paginación
+     * @param tipo filtro por tipo de contenido (AUDIO/VIDEO o null)
+     * @return página de contenidos en formato resumen
+     */
+    private Page<ContenidoResumenDTO> listarTodosLosContenidos(Pageable pageable, String tipo) {
+        Page<Contenido> pagina;
+        boolean filtrar = (tipo != null && !tipo.isBlank());
+        String className = null;
+        if (filtrar) {
+            if ("VIDEO".equalsIgnoreCase(tipo)) className = Video.class.getName();
+            else if ("AUDIO".equalsIgnoreCase(tipo)) className = Audio.class.getName();
+        }
+
+        if (filtrar && className != null) {
+            // Buscar por tipo específico SIN restricciones de estado (para Gestores)
+            pagina = contenidoRepository.findAllContenidosByClassForGestor(className, pageable);
+            // Si la página viene mezclada, usar fallback
+            boolean mezclado = pagina.getContent().stream().anyMatch(c -> {
+                boolean esVideoEsperado = "VIDEO".equalsIgnoreCase(tipo) && c instanceof Audio;
+                boolean esAudioEsperado = "AUDIO".equalsIgnoreCase(tipo) && c instanceof Video;
+                return esVideoEsperado || esAudioEsperado;
+            });
+            if (mezclado) {
+                if ("VIDEO".equalsIgnoreCase(tipo)) {
+                    pagina = contenidoRepository.findAllVideosForGestor(pageable);
+                } else if ("AUDIO".equalsIgnoreCase(tipo)) {
+                    pagina = contenidoRepository.findAllAudiosForGestor(pageable);
+                }
+            }
+        } else {
+            // Buscar TODOS los contenidos SIN restricciones de estado (para Gestores)
+            pagina = contenidoRepository.findAllContenidosForGestor(pageable);
+        }
+
+        return pagina.map(ContenidoMapper::aResumen);
+    }
+
+    /**
+     * Busca contenidos con texto sin restricciones de estado (para Gestores de Contenido).
+     * 
+     * @param pageable parámetros de paginación
+     * @param tipo filtro por tipo (AUDIO/VIDEO o null)
+     * @param query texto de búsqueda
+     * @return página de contenidos filtrados
+     */
+    private Page<ContenidoResumenDTO> buscarTodosLosContenidos(Pageable pageable, String tipo, String query) {
+        Page<Contenido> pagina;
+        
+        if (tipo != null && !tipo.isBlank()) {
+            if ("VIDEO".equalsIgnoreCase(tipo)) {
+                pagina = contenidoRepository.searchAllVideosForGestor(query, pageable);
+            } else if ("AUDIO".equalsIgnoreCase(tipo)) {
+                pagina = contenidoRepository.searchAllAudiosForGestor(query, pageable);
+            } else {
+                // Tipo no reconocido, buscar en todo
+                pagina = contenidoRepository.searchAllContenidosForGestor(query, pageable);
+            }
+        } else {
+            // Buscar en todos los tipos SIN restricciones de estado
+            pagina = contenidoRepository.searchAllContenidosForGestor(query, pageable);
+        }
+
+        return pagina.map(ContenidoMapper::aResumen);
     }
 
     /**
@@ -385,5 +500,41 @@ public class MultimediaService {
         if (fechaNac == null) return 200;
         LocalDate birth = fechaNac.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
         return Period.between(birth, LocalDate.now()).getYears();
+    }
+
+    /**
+     * Registra una reproducción del contenido indicado, validando acceso del usuario.
+     *
+     * Contrato:
+     * - Requiere token (Authorization o token en claro) y cumplir restricciones de edad/VIP si es visualizador.
+     * - Incrementa en +1 el contador de nvisualizaciones y persiste el cambio.
+     * - Devuelve el nuevo total de visualizaciones.
+     */
+    public int registrarReproduccion(String id, String authHeaderOrToken) {
+        if (id == null || id.isBlank()) {
+            throw new PeticionInvalidaException("El id de contenido es obligatorio");
+        }
+
+        Usuario usuario = validarYObtenerUsuarioAutorizado(authHeaderOrToken);
+
+        Optional<Contenido> opt;
+        // Gestor: puede acceder siempre; Visualizador: solo visibles
+        if (usuario instanceof GestordeContenido) {
+            opt = contenidoRepository.findByIdForGestor(id);
+        } else {
+            opt = contenidoRepository.findByIdAndEstadoTrue(id);
+        }
+
+        Contenido contenido = opt.orElseThrow(() -> new RecursoNoEncontradoException("Contenido no encontrado"));
+
+        if (usuario instanceof Visualizador v) {
+            validarAcceso(contenido, v);
+        }
+
+        // Incrementar contador de visualizaciones de forma simple
+        int current = Math.max(0, contenido.getnvisualizaciones());
+        contenido.setnvisualizaciones(current + 1);
+        contenidoRepository.save(contenido);
+        return contenido.getnvisualizaciones();
     }
 }

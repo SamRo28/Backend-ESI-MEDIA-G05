@@ -3,7 +3,6 @@ package iso25.g05.esi_media.service;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Date;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -78,9 +77,7 @@ public class ListaService {
         Usuario usuario = usuarioOpt.get();
         
         // Verificar que el token existe en la lista de tokens del usuario y no ha expirado
-        boolean tokenValido = usuario.getSesionstoken().stream()
-            .anyMatch(t -> t.getToken().equals(token) && !t.isExpirado() 
-                && t.getFechaExpiracion().after(new Date()));
+        boolean tokenValido = usuario.getSesionstoken().getToken().equals(token);
         
         if (!tokenValido) {
             throw new RuntimeException(TOKEN_ERROR);

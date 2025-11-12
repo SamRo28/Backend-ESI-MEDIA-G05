@@ -227,23 +227,11 @@ public class VisualizadorService {
         if (dto.getEmail() != null) {
             logger.debug("Validando email: {}", dto.getEmail());
 
-            // Primero, veamos todos los usuarios en la base de datos
-            List<Usuario> todosLosUsuarios = usuarioRepository.findAll();
-            logger.debug("Total usuarios en BD: {}", todosLosUsuarios.size());
-            for (Usuario u : todosLosUsuarios) {
-                logger.debug("Usuario en BD: {} - {}", u.getNombre(), u.getEmail());
-            }
-
             // Ahora probemos el exists
             boolean exists = usuarioRepository.existsByEmail(dto.getEmail());
             logger.debug("existsBy_email('{}'): {}", dto.getEmail(), exists);
 
-            // Y también el findBy
-            Optional<Usuario> usuario = usuarioRepository.findByEmail(dto.getEmail());
-            logger.debug("findBy_email encontrado: {}", usuario.isPresent());
-            if (usuario.isPresent()) {
-                logger.debug("Usuario encontrado: {} - {}", usuario.get().getNombre(), usuario.get().getEmail());
-            }
+
 
             // Verificar si hay algún problema con mayúsculas/minúsculas
             String emailLower = dto.getEmail().toLowerCase();
@@ -280,13 +268,15 @@ public class VisualizadorService {
             dto.getContrasenia(), // Contraseña actual
             new ArrayList<>() // Lista de contraseñas anteriores vacía
         );
+        
+        if(contraseniaComunRepository.existsById(c.getContraseniaActual())){
+            throw new Exception("La contraseña está en la lista de contraseñas comunes");
+        }
 
         Contrasenia contrasenia = userService.hashearContrasenia(c);
         contrasenia.getContraseniasUsadas().add(contrasenia.getContraseniaActual());
 
-        if(contraseniaComunRepository.existsById(contrasenia.getContraseniaActual())){
-            throw new Exception("La contraseña está en la lista de contraseñas comunes");
-        }
+        
         
         // PASO 2: GUARDAR contraseña en MongoDB para que obtenga ID
     logger.debug("Guardando contraseña en MongoDB...");

@@ -1,7 +1,7 @@
 package iso25.g05.esi_media.model;
 
 import java.util.Date;
-import org.springframework.data.annotation.Id;
+
 import org.springframework.data.mongodb.core.mapping.Document;
 
 @Document(collection = "tokens")
@@ -15,7 +15,7 @@ public class Token {
 
     public Token() {
         this.token = java.util.UUID.randomUUID().toString();
-        this.fechaexpiracion = new Date(System.currentTimeMillis() + 3600 * 1000);
+        this.fechaexpiracion = new Date(System.currentTimeMillis() + 8 * 3600 * 1000);
         this.expirado = false;
     }
 	

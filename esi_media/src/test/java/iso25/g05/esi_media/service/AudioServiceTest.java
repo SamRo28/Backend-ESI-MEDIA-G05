@@ -80,12 +80,12 @@ class AudioServiceTest {
 
         usuarioMock = new Usuario();
         usuarioMock.setId("gestor123");
-        usuarioMock.setSesionstoken(new ArrayList<>());
+        usuarioMock.setSesionstoken(tokenMock);
 
         tokenMock = new Token();
         tokenMock.setToken("valid-token");
         tokenMock.setFechaExpiracion(new Date(System.currentTimeMillis() + 3600000));
-        usuarioMock.getSesionstoken().add(tokenMock);
+
     }
 
     @Test
