@@ -13,6 +13,8 @@ public class ContenidoDetalleDTO {
     private Object caratula;
     /** Indica si el contenido es VIP (requiere usuario VIP) */
     private boolean vip;
+    /** Duración en segundos */
+    private double duracion;
     // Información adicional de detalle que debe mostrarse al visualizador
     private java.util.Date fechadisponiblehasta;
     private int edadvisualizacion;
@@ -26,8 +28,21 @@ public class ContenidoDetalleDTO {
 
     public ContenidoDetalleDTO() {}
 
+    /**
+     * Constructor de compatibilidad (sin duración). Mantiene compatibilidad con tests existentes.
+     * Asigna duracion = -1 para indicar "no indicada".
+     */
     public ContenidoDetalleDTO(String id, String titulo, String descripcion, String tipo,
                                Object caratula, boolean vip,
+                               java.util.Date fechadisponiblehasta, int edadvisualizacion,
+                               int nvisualizaciones, java.util.List<String> tags,
+                               String referenciaReproduccion) {
+        this(id, titulo, descripcion, tipo, caratula, vip, -1d,
+                fechadisponiblehasta, edadvisualizacion, nvisualizaciones, tags, referenciaReproduccion);
+    }
+
+    public ContenidoDetalleDTO(String id, String titulo, String descripcion, String tipo,
+                               Object caratula, boolean vip, double duracion,
                                java.util.Date fechadisponiblehasta, int edadvisualizacion,
                                int nvisualizaciones, java.util.List<String> tags,
                                String referenciaReproduccion) {
@@ -37,6 +52,7 @@ public class ContenidoDetalleDTO {
         this.tipo = tipo;
         this.caratula = caratula;
         this.vip = vip;
+        this.duracion = duracion;
         this.fechadisponiblehasta = fechadisponiblehasta;
         this.edadvisualizacion = edadvisualizacion;
         this.nvisualizaciones = nvisualizaciones;
@@ -61,6 +77,9 @@ public class ContenidoDetalleDTO {
 
     public boolean isVip() { return vip; }
     public void setVip(boolean vip) { this.vip = vip; }
+
+    public double getDuracion() { return duracion; }
+    public void setDuracion(double duracion) { this.duracion = duracion; }
 
     public java.util.Date getFechaDisponibleHasta() { return fechadisponiblehasta; }
     public void setFechaDisponibleHasta(java.util.Date fechadisponiblehasta) { this.fechadisponiblehasta = fechadisponiblehasta; }
