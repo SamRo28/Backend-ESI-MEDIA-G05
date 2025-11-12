@@ -66,6 +66,9 @@ public class UserService {
     @Autowired
     private IpLoginAttemptRepository ipLoginAttemptRepository;
 
+    // Constante reutilizable para la clave 'email' en maps/respuestas
+    private static final String KEY_EMAIL = "email";
+
     private final PasswordEncoder encoder = new BCryptPasswordEncoder(10);
 
     private final GoogleAuthenticator gAuth = new GoogleAuthenticator();
@@ -87,7 +90,7 @@ public class UserService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, message);
         }
         
-        String email = loginData.get("email");
+    String email = loginData.get(KEY_EMAIL);
         String password = loginData.get("password");
 
         Optional<Usuario> existingUser = this.usuarioRepository.findByEmail(email);
@@ -133,7 +136,7 @@ public class UserService {
     }
 
     public String login3Auth(Map<String, String> loginData) {
-        String email = loginData.get("email");
+    String email = loginData.get(KEY_EMAIL);
         Optional<Usuario> existingUser = this.usuarioRepository.findByEmail(email);
         if (existingUser.isPresent()) {
             Codigorecuperacion cr = emailService.send3FAemail(email, existingUser.get());
@@ -160,7 +163,7 @@ public class UserService {
 
     public String confirm2faCode(Map<String, String> data) {
         int code = Integer.parseInt(data.get("code"));
-        String email = data.get("email");
+    String email = data.get(KEY_EMAIL);
         Optional<Usuario> existingUser = this.usuarioRepository.findByEmail(email);
 
         if (existingUser.isPresent()) {
@@ -245,7 +248,7 @@ public class UserService {
         if (email == null || email.trim().isEmpty()) {
             throw new RuntimeException("El email es obligatorio");
         }
-        
+
         if (usuarioRepository.existsByEmail(email)) {
             throw new RuntimeException("El email ya está registrado en el sistema");
         }
@@ -349,7 +352,7 @@ public class UserService {
 
     public Usuario login(Map<String, String> loginData) {
         // Llamada simple sin lógica de IP
-        String email = loginData.get("email");
+        String email = loginData.get(KEY_EMAIL);
         String password = md5Hex(loginData.get("password"));
 
         Optional<Usuario> existingUser = this.usuarioRepository.findByEmail(email);

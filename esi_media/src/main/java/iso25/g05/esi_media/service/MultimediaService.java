@@ -37,6 +37,10 @@ import java.util.Optional;
 @Service
 public class MultimediaService {
 
+    // Constantes para tipos de contenido - evitan literales repetidos (mejora SonarQube)
+    private static final String TYPE_VIDEO = "VIDEO";
+    private static final String TYPE_AUDIO = "AUDIO";
+
     @Autowired
     private ContenidoRepository contenidoRepository;
 
@@ -74,8 +78,8 @@ public class MultimediaService {
         boolean filtrar = (tipo != null && !tipo.isBlank());
         String className = null;
         if (filtrar) {
-            if ("VIDEO".equalsIgnoreCase(tipo)) className = Video.class.getName();
-            else if ("AUDIO".equalsIgnoreCase(tipo)) className = Audio.class.getName();
+            if (TYPE_VIDEO.equalsIgnoreCase(tipo)) className = Video.class.getName();
+            else if (TYPE_AUDIO.equalsIgnoreCase(tipo)) className = Audio.class.getName();
         }
 
     if (filtrar && className != null) {
@@ -85,16 +89,16 @@ public class MultimediaService {
             : contenidoRepository.findByEstadoTrueAndVipFalseAndEdadvisualizacionLessThanEqualAndClass(edad, className, pageable);
             // Si la página viene mezclada (heurística simple), usar fallback por campos característicos
             boolean mezclado = pagina.getContent().stream().anyMatch(c -> {
-                boolean esVideoEsperado = "VIDEO".equalsIgnoreCase(tipo) && c instanceof Audio;
-                boolean esAudioEsperado = "AUDIO".equalsIgnoreCase(tipo) && c instanceof Video;
+                boolean esVideoEsperado = TYPE_VIDEO.equalsIgnoreCase(tipo) && c instanceof Audio;
+                boolean esAudioEsperado = TYPE_AUDIO.equalsIgnoreCase(tipo) && c instanceof Video;
                 return esVideoEsperado || esAudioEsperado;
             });
             if (mezclado) {
-                if ("VIDEO".equalsIgnoreCase(tipo)) {
+                if (TYPE_VIDEO.equalsIgnoreCase(tipo)) {
                     pagina = visualizador.isVip()
                             ? contenidoRepository.findVideos(edad, pageable)
                             : contenidoRepository.findVideosNoVip(edad, pageable);
-                } else if ("AUDIO".equalsIgnoreCase(tipo)) {
+                } else if (TYPE_AUDIO.equalsIgnoreCase(tipo)) {
                     pagina = visualizador.isVip()
                             ? contenidoRepository.findAudios(edad, pageable)
                             : contenidoRepository.findAudiosNoVip(edad, pageable);
@@ -148,8 +152,8 @@ public class MultimediaService {
         boolean filtrar = (tipo != null && !tipo.isBlank());
         String className = null;
         if (filtrar) {
-            if ("VIDEO".equalsIgnoreCase(tipo)) className = Video.class.getName();
-            else if ("AUDIO".equalsIgnoreCase(tipo)) className = Audio.class.getName();
+            if (TYPE_VIDEO.equalsIgnoreCase(tipo)) className = Video.class.getName();
+            else if (TYPE_AUDIO.equalsIgnoreCase(tipo)) className = Audio.class.getName();
         }
 
         if (filtrar && className != null) {
@@ -159,16 +163,16 @@ public class MultimediaService {
                     : contenidoRepository.findByEstadoTrueAndVipFalseAndEdadvisualizacionLessThanEqualAndClass(edad, className, pageable);
             // Si la página viene mezclada (heurística simple), usar fallback por campos característicos
             boolean mezclado = pagina.getContent().stream().anyMatch(c -> {
-                boolean esVideoEsperado = "VIDEO".equalsIgnoreCase(tipo) && c instanceof Audio;
-                boolean esAudioEsperado = "AUDIO".equalsIgnoreCase(tipo) && c instanceof Video;
+                boolean esVideoEsperado = TYPE_VIDEO.equalsIgnoreCase(tipo) && c instanceof Audio;
+                boolean esAudioEsperado = TYPE_AUDIO.equalsIgnoreCase(tipo) && c instanceof Video;
                 return esVideoEsperado || esAudioEsperado;
             });
             if (mezclado) {
-                if ("VIDEO".equalsIgnoreCase(tipo)) {
+                if (TYPE_VIDEO.equalsIgnoreCase(tipo)) {
                     pagina = visualizador.isVip()
                             ? contenidoRepository.findVideos(edad, pageable)
                             : contenidoRepository.findVideosNoVip(edad, pageable);
-                } else if ("AUDIO".equalsIgnoreCase(tipo)) {
+                } else if (TYPE_AUDIO.equalsIgnoreCase(tipo)) {
                     pagina = visualizador.isVip()
                             ? contenidoRepository.findAudios(edad, pageable)
                             : contenidoRepository.findAudiosNoVip(edad, pageable);
@@ -197,11 +201,11 @@ public class MultimediaService {
         Page<Contenido> pagina;
         
         if (tipo != null && !tipo.isBlank()) {
-            if ("VIDEO".equalsIgnoreCase(tipo)) {
+            if (TYPE_VIDEO.equalsIgnoreCase(tipo)) {
                 pagina = visualizador.isVip()
                         ? contenidoRepository.searchVideos(query, edad, pageable)
                         : contenidoRepository.searchVideosNoVip(query, edad, pageable);
-            } else if ("AUDIO".equalsIgnoreCase(tipo)) {
+            } else if (TYPE_AUDIO.equalsIgnoreCase(tipo)) {
                 pagina = visualizador.isVip()
                         ? contenidoRepository.searchAudios(query, edad, pageable)
                         : contenidoRepository.searchAudiosNoVip(query, edad, pageable);
@@ -410,8 +414,8 @@ public class MultimediaService {
         boolean filtrar = (tipo != null && !tipo.isBlank());
         String className = null;
         if (filtrar) {
-            if ("VIDEO".equalsIgnoreCase(tipo)) className = Video.class.getName();
-            else if ("AUDIO".equalsIgnoreCase(tipo)) className = Audio.class.getName();
+            if (TYPE_VIDEO.equalsIgnoreCase(tipo)) className = Video.class.getName();
+            else if (TYPE_AUDIO.equalsIgnoreCase(tipo)) className = Audio.class.getName();
         }
 
         if (filtrar && className != null) {
@@ -419,14 +423,14 @@ public class MultimediaService {
             pagina = contenidoRepository.findAllContenidosByClassForGestor(className, pageable);
             // Si la página viene mezclada, usar fallback
             boolean mezclado = pagina.getContent().stream().anyMatch(c -> {
-                boolean esVideoEsperado = "VIDEO".equalsIgnoreCase(tipo) && c instanceof Audio;
-                boolean esAudioEsperado = "AUDIO".equalsIgnoreCase(tipo) && c instanceof Video;
+                boolean esVideoEsperado = TYPE_VIDEO.equalsIgnoreCase(tipo) && c instanceof Audio;
+                boolean esAudioEsperado = TYPE_AUDIO.equalsIgnoreCase(tipo) && c instanceof Video;
                 return esVideoEsperado || esAudioEsperado;
             });
             if (mezclado) {
-                if ("VIDEO".equalsIgnoreCase(tipo)) {
+                if (TYPE_VIDEO.equalsIgnoreCase(tipo)) {
                     pagina = contenidoRepository.findAllVideosForGestor(pageable);
-                } else if ("AUDIO".equalsIgnoreCase(tipo)) {
+                } else if (TYPE_AUDIO.equalsIgnoreCase(tipo)) {
                     pagina = contenidoRepository.findAllAudiosForGestor(pageable);
                 }
             }
@@ -450,9 +454,9 @@ public class MultimediaService {
         Page<Contenido> pagina;
         
         if (tipo != null && !tipo.isBlank()) {
-            if ("VIDEO".equalsIgnoreCase(tipo)) {
+            if (TYPE_VIDEO.equalsIgnoreCase(tipo)) {
                 pagina = contenidoRepository.searchAllVideosForGestor(query, pageable);
-            } else if ("AUDIO".equalsIgnoreCase(tipo)) {
+            } else if (TYPE_AUDIO.equalsIgnoreCase(tipo)) {
                 pagina = contenidoRepository.searchAllAudiosForGestor(query, pageable);
             } else {
                 // Tipo no reconocido, buscar en todo

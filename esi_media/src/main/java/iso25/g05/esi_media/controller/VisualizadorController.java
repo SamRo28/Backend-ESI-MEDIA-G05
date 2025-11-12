@@ -35,6 +35,9 @@ import java.util.Map;
 )*/
 @CrossOrigin(origins = "*") // Permitir todas las fuentes - SOLO PARA TESTING
 public class VisualizadorController {
+    // Claves reutilizables para evitar literales duplicados (mejora SonarQube)
+    private static final String KEY_MENSAJE = "mensaje";
+    private static final String KEY_EXITOSO = "exitoso";
     
     /**
      * Servicio que contiene la lógica de negocio del registro
@@ -56,9 +59,9 @@ public class VisualizadorController {
         String res = visualizadorService.activar2FA(email);
 
         if (!res.isEmpty()) {
-            return ResponseEntity.ok(Map.of("mensaje", res));
+            return ResponseEntity.ok(Map.of(KEY_MENSAJE, res));
         } else {
-            return ResponseEntity.badRequest().body(Map.of("mensaje", "Error al activar 2FA"));
+            return ResponseEntity.badRequest().body(Map.of(KEY_MENSAJE, "Error al activar 2FA"));
         }
     }
 
@@ -134,8 +137,8 @@ public class VisualizadorController {
      */
     private ResponseEntity<Map<String, Object>> crearRespuestaExito(HttpStatus status, RegistroResultado resultado) {
         Map<String, Object> respuesta = new HashMap<>();
-        respuesta.put("exitoso", true);
-        respuesta.put("mensaje", resultado.getMensaje());
+    respuesta.put(KEY_EXITOSO, true);
+    respuesta.put(KEY_MENSAJE, resultado.getMensaje());
         
         // Incluir datos del visualizador (sin información sensible)
         if (resultado.getVisualizador() != null) {
@@ -169,8 +172,8 @@ public class VisualizadorController {
      */
     private ResponseEntity<Map<String, Object>> crearRespuestaError(HttpStatus status, String mensaje, List<String> errores) {
         Map<String, Object> respuesta = new HashMap<>();
-        respuesta.put("exitoso", false);
-        respuesta.put("mensaje", mensaje);
+    respuesta.put(KEY_EXITOSO, false);
+    respuesta.put(KEY_MENSAJE, mensaje);
         respuesta.put("errores", errores != null ? errores : new ArrayList<>());
         
         return new ResponseEntity<>(respuesta, status);
@@ -202,8 +205,8 @@ public class VisualizadorController {
         visualizadorService.limpiarRegistros();
         
         Map<String, Object> respuesta = new HashMap<>();
-        respuesta.put("mensaje", "Todos los registros han sido eliminados");
-        respuesta.put("exitoso", true);
+    respuesta.put(KEY_MENSAJE, "Todos los registros han sido eliminados");
+    respuesta.put(KEY_EXITOSO, true);
         
         return ResponseEntity.ok(respuesta);
     }
@@ -220,14 +223,14 @@ public class VisualizadorController {
         
         if (!eliminado) {
             Map<String, Object> respuesta = new HashMap<>();
-            respuesta.put("mensaje", "Visualizador no encontrado o no se pudo eliminar");
-            respuesta.put("exitoso", false);
+            respuesta.put(KEY_MENSAJE, "Visualizador no encontrado o no se pudo eliminar");
+            respuesta.put(KEY_EXITOSO, false);
             return ResponseEntity.notFound().build();
         }
         
         Map<String, Object> respuesta = new HashMap<>();
-        respuesta.put("mensaje", "Visualizador eliminado correctamente");
-        respuesta.put("exitoso", true);
+        respuesta.put(KEY_MENSAJE, "Visualizador eliminado correctamente");
+        respuesta.put(KEY_EXITOSO, true);
         
         return ResponseEntity.ok(respuesta);
     }
