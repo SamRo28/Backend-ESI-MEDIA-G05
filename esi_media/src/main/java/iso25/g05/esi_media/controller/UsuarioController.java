@@ -72,7 +72,8 @@ public class UsuarioController {
         
             Map<String, Object> res =  Map.of(
                 "tipo", loggedInUser.getClass().getSimpleName(),
-                "usuario", loggedInUser
+                "usuario", loggedInUser,
+                "token",  loggedInUser.getSesionstoken().getToken()
                 );
             return ResponseEntity.status(HttpStatus.OK).body(res);
         } catch (ResponseStatusException e) {

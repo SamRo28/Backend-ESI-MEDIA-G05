@@ -38,12 +38,11 @@ public class EmailService {
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true);
 
             helper.setTo(email);
-            helper.setSubject("ConfirmaciÃ³n de Registro");
+            helper.setSubject("Confirmación de Registro");
 
             Codigorecuperacion codigoRecuperacion = new Codigorecuperacion(user);
             codigoRecuperacionRepository.save(codigoRecuperacion);
             
-            // Cargar la plantilla HTML desde un archivo externo
             String emailContent = loadEmailTemplate("email-templates/3FA-email.html");
             emailContent = emailContent.replace("{{CODIGO}}", codigoRecuperacion.getcodigo());
 
@@ -53,7 +52,7 @@ public class EmailService {
             return codigoRecuperacion;
 
         } catch (Exception e) {
-            throw new RuntimeException("Error al enviar el correo de confirmaciÃ³n", e);
+            throw new RuntimeException("Error al enviar el correo de confirmación", e);
         }
     }
 
@@ -68,22 +67,16 @@ public class EmailService {
         }
     }
 
-    /**
-     * EnvÃ­a un correo de restablecimiento de contraseÃ±a con enlace temporal
-     * El enlace apunta al frontend con el token como parÃ¡metro de consulta
-     */
     public void sendPasswordResetEmail(String email, String token) {
         try {
             MimeMessage mimeMessage = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true);
 
             helper.setTo(email);
-            helper.setSubject("Solicitud de cambio de contraseÃ±a en ESIMedia");
+            helper.setSubject("Solicitud de cambio de contraseña en ESIMedia");
 
-            // Enlace al frontend (ajustable si cambia el host/puerto)
             String resetLink = "http://localhost:4200/reset-password?token=" + token;
 
-            // Usar plantilla visual desde resources/email-templates
             String html = loadEmailTemplate("email-templates/password-reset.html");
             html = html.replace("{{RESET_LINK}}", resetLink)
                        .replace("{{BRAND}}", "ESIMedia");
@@ -95,10 +88,6 @@ public class EmailService {
         }
     }
 
-
-    /**
-     * Envía un correo de confirmación cuando la contraseña ha sido cambiada.
-     */
     public void sendPasswordChangedEmail(String email) {
         try {
             MimeMessage mimeMessage = mailSender.createMimeMessage();
@@ -113,7 +102,6 @@ public class EmailService {
             helper.setText(html, true);
             mailSender.send(mimeMessage);
         } catch (Exception e) {
-            // No romper el flujo por fallo de email
             System.err.println("[EmailService] Error enviando confirmación de cambio de contraseña: " + e.getMessage());
         }
     }
