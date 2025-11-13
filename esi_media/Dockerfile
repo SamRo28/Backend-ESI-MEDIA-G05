@@ -16,6 +16,7 @@ WORKDIR /app
 # Copiamos los archivos de Maven y descargamos dependencias
 # Esto aprovecha la caché de Docker si no cambias el pom.xml
 COPY pom.xml .
+COPY mvnw .
 COPY .mvn .mvn
 RUN ./mvnw dependency:go-offline
 

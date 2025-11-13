@@ -28,13 +28,7 @@ stages:
       
     steps:
 
-    # --- 1. Instalar Maven Wrapper ---
-    - script: |
-        cd esi_media
-        mvn -N io.takari:maven:wrapper
-      displayName: 'Install Maven Wrapper'
-
-    # --- 2. Compilar y ejecutar tests ---
+    # --- 1. Compilar y ejecutar tests ---
     - task: Maven@4
       inputs:
         mavenPomFile: 'esi_media/pom.xml'
