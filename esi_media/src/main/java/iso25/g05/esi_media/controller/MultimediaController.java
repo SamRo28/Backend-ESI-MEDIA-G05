@@ -44,6 +44,8 @@ public class MultimediaController {
     @Autowired
     private MultimediaService multimediaService;
 
+    private String MSG = "mensaje";
+
     /**
      * GET /multimedia
      * Lista contenidos accesibles para el visualizador autenticado (paginado).
@@ -66,7 +68,7 @@ public class MultimediaController {
 
         if (authHeader == null || authHeader.isBlank()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("mensaje", "No autenticado"));
+                    .body(Map.of(MSG, "No autenticado"));
         }
         try {
             Page<ContenidoResumenDTO> pagina = multimediaService.listarContenidos(pageable, authHeader, tipo, query);
@@ -75,7 +77,7 @@ public class MultimediaController {
             // Fallback genérico para evitar 500 sin mensaje claro
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of(
-                            "mensaje", "Error interno del servidor",
+                            MSG, "Error interno del servidor",
                             "detalle", e.getMessage() != null ? e.getMessage() : ""));
         }
     }
@@ -114,7 +116,7 @@ public class MultimediaController {
             @RequestHeader(value = "Authorization", required = false) String authHeader) {
         if (authHeader == null || authHeader.isBlank()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("mensaje", "No autenticado"));
+                    .body(Map.of(MSG, "No autenticado"));
         }
 
         try {
@@ -122,7 +124,7 @@ public class MultimediaController {
             return ResponseEntity.ok(Map.of("nvisualizaciones", total));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("mensaje", "Error al registrar reproducción", "detalle", e.getMessage() != null ? e.getMessage() : ""));
+                    .body(Map.of(MSG, "Error al registrar reproducción", "detalle", e.getMessage() != null ? e.getMessage() : ""));
         }
     }
 
