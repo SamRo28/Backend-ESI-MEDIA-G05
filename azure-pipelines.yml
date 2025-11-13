@@ -39,7 +39,7 @@ stages:
     
 
     # --- 3. Preparar Análisis de SonarQube ---
-    - task: SonarQubePrepare@5
+    - task: SonarQubePrepare@6
       inputs:
         SonarQube: 'Sonar ESI Connection' 
         scannerMode: 'Maven'
@@ -60,7 +60,7 @@ stages:
 
     # --- 5. Publicar Resultados de SonarQube ---
     # ¡IMPORTANTE! Vuelto a añadir. Este paso espera el resultado del análisis.
-    - task: SonarQubePublish@5
+    - task: SonarQubePublish@6
       inputs:
         pollingTimeoutSec: '300'
       displayName: 'Publish SonarQube Results'

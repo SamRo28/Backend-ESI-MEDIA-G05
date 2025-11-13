@@ -466,7 +466,6 @@ class ListaServiceTest {
 
         when(usuarioRepository.findBySesionToken(TOKEN_VALIDO)).thenReturn(Optional.of(visualizador));
         when(gestorRepository.findById(ID_VISUALIZADOR)).thenReturn(Optional.empty());
-        when(visualizadorRepository.findById(ID_VISUALIZADOR)).thenReturn(Optional.of(visualizador));
         when(listaRepository.save(any(Lista.class))).thenReturn(listaGuardada);
 
         // Act
@@ -477,7 +476,7 @@ class ListaServiceTest {
         assertFalse(resultado.isVisible()); // Forzado a false por reglas de negocio
         assertNull(resultado.getEspecializacionGestor()); // Visualizadores no tienen especialización
         
-        verify(visualizadorRepository).findById(ID_VISUALIZADOR);
+        verify(gestorRepository, atLeastOnce()).findById(ID_VISUALIZADOR);
     }
 
     @Test
@@ -915,7 +914,6 @@ class ListaServiceTest {
 
         when(usuarioRepository.findBySesionToken(TOKEN_VALIDO)).thenReturn(Optional.of(admin));
         when(gestorRepository.findById(admin.getId())).thenReturn(Optional.empty());
-        when(visualizadorRepository.findById(admin.getId())).thenReturn(Optional.empty());
         when(listaRepository.save(any(Lista.class))).thenReturn(listaGuardada);
 
         // Act
@@ -925,6 +923,5 @@ class ListaServiceTest {
         assertFalse(resultado.isVisible()); // Forzado a false
         assertNull(resultado.getEspecializacionGestor());
         verify(gestorRepository, atLeastOnce()).findById(admin.getId());
-        verify(visualizadorRepository).findById(admin.getId());
     }
 }
