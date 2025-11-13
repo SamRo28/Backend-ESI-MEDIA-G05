@@ -28,7 +28,13 @@ stages:
       
     steps:
 
-    # --- 1. Compilar y ejecutar tests ---
+    # --- 1. Instalar Maven Wrapper ---
+    - script: |
+        cd esi_media
+        mvn -N io.takari:maven:wrapper
+      displayName: 'Install Maven Wrapper'
+
+    # --- 2. Compilar y ejecutar tests ---
     - task: Maven@4
       inputs:
         mavenPomFile: 'esi_media/pom.xml'
@@ -36,7 +42,7 @@ stages:
         options: '-Djava.awt.headless=true'
       displayName: 'Compile & Run Tests (mvn verify)'
 
-    # --- 2. Ejecutar análisis de SonarQube con sonar-scanner CLI ---
+    # --- 3. Ejecutar análisis de SonarQube con sonar-scanner CLI ---
     - script: |
 
         cd esi_media
@@ -44,14 +50,14 @@ stages:
     
       displayName: 'Run SonarQube Analysis (CLI, Windows)'
 
-    # --- 3. Iniciar sesión en Docker Hub ---
+    # --- 4. Iniciar sesión en Docker Hub ---
     - task: Docker@2
       inputs:
         containerRegistry: 'DockerHubConnection'
         command: 'login'
       displayName: 'Login to Docker Hub'
 
-    # --- 4. Construir la imagen de Docker ---
+    # --- 5. Construir la imagen de Docker ---
     - task: Docker@2
       inputs:
         containerRegistry: 'DockerHubConnection'
@@ -62,7 +68,7 @@ stages:
         tags: 'latest'
       displayName: 'Build Docker Image (Linux target)'
 
-    # --- 5. Subir la imagen de Docker ---
+    # --- 6. Subir la imagen de Docker ---
     - task: Docker@2
       inputs:
         containerRegistry: 'DockerHubConnection'
