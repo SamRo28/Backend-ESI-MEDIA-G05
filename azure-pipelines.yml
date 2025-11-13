@@ -1,17 +1,17 @@
 # -----------------------------------------------------------------
 # azure-pipelines.yml
-# Versión corregida de errores de sintaxis
+# Versión con sonar-scanner CLI
 # -----------------------------------------------------------------
 
 trigger:
 - main
 
-
 variables:
-- name: DOCKER_IMAGE_NAME # Variable normal
+- name: DOCKER_IMAGE_NAME
   value: 'samuelrodero/esi-media-g05-backend'
-- group: 'RenderProjectSecrets'   # Grupo de variables
-- group: 'DockerRegistrySecrets'  # Grupo de variables
+- group: 'RenderProjectSecrets'
+- group: 'DockerRegistrySecrets'
+- group: 'SonarSecrets'
 
 stages:
 # -----------------------------------------------------------------
@@ -28,62 +28,46 @@ stages:
       
     steps:
 
-    # --- 2. Compilar y Ejecutar Tests (para JaCoCo) ---
-    - task: Maven@4
-      inputs:
-        mavenPomFile: 'esi_media/pom.xml' 
-        goals: 'clean verify'
-        options: '-Djava.awt.headless=true'
-      displayName: 'Compile & Run Tests (mvnw.cmd verify)'
-    # --- CORRECCIÓN 2: 'workingDirectory' movido fuera de 'inputs' ---
-    
-
-    # --- 3. Preparar Análisis de SonarQube ---
-    - task: SonarQubePrepare@6
-      inputs:
-        SonarQube: 'Sonar ESI Connection' 
-        scannerMode: 'Maven'
-        projectKey: '2025-g05-backend'
-        projectName: 'ESI Media Backend'
-        extraProperties: |
-          sonar.coverage.jacoco.xmlReportPaths=esi_media/target/site/jacoco/xml
-      displayName: 'Prepare SonarQube Analysis'
-
-    # --- 4. Ejecutar Análisis de SonarQube ---
+    # --- 1. Compilar y ejecutar tests ---
     - task: Maven@4
       inputs:
         mavenPomFile: 'esi_media/pom.xml'
-        goals: 'sonar:sonar'
-      displayName: 'Run SonarQube Analysis'
-    # --- CORRECCIÓN 3: 'workingDirectory' movido fuera de 'inputs' ---
-    
+        goals: 'clean verify'
+        options: '-Djava.awt.headless=true'
+      displayName: 'Compile & Run Tests (mvn verify)'
 
-    # --- 5. Publicar Resultados de SonarQube ---
-    # ¡IMPORTANTE! Vuelto a añadir. Este paso espera el resultado del análisis.
-    - task: SonarQubePublish@6
-      inputs:
-        pollingTimeoutSec: '300'
-      displayName: 'Publish SonarQube Results'
+    # --- 2. Ejecutar análisis de SonarQube con sonar-scanner CLI ---
+    - script: |
 
-    # --- 6. Iniciar sesión en Docker Hub ---
+        sonar-scanner ^
+          -Dsonar.projectKey=2025-g05-backend ^
+          -Dsonar.projectName="ESI Media Backend" ^
+          -Dsonar.host.url=$(SONAR_HOST_URL) ^
+          -Dsonar.login=$(SONAR_TOKEN) ^
+          -Dsonar.sources=esi_media/src ^
+          -Dsonar.java.binaries=esi_media/target/classes ^
+          -Dsonar.coverage.jacoco.xmlReportPaths=esi_media/target/site/jacoco/xml
+      displayName: 'Run SonarQube Analysis (CLI, Windows)'
+
+    # --- 3. Iniciar sesión en Docker Hub ---
     - task: Docker@2
       inputs:
-        containerRegistry: 'DockerHubConnection' 
+        containerRegistry: 'DockerHubConnection'
         command: 'login'
       displayName: 'Login to Docker Hub'
 
-    # --- 7. Construir la imagen de Docker (Linux) ---
+    # --- 4. Construir la imagen de Docker ---
     - task: Docker@2
       inputs:
         containerRegistry: 'DockerHubConnection'
         repository: $(DOCKER_IMAGE_NAME)
         command: 'build'
-        dockerfile: 'esi_media/Dockerfile' 
-        buildContext: '.' 
+        dockerfile: 'esi_media/Dockerfile'
+        buildContext: '.'
         tags: 'latest'
       displayName: 'Build Docker Image (Linux target)'
 
-    # --- 8. Subir la imagen de Docker ---
+    # --- 5. Subir la imagen de Docker ---
     - task: Docker@2
       inputs:
         containerRegistry: 'DockerHubConnection'
@@ -104,9 +88,12 @@ stages:
   - job: DeployJob
     displayName: 'Trigger Render Deploy'
     pool:
-      vmImage: 'windows-latest' 
+      vmImage: 'windows-latest'
       
     steps:
     - script: |
-        curl -X POST "https://api.render.com/v1/services/$(RENDER_SERVICE_ID)/deploys" -H "Authorization: Bearer $(RENDER_API_KEY)" -H "Content-Type: application/json" -d "{\"image_path\": \"docker.io/$(DOCKER_IMAGE_NAME):latest\"}"
+        curl -X POST "https://api.render.com/v1/services/$(RENDER_SERVICE_ID)/deploys" ^
+        -H "Authorization: Bearer $(RENDER_API_KEY)" ^
+        -H "Content-Type: application/json" ^
+        -d "{\"image_path\": \"docker.io/$(DOCKER_IMAGE_NAME):latest\"}"
       displayName: 'Trigger Render API Deploy'
