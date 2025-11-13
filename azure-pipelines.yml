@@ -39,15 +39,10 @@ stages:
     # --- 2. Ejecutar análisis de SonarQube con sonar-scanner CLI ---
     - script: |
 
-        sonar-scanner ^
-          -Dsonar.projectKey=2025-g05-backend ^
-          -Dsonar.projectName="ESI Media Backend" ^
-          -Dsonar.host.url=$(SONAR_HOST_URL) ^
-          -Dsonar.login=$(SONAR_TOKEN) ^
-          -Dsonar.sources=esi_media/src ^
-          -Dsonar.java.binaries=esi_media/target/classes ^
-          -Dsonar.coverage.jacoco.xmlReportPaths=esi_media/target/site/jacoco/xml ^
-          -Dsonar.exclusions=**/test/**, **/tests/**, **/resources/**, **/config/**, **/dto/**
+        cd esi_media
+        sonar-scanner \
+          -Dsonar.host.url=$(SONAR_HOST_URL) \
+          -Dsonar.login=$(SONAR_TOKEN)
       displayName: 'Run SonarQube Analysis (CLI, Windows)'
 
     # --- 3. Iniciar sesión en Docker Hub ---
