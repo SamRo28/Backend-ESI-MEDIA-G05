@@ -55,8 +55,8 @@ class MultimediaControllerWebMvcTest {
     @DisplayName("GET /multimedia devuelve 200 y una página de contenidos")
     void listarContenidos_ok() throws Exception {
         Page<ContenidoResumenDTO> page = new PageImpl<>(List.of(
-                new ContenidoResumenDTO("c1", "Canción 1", "AUDIO", null, false),
-                new ContenidoResumenDTO("v1", "Video 1", "VIDEO", null, true)
+                new ContenidoResumenDTO("c1", "Canción 1", "AUDIO", null, false, null),
+                new ContenidoResumenDTO("v1", "Video 1", "VIDEO", null, true, "1080p")
         ), PageRequest.of(0, 2), 2);
 
         when(multimediaService.listarContenidos(
@@ -88,7 +88,7 @@ class MultimediaControllerWebMvcTest {
                                 0,    // edadvisualizacion
                                 0,    // nvisualizaciones
                                 java.util.List.of("tag1"), // tags
-                                "/multimedia/audio/c1");
+                                "/multimedia/audio/c1", null);
 
         when(multimediaService.obtenerContenidoPorId(eq("c1"), anyString()))
                 .thenReturn(detalle);
