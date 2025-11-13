@@ -58,7 +58,7 @@ stages:
         repository: $(DOCKER_IMAGE_NAME)
         command: 'build'
         dockerfile: 'esi_media/Dockerfile'
-        buildContext: '.'
+        buildContext: 'esi_media'
         tags: 'latest'
       displayName: 'Build Docker Image (Linux target)'
 
