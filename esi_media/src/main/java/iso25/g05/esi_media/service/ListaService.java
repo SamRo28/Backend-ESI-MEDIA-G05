@@ -1113,7 +1113,8 @@ public class ListaService {
             contenido.gettitulo(),
             tipo,
             contenido.getcaratula(),
-            contenido.isvip()
+            contenido.isvip(),
+            (contenido instanceof iso25.g05.esi_media.model.Video) ? ((iso25.g05.esi_media.model.Video) contenido).getresolucion() : null
         );
     }
 }
