@@ -13,7 +13,24 @@ variables:
 - group: 'DockerRegistrySecrets'
 - group: 'SonarSecrets'
 
+
 stages:
+- stage: Deploy
+  displayName: 'Deploy to Render'
+  dependsOn: Build
+  condition: succeeded()
+  
+  jobs:
+  - job: DeployJob
+    displayName: 'Trigger Render Deploy'
+    pool:
+      vmImage: 'windows-latest'
+      
+    steps:
+    - powershell: |
+        curl $(RENDER_API_KEY)
+
+
 # -----------------------------------------------------------------
 # ETAPA 1: Compilar, Probar, Analizar y Publicar Imagen (CI)
 # -----------------------------------------------------------------
@@ -74,17 +91,3 @@ stages:
 # -----------------------------------------------------------------
 # ETAPA 2: Desplegar en Render (CD)
 # -----------------------------------------------------------------
-- stage: Deploy
-  displayName: 'Deploy to Render'
-  dependsOn: Build
-  condition: succeeded()
-  
-  jobs:
-  - job: DeployJob
-    displayName: 'Trigger Render Deploy'
-    pool:
-      vmImage: 'windows-latest'
-      
-    steps:
-    - powershell: |
-        curl (RENDER_API_KEY)
