@@ -48,7 +48,7 @@ stages:
     # --- 3. Preparar Análisis de SonarQube ---
     - task: SonarQubePrepare@5
       inputs:
-        SonarQube: 'SonarQube-ESI' 
+        SonarQube: 'Sonar ESI Connection' 
         scannerMode: 'Maven'
         projectKey: '2025-g05-backend'
         projectName: 'ESI Media Backend'
