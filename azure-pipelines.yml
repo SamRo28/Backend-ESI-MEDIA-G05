@@ -1,19 +1,17 @@
 # -----------------------------------------------------------------
 # azure-pipelines.yml
-# Versión corregida (goals: 'sonar:sonar' y SonarQubePublish)
+# Versión corregida de errores de sintaxis
 # -----------------------------------------------------------------
 
 trigger:
 - main
 
-# Nombre de la imagen de Docker que crearás
-variables:
-  DOCKER_IMAGE_NAME: 'samuelrodero/esi-media-g05-backend' 
 
-# Grupos de variables secretas de tu Biblioteca de Azure DevOps
 variables:
-- group: 'RenderProjectSecrets'   
-- group: 'DockerRegistrySecrets'  
+- name: DOCKER_IMAGE_NAME # Variable normal
+  value: 'samuelrodero/esi-media-g05-backend'
+- group: 'RenderProjectSecrets'   # Grupo de variables
+- group: 'DockerRegistrySecrets'  # Grupo de variables
 
 stages:
 # -----------------------------------------------------------------
@@ -25,9 +23,8 @@ stages:
   - job: BuildJob
     displayName: 'CI & Docker Push (Windows Agent)'
     
-    # Apuntamos a tu pool de agentes Windows auto-hospedado
     pool:
-      name: 'samuel-pool' 
+      name: 'samuel-pool' # Tu pool de agente auto-hospedado
       
     steps:
     # --- 1. Configurar Java 17 ---
@@ -41,35 +38,35 @@ stages:
     # --- 2. Compilar y Ejecutar Tests (para JaCoCo) ---
     - task: Maven@4
       inputs:
-        mavenPomFile: 'esi_media/pom.xml' # Ruta al pom
+        mavenPomFile: 'esi_media/pom.xml' 
         goals: 'clean verify'
         options: '-Djava.awt.headless=true'
       displayName: 'Compile & Run Tests (mvnw.cmd verify)'
-      workingDirectory: '.' # Ejecutar desde la raíz
+    # --- CORRECCIÓN 2: 'workingDirectory' movido fuera de 'inputs' ---
+    
 
     # --- 3. Preparar Análisis de SonarQube ---
     - task: SonarQubePrepare@5
       inputs:
-        SonarQube: 'SonarQube-ESI' # Nombre de tu Service Connection
+        SonarQube: 'SonarQube-ESI' 
         scannerMode: 'Maven'
         projectKey: '2025-g05-backend'
         projectName: 'ESI Media Backend'
         extraProperties: |
-          # Ruta al reporte de cobertura
-          sonar.coverage.jacoco.xmlReportPaths=esi_media/target/site/jacoco/jacoco.xml
+          sonar.coverage.jacoco.xmlReportPaths=esi_media/target/site/jacoco/xml
       displayName: 'Prepare SonarQube Analysis'
 
     # --- 4. Ejecutar Análisis de SonarQube ---
-    # ¡CORRECCIÓN! Usamos 'sonar:sonar' que es el goal de Maven
     - task: Maven@4
       inputs:
         mavenPomFile: 'esi_media/pom.xml'
         goals: 'sonar:sonar'
-      displayName: 'Run SonarQube Analysis (mvnw.cmd sonar:sonar)'
-      workingDirectory: '.'
+      displayName: 'Run SonarQube Analysis'
+    # --- CORRECCIÓN 3: 'workingDirectory' movido fuera de 'inputs' ---
+    
 
     # --- 5. Publicar Resultados de SonarQube ---
-    # ¡AÑADIDO DE VUELTA! Este paso espera a que Sonar termine.
+    # ¡IMPORTANTE! Vuelto a añadir. Este paso espera el resultado del análisis.
     - task: SonarQubePublish@5
       inputs:
         pollingTimeoutSec: '300'
@@ -78,7 +75,7 @@ stages:
     # --- 6. Iniciar sesión en Docker Hub ---
     - task: Docker@2
       inputs:
-        containerRegistry: 'DockerHubConnection' # Tu Service Connection de Docker
+        containerRegistry: 'DockerHubConnection' 
         command: 'login'
       displayName: 'Login to Docker Hub'
 
@@ -88,8 +85,8 @@ stages:
         containerRegistry: 'DockerHubConnection'
         repository: $(DOCKER_IMAGE_NAME)
         command: 'build'
-        dockerfile: 'esi_media/Dockerfile' # Ruta al Dockerfile
-        buildContext: '.' # Contexto de build (raíz del repo)
+        dockerfile: 'esi_media/Dockerfile' 
+        buildContext: '.' 
         tags: 'latest'
       displayName: 'Build Docker Image (Linux target)'
 
