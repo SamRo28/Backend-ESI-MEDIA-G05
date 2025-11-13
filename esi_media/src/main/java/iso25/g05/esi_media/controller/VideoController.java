@@ -22,6 +22,9 @@ public class VideoController {
     
     @Autowired
     private VideoService videoService;
+
+    private String SCS = "success";
+    private  String MSG = "message";
     
     /**
      * Endpoint para subir un nuevo video por URL
@@ -42,8 +45,8 @@ public class VideoController {
             // El service se encarga de validar el token y extraer el gestorId
             Video videoGuardado = videoService.subirVideoConToken(videoDTO, authHeader);
             
-            response.put("success", true);
-            response.put("message", "Video subido exitosamente");
+            response.put(SCS, true);
+            response.put(MSG, "Video subido exitosamente");
             response.put("videoId", videoGuardado.getId());
             response.put("titulo", videoGuardado.gettitulo());
             response.put("url", videoGuardado.geturl());
@@ -51,13 +54,13 @@ public class VideoController {
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
             
         } catch (IllegalArgumentException e) {
-            response.put("success", false);
-            response.put("message", "Error de validación: " + e.getMessage());
+            response.put(SCS, false);
+            response.put(MSG, "Error de validación: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
             
         } catch (Exception e) {
-            response.put("success", false);
-            response.put("message", "Error interno del servidor");
+            response.put(SCS, false);
+            response.put(MSG, "Error interno del servidor");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }

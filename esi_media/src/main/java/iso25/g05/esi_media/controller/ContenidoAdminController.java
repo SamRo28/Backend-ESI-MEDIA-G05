@@ -22,6 +22,15 @@ public class ContenidoAdminController {
     private final GestorDeContenidoRepository gestorRepository;
     private final LogService logService;
 
+    private String ERROR = "error";
+    private String TITULO = "titulo";
+    private String VIDEO = "Video";
+    private String GN = "gestorNombre";
+    private String AUDIO = "Audio";
+    private String DESC = "descripcion";
+    private String DUR = "duracion";
+
+
     public ContenidoAdminController(UsuarioRepository usuarioRepository,
                                     ContenidoRepository contenidoRepository,
                                     VideoRepository videoRepository,
@@ -40,19 +49,19 @@ public class ContenidoAdminController {
     public ResponseEntity<?> listar(@RequestHeader(value = "Admin-ID", required = false) String adminId) {
         if (adminId == null || adminId.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "No autorizado. Se requiere Admin-ID"));
+                    .body(Map.of(ERROR, "No autorizado. Se requiere Admin-ID"));
         }
         // Validar formato de ID para evitar 500 si no es ObjectId
         if (!ObjectId.isValid(adminId)) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", "Admin-ID invÃƒÂ¡lido"));
+                    .body(Map.of(ERROR, "Admin-ID invÃƒÂ¡lido"));
         }
 
         Optional<Usuario> adminOpt = usuarioRepository.findById(adminId);
         if (adminOpt.isEmpty() || !(adminOpt.get() instanceof Administrador)) {
             logService.registrarAccesoNoAutorizado(adminId, "Listado contenidos");
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("error", "Acceso denegado. Solo administradores"));
+                    .body(Map.of(ERROR, "Acceso denegado. Solo administradores"));
         }
 
         List<Map<String, Object>> resultado = new ArrayList<>();
@@ -62,9 +71,9 @@ public class ContenidoAdminController {
             for (Contenido c : contenidoRepository.findAll()) {
                 Map<String, Object> item = new HashMap<>();
                 item.put("id", c.getId());
-                item.put("titulo", c.gettitulo());
-                item.put("tipo", "Video");
-                item.put("gestorNombre", resolverGestorNombre(c.getgestorId()));
+                item.put(TITULO, c.gettitulo());
+                item.put("tipo", VIDEO);
+                item.put(GN, resolverGestorNombre(c.getgestorId()));
                 resultado.add(item);
             }
         } catch (Exception e) {
@@ -76,9 +85,9 @@ public class ContenidoAdminController {
             for (Video v : videoRepository.findAll()) {
                 Map<String, Object> item = new HashMap<>();
                 item.put("id", v.getId());
-                item.put("titulo", v.gettitulo());
-                item.put("tipo", "Video");
-                item.put("gestorNombre", resolverGestorNombre(v.getgestorId()));
+                item.put(TITULO, v.gettitulo());
+                item.put("tipo", VIDEO);
+                item.put(GN, resolverGestorNombre(v.getgestorId()));
                 resultado.add(item);
             }
         } catch (Exception e) {
@@ -90,9 +99,9 @@ public class ContenidoAdminController {
             for (Audio a : audioRepository.findAll()) {
                 Map<String, Object> item = new HashMap<>();
                 item.put("id", a.getId());
-                item.put("titulo", a.gettitulo());
-                item.put("tipo", "Audio");
-                item.put("gestorNombre", resolverGestorNombre(a.getgestorId()));
+                item.put(TITULO, a.gettitulo());
+                item.put("tipo", AUDIO);
+                item.put(GN, resolverGestorNombre(a.getgestorId()));
                 resultado.add(item);
             }
         } catch (Exception e) {
@@ -108,40 +117,40 @@ public class ContenidoAdminController {
                                      @RequestHeader(value = "Admin-ID", required = false) String adminId) {
         if (adminId == null || adminId.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "No autorizado. Se requiere Admin-ID"));
+                    .body(Map.of(ERROR, "No autorizado. Se requiere Admin-ID"));
         }
         Optional<Usuario> adminOpt = usuarioRepository.findById(adminId);
         if (adminOpt.isEmpty() || !(adminOpt.get() instanceof Administrador)) {
             logService.registrarAccesoNoAutorizado(adminId, "Detalle contenido: " + id);
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("error", "Acceso denegado. Solo administradores"));
+                    .body(Map.of(ERROR, "Acceso denegado. Solo administradores"));
         }
 
         // Buscar primero en videos (colecciÃƒÂ³n contenidos)
         Optional<Contenido> cOpt = contenidoRepository.findById(id);
         if (cOpt.isPresent()) {
             Contenido c = cOpt.get();
-            return ResponseEntity.ok(mapearDetalle(c, "Video"));
+            return ResponseEntity.ok(mapearDetalle(c, VIDEO));
         }
 
         // Luego en audios
         Optional<Audio> aOpt = audioRepository.findById(id);
         if (aOpt.isPresent()) {
             Audio a = aOpt.get();
-            return ResponseEntity.ok(mapearDetalle(a, "Audio"));
+            return ResponseEntity.ok(mapearDetalle(a, AUDIO));
         }
 
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(Map.of("error", "Contenido no encontrado"));
+                .body(Map.of(ERROR, "Contenido no encontrado"));
     }
 
     private Map<String, Object> mapearDetalle(Contenido c, String tipo) {
         Map<String, Object> d = new HashMap<>();
         d.put("id", c.getId());
-        d.put("titulo", c.gettitulo());
+        d.put(TITULO, c.gettitulo());
         d.put("tipo", tipo);
-        d.put("descripcion", c.getdescripcion());
-        d.put("duracion", c.getduracion());
+        d.put(DESC, c.getdescripcion());
+        d.put(DUR, c.getduracion());
         if (c instanceof Video v) {
             d.put("resolucion", v.getresolucion());
             d.put("url", v.geturl());
@@ -149,7 +158,7 @@ public class ContenidoAdminController {
         d.put("vip", c.isvip());
         d.put("edadMinima", c.getedadvisualizacion());
         d.put("gestorId", c.getgestorId());
-        d.put("gestorNombre", resolverGestorNombre(c.getgestorId()));
+        d.put(GN, resolverGestorNombre(c.getgestorId()));
         return d;
     }
 
@@ -166,13 +175,13 @@ public class ContenidoAdminController {
         // Validar que el token esté presente (básico)
         if (authHeader == null || authHeader.trim().isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "Token de autorización requerido"));
+                    .body(Map.of(ERROR, "Token de autorización requerido"));
         }
         
         // Validar query
         if (query == null || query.trim().length() < 2) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", "El query debe tener al menos 2 caracteres"));
+                    .body(Map.of(ERROR, "El query debe tener al menos 2 caracteres"));
         }
         
         // Limitar resultados
@@ -189,10 +198,10 @@ public class ContenidoAdminController {
                 .forEach(c -> {
                     Map<String, Object> item = new HashMap<>();
                     item.put("id", c.getId());
-                    item.put("titulo", c.gettitulo());
-                    item.put("tipo", "Video");
-                    item.put("descripcion", c.getdescripcion());
-                    item.put("duracion", c.getduracion());
+                    item.put(TITULO, c.gettitulo());
+                    item.put("tipo", VIDEO);
+                    item.put(DESC, c.getdescripcion());
+                    item.put(DUR, c.getduracion());
                     resultado.add(item);
                 });
                 
@@ -208,10 +217,10 @@ public class ContenidoAdminController {
                     .forEach(v -> {
                         Map<String, Object> item = new HashMap<>();
                         item.put("id", v.getId());
-                        item.put("titulo", v.gettitulo());
-                        item.put("tipo", "Video");
-                        item.put("descripcion", v.getdescripcion());
-                        item.put("duracion", v.getduracion());
+                        item.put(TITULO, v.gettitulo());
+                        item.put("tipo", VIDEO);
+                        item.put(DESC, v.getdescripcion());
+                        item.put(DUR, v.getduracion());
                         item.put("resolucion", v.getresolucion());
                         resultado.add(item);
                     });
@@ -227,10 +236,10 @@ public class ContenidoAdminController {
                     .forEach(a -> {
                         Map<String, Object> item = new HashMap<>();
                         item.put("id", a.getId());
-                        item.put("titulo", a.gettitulo());
-                        item.put("tipo", "Audio");
-                        item.put("descripcion", a.getdescripcion());
-                        item.put("duracion", a.getduracion());
+                        item.put(TITULO, a.gettitulo());
+                        item.put("tipo", AUDIO);
+                        item.put(DESC, a.getdescripcion());
+                        item.put(DUR, a.getduracion());
                         resultado.add(item);
                     });
             }
@@ -246,7 +255,7 @@ public class ContenidoAdminController {
             
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Error interno del servidor"));
+                    .body(Map.of(ERROR, "Error interno del servidor"));
         }
     }
 

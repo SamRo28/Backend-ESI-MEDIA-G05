@@ -46,6 +46,9 @@ class AudioServiceTest {
     private UsuarioRepository usuarioRepository;
 
     @Mock
+    private VideoService videoService;
+
+    @Mock
     private MultipartFile archivoMock;
 
     @InjectMocks
@@ -198,7 +201,7 @@ class AudioServiceTest {
     @Test
     void testSubirAudioConTokenExitoso() throws IOException {
         // Arrange
-        when(usuarioRepository.findBySesionToken("valid-token")).thenReturn(Optional.of(usuarioMock));
+        when(videoService.validarTokenYObtenerGestorId("valid-token")).thenReturn("gestor123");
         when(gestorRepository.findById("gestor123")).thenReturn(Optional.of(gestorMock));
         when(archivoMock.isEmpty()).thenReturn(false);
         when(archivoMock.getSize()).thenReturn(1024L);
@@ -223,6 +226,9 @@ class AudioServiceTest {
 
     @Test
     void testSubirAudioConTokenVacio() {
+        // Arrange
+        when(videoService.validarTokenYObtenerGestorId("")).thenThrow(new IllegalArgumentException("Token vacío"));
+        
         // Act & Assert
         assertThrows(IllegalArgumentException.class, () -> {
             audioService.subirAudioConToken(audioDTO, "");
@@ -232,7 +238,7 @@ class AudioServiceTest {
     @Test
     void testSubirAudioConTokenInvalido() {
         // Arrange
-        when(usuarioRepository.findBySesionToken("invalid-token")).thenReturn(Optional.empty());
+        when(videoService.validarTokenYObtenerGestorId("invalid-token")).thenThrow(new IllegalArgumentException("Token inválido"));
 
         // Act & Assert
         assertThrows(IllegalArgumentException.class, () -> {

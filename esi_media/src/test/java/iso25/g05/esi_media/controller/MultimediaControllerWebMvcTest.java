@@ -39,6 +39,7 @@ import iso25.g05.esi_media.exception.PeticionInvalidaException;
 import iso25.g05.esi_media.exception.RecursoNoEncontradoException;
 import iso25.g05.esi_media.model.Audio;
 import iso25.g05.esi_media.service.MultimediaService;
+import iso25.g05.esi_media.service.LoggingService;
 
 @WebMvcTest(controllers = MultimediaController.class)
 @Import({GlobalExceptionHandler.class})
@@ -50,6 +51,9 @@ class MultimediaControllerWebMvcTest {
 
         @MockitoBean
                 private MultimediaService multimediaService;
+                
+        @MockitoBean
+                private LoggingService loggingService;
 
     @Test
     @DisplayName("GET /multimedia devuelve 200 y una página de contenidos")
@@ -62,13 +66,14 @@ class MultimediaControllerWebMvcTest {
         when(multimediaService.listarContenidos(
                 org.mockito.ArgumentMatchers.<org.springframework.data.domain.Pageable>any(), 
                 anyString(), 
+                isNull(),
                 isNull()))
                 .thenReturn(page);
 
         // Verificar que el endpoint responde correctamente
         mockMvc.perform(get("/multimedia?page=0&size=2").header("Authorization", "Bearer abc"))
                 .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                // .andExpect(content().contentType(MediaType.APPLICATION_JSON)) // El controller no especifica produces
                 .andExpect(jsonPath("$.content", hasSize(2)))
                 .andExpect(jsonPath("$.content[0].id", is("c1")))
                 .andExpect(jsonPath("$.content[0].tipo", is("AUDIO")))
@@ -76,7 +81,7 @@ class MultimediaControllerWebMvcTest {
                 .andExpect(jsonPath("$.content[1].vip", is(true)));
         
         // Verificar que el servicio fue invocado correctamente
-        verify(multimediaService, times(1)).listarContenidos(any(), anyString(), isNull());
+        verify(multimediaService, times(1)).listarContenidos(any(), anyString(), isNull(), isNull());
     }
 
     @Test

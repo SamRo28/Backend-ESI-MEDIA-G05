@@ -54,10 +54,8 @@ public class ListaGestorController extends BaseListaController {
     
     private static final Logger logger = LoggerFactory.getLogger(ListaGestorController.class);
     
-    @Override
-    protected Logger getLogger() {
-        return logger;
-    }
+    @Autowired
+    private ListaService listaService;
     
     /**
      * Crea una nueva lista para el gestor autenticado
@@ -68,16 +66,14 @@ public class ListaGestorController extends BaseListaController {
             @RequestBody PlaylistDto listaDto,
             @RequestHeader(value = "Authorization", required = false) String authHeader) {
         
-        ResponseEntity<Map<String, Object>> validacion = validarToken(authHeader, "crear lista de gestor");
+        ResponseEntity<Map<String, Object>> validacion = validarToken(authHeader, "crear lista de gestor", logger);
         if (validacion != null) return validacion;
         
         try {
             String token = extraerToken(authHeader);
             PlaylistDto listaCreada = listaService.crearListaDesdeDto(listaDto, token);
             
-            Map<String, Object> response = new HashMap<>();
-            response.put(SUCCESS, true);
-            response.put(MENSAJE, "Lista creada correctamente y asociada al usuario.");
+            Map<String, Object> response = crearRespuestaExito("Lista creada correctamente y asociada al usuario.");
             response.put(LISTA, listaCreada);
             
             logger.info("Lista de gestor creada exitosamente: {} (ID: {})", listaCreada.getNombre(), listaCreada.getId());
@@ -87,7 +83,7 @@ public class ListaGestorController extends BaseListaController {
             logger.error("Error al crear lista de gestor: {}", e.getMessage());
             return manejarExcepcion(e, "Error al crear la lista");
         } catch (Exception e) {
-            return manejarExcepcionGeneral(e, "crear lista de gestor");
+            return manejarExcepcionGenerica(e, logger);
         }
     }
     
@@ -99,12 +95,16 @@ public class ListaGestorController extends BaseListaController {
     public ResponseEntity<Map<String, Object>> obtenerListasPropiasGestor(
             @RequestHeader(value = "Authorization", required = false) String authHeader) {
         
-        ResponseEntity<Map<String, Object>> validacion = validarToken(authHeader, "obtener listas propias de gestor");
+        ResponseEntity<Map<String, Object>> validacion = validarToken(authHeader, "obtener listas propias de gestor", logger);
         if (validacion != null) return validacion;
         
         try {
             String token = extraerToken(authHeader);
             List<PlaylistDto> listas = listaService.findListasPropias(token);
+            
+            Map<String, Object> response = crearRespuestaExito("Listas propias obtenidas exitosamente");
+            response.put(LISTAS, listas);
+            response.put(TOTAL, listas.size());
             
             logger.info("Listas propias de gestor obtenidas exitosamente: {} lista(s)", listas.size());
             return crearRespuestaExitoListas("Listas propias obtenidas exitosamente", listas);
@@ -113,7 +113,7 @@ public class ListaGestorController extends BaseListaController {
             logger.error("Error al obtener listas propias de gestor: {}", e.getMessage());
             return manejarExcepcion(e, "Error al obtener las listas propias");
         } catch (Exception e) {
-            return manejarExcepcionGeneral(e, "obtener listas propias de gestor");
+            return manejarExcepcionGenerica(e, logger);
         }
     }
     
@@ -125,14 +125,16 @@ public class ListaGestorController extends BaseListaController {
     public ResponseEntity<Map<String, Object>> obtenerTodasLasListas(
             @RequestHeader(value = "Authorization", required = false) String authHeader) {
         
-        ResponseEntity<Map<String, Object>> validacion = validarToken(authHeader, "obtener todas las listas de gestores");
+        ResponseEntity<Map<String, Object>> validacion = validarToken(authHeader, "obtener todas las listas", logger);
         if (validacion != null) return validacion;
         
         try {
             String token = extraerToken(authHeader);
-            
-            // Obtener listas visibles de gestores (propias + de otros gestores)
             List<PlaylistDto> listas = listaService.findListasVisiblesGestores(token);
+            
+            Map<String, Object> response = crearRespuestaExito("Todas las listas visibles obtenidas exitosamente");
+            response.put(LISTAS, listas);
+            response.put(TOTAL, listas.size());
             
             logger.info("Todas las listas obtenidas por gestor exitosamente: {} lista(s)", listas.size());
             return crearRespuestaExitoListas("Todas las listas visibles obtenidas exitosamente", listas);
@@ -141,7 +143,7 @@ public class ListaGestorController extends BaseListaController {
             logger.error("Error al obtener todas las listas para gestor: {}", e.getMessage());
             return manejarExcepcion(e, "Error al obtener todas las listas");
         } catch (Exception e) {
-            return manejarExcepcionGeneral(e, "obtener todas las listas para gestor");
+            return manejarExcepcionGenerica(e, logger);
         }
     }
 
