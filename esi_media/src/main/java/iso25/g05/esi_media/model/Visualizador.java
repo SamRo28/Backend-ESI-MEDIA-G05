@@ -33,6 +33,7 @@ public class Visualizador extends Usuario {
     @JsonProperty("fechanac")
     private Date fechanac;
     private boolean vip;
+    private java.util.Date fechacambiosuscripcion;
     @org.springframework.data.mongodb.core.mapping.DBRef
     @JsonIgnoreProperties({"usuario"})
     public List<Lista> listasprivadas = new ArrayList<>();
@@ -82,5 +83,13 @@ public class Visualizador extends Usuario {
 
     public void setVip(boolean v) {
         vip = v;
+    }
+
+    public java.util.Date getFechacambiosuscripcion() {
+        return fechacambiosuscripcion;
+    }
+
+    public void setFechacambiosuscripcion(java.util.Date d) {
+        this.fechacambiosuscripcion = d;
     }
 }
