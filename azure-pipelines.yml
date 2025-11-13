@@ -24,7 +24,7 @@ stages:
     displayName: 'CI & Docker Push (Windows Agent)'
     
     pool:
-      name: 'samuel-pool' # Tu pool de agente auto-hospedado
+      name: 'Default' # Tu pool de agente auto-hospedado
       
     steps:
     # --- 1. Configurar Java 17 ---
