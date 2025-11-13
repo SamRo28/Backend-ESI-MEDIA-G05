@@ -6,6 +6,7 @@ import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import iso25.g05.esi_media.dto.PlaylistDto;
+import iso25.g05.esi_media.service.ListaService;
 
 /**
  * Controlador REST específico para usuarios (visualizadores) en gestión de listas
@@ -105,7 +107,7 @@ public class ListaUsuarioController extends BaseListaController {
             response.put(TOTAL, listas.size());
             
             logger.info("Listas de usuario obtenidas exitosamente: {} lista(s)", listas.size());
-            return crearRespuestaExitoListas("Listas obtenidas exitosamente", listas);
+            return ResponseEntity.ok(response);
             
         } catch (RuntimeException e) {
             logger.error("Error al obtener listas de usuario: {}", e.getMessage());
@@ -124,21 +126,34 @@ public class ListaUsuarioController extends BaseListaController {
             @PathVariable String id,
             @RequestHeader(value = "Authorization", required = false) String authHeader) {
         
-        ResponseEntity<Map<String, Object>> validacion = validarToken(authHeader, "obtener lista " + id);
-        if (validacion != null) return validacion;
+        Map<String, Object> response = new HashMap<>();
         
         try {
+            if (authHeader == null || authHeader.trim().isEmpty()) {
+                logger.warn("Intento de obtener lista {} sin token de autorización", id);
+                response.put(SUCCESS, false);
+                response.put(MENSAJE, TOKEN_REQUERIDO);
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+            }
+            
             String token = extraerToken(authHeader);
             PlaylistDto lista = listaService.findListaById(id, token);
             
+            response.put(SUCCESS, true);
+            response.put(MENSAJE, "Lista obtenida exitosamente");
+            response.put(LISTA, lista);
+            
             logger.info("Lista de usuario obtenida exitosamente: {} (ID: {})", lista.getNombre(), lista.getId());
-            return crearRespuestaExitoLista("Lista obtenida exitosamente", lista);
+            return ResponseEntity.ok(response);
             
         } catch (RuntimeException e) {
             logger.error("Error al obtener lista de usuario {}: {}", id, e.getMessage());
             return manejarExcepcion(e, "Error al obtener la lista");
         } catch (Exception e) {
-            return manejarExcepcionGeneral(e, "obtener lista de usuario " + id);
+            logger.error("Error inesperado al obtener lista de usuario {}", id, e);
+            response.put(SUCCESS, false);
+            response.put(MENSAJE, ERROR_INTERNO);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
     
@@ -151,14 +166,19 @@ public class ListaUsuarioController extends BaseListaController {
             @PathVariable String id,
             @RequestHeader(value = "Authorization", required = false) String authHeader) {
         
-        ResponseEntity<Map<String, Object>> validacion = validarToken(authHeader, "obtener contenidos de lista " + id);
-        if (validacion != null) return validacion;
+        Map<String, Object> response = new HashMap<>();
         
         try {
+            if (authHeader == null || authHeader.trim().isEmpty()) {
+                logger.warn("Intento de obtener contenidos de lista {} sin token de autorización", id);
+                response.put(SUCCESS, false);
+                response.put(MENSAJE, TOKEN_REQUERIDO);
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+            }
+            
             String token = extraerToken(authHeader);
             List<iso25.g05.esi_media.dto.ContenidoResumenDTO> contenidos = listaService.findContenidosLista(id, token);
             
-            Map<String, Object> response = new HashMap<>();
             response.put(SUCCESS, true);
             response.put(MENSAJE, "Contenidos obtenidos exitosamente");
             response.put(CONTENIDOS, contenidos);
@@ -171,7 +191,10 @@ public class ListaUsuarioController extends BaseListaController {
             logger.error("Error al obtener contenidos de lista {}: {}", id, e.getMessage());
             return manejarExcepcion(e, "Error al obtener los contenidos de la lista");
         } catch (Exception e) {
-            return manejarExcepcionGeneral(e, "obtener contenidos de lista " + id);
+            logger.error("Error inesperado al obtener contenidos de lista {}", id, e);
+            response.put(SUCCESS, false);
+            response.put(MENSAJE, ERROR_INTERNO);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
     
@@ -185,23 +208,36 @@ public class ListaUsuarioController extends BaseListaController {
             @RequestBody PlaylistDto updatedListaDto,
             @RequestHeader(value = "Authorization", required = false) String authHeader) {
         
-        ResponseEntity<Map<String, Object>> validacion = validarToken(authHeader, "editar lista de usuario " + id);
-        if (validacion != null) return validacion;
+        Map<String, Object> response = new HashMap<>();
         
         try {
+            if (authHeader == null || authHeader.trim().isEmpty()) {
+                logger.warn("Intento de editar lista de usuario {} sin token de autorización", id);
+                response.put(SUCCESS, false);
+                response.put(MENSAJE, TOKEN_REQUERIDO);
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+            }
+            
             String token = extraerToken(authHeader);
             
             // Usar el nuevo método que maneja DTOs completos incluyendo contenidosIds
             PlaylistDto listaEditada = listaService.updateListaDesdeDto(id, updatedListaDto, token);
             
+            response.put(SUCCESS, true);
+            response.put(MENSAJE, "Lista actualizada exitosamente");
+            response.put(LISTA, listaEditada);
+            
             logger.info("Lista de usuario editada exitosamente: {} (ID: {})", listaEditada.getNombre(), listaEditada.getId());
-            return crearRespuestaExitoLista("Lista actualizada exitosamente", listaEditada);
+            return ResponseEntity.ok(response);
             
         } catch (RuntimeException e) {
             logger.error("Error al editar lista de usuario {}: {}", id, e.getMessage());
             return manejarExcepcion(e, "Error al editar la lista");
         } catch (Exception e) {
-            return manejarExcepcionGeneral(e, "editar lista de usuario " + id);
+            logger.error("Error inesperado al editar lista de usuario {}", id, e);
+            response.put(SUCCESS, false);
+            response.put(MENSAJE, ERROR_INTERNO);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
     
@@ -214,21 +250,33 @@ public class ListaUsuarioController extends BaseListaController {
             @PathVariable String id,
             @RequestHeader(value = "Authorization", required = false) String authHeader) {
         
-        ResponseEntity<Map<String, Object>> validacion = validarToken(authHeader, "eliminar lista de usuario " + id);
-        if (validacion != null) return validacion;
+        Map<String, Object> response = new HashMap<>();
         
         try {
+            if (authHeader == null || authHeader.trim().isEmpty()) {
+                logger.warn("Intento de eliminar lista de usuario {} sin token de autorización", id);
+                response.put(SUCCESS, false);
+                response.put(MENSAJE, TOKEN_REQUERIDO);
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+            }
+            
             String token = extraerToken(authHeader);
             listaService.deleteLista(id, token);
             
+            response.put(SUCCESS, true);
+            response.put(MENSAJE, "Lista eliminada exitosamente");
+            
             logger.info("Lista de usuario eliminada exitosamente: ID {}", id);
-            return crearRespuestaExitoSimple("Lista eliminada exitosamente");
+            return ResponseEntity.ok(response);
             
         } catch (RuntimeException e) {
             logger.error("Error al eliminar lista de usuario {}: {}", id, e.getMessage());
             return manejarExcepcion(e, "Error al eliminar la lista");
         } catch (Exception e) {
-            return manejarExcepcionGeneral(e, "eliminar lista de usuario " + id);
+            logger.error("Error inesperado al eliminar lista de usuario {}", id, e);
+            response.put(SUCCESS, false);
+            response.put(MENSAJE, ERROR_INTERNO);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
     
@@ -242,14 +290,19 @@ public class ListaUsuarioController extends BaseListaController {
             @PathVariable String contenidoId,
             @RequestHeader(value = "Authorization", required = false) String authHeader) {
         
-        ResponseEntity<Map<String, Object>> validacion = validarToken(authHeader, "añadir contenido a lista de usuario " + id);
-        if (validacion != null) return validacion;
+        Map<String, Object> response = new HashMap<>();
         
         try {
+            if (authHeader == null || authHeader.trim().isEmpty()) {
+                logger.warn("Intento de añadir contenido a lista de usuario {} sin token de autorización", id);
+                response.put(SUCCESS, false);
+                response.put(MENSAJE, TOKEN_REQUERIDO);
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+            }
+            
             String token = extraerToken(authHeader);
             PlaylistDto listaActualizada = listaService.addContenido(id, contenidoId, token);
             
-            Map<String, Object> response = new HashMap<>();
             response.put(SUCCESS, true);
             response.put(MENSAJE, "Contenido añadido a la lista exitosamente");
             response.put(LISTA, listaActualizada);
@@ -262,7 +315,10 @@ public class ListaUsuarioController extends BaseListaController {
             logger.error("Error al añadir contenido a lista de usuario {}: {}", id, e.getMessage());
             return manejarExcepcion(e, "Error al añadir contenido a la lista");
         } catch (Exception e) {
-            return manejarExcepcionGeneral(e, "añadir contenido a lista de usuario " + id);
+            logger.error("Error inesperado al añadir contenido a lista de usuario {}", id, e);
+            response.put(SUCCESS, false);
+            response.put(MENSAJE, ERROR_INTERNO);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
     
@@ -276,14 +332,19 @@ public class ListaUsuarioController extends BaseListaController {
             @PathVariable String contenidoId,
             @RequestHeader(value = "Authorization", required = false) String authHeader) {
         
-        ResponseEntity<Map<String, Object>> validacion = validarToken(authHeader, "eliminar contenido de lista de usuario " + id);
-        if (validacion != null) return validacion;
+        Map<String, Object> response = new HashMap<>();
         
         try {
+            if (authHeader == null || authHeader.trim().isEmpty()) {
+                logger.warn("Intento de eliminar contenido de lista de usuario {} sin token de autorización", id);
+                response.put(SUCCESS, false);
+                response.put(MENSAJE, TOKEN_REQUERIDO);
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+            }
+            
             String token = extraerToken(authHeader);
             PlaylistDto listaActualizada = listaService.removeContenido(id, contenidoId, token);
             
-            Map<String, Object> response = new HashMap<>();
             response.put(SUCCESS, true);
             response.put(MENSAJE, "Contenido eliminado de la lista exitosamente");
             response.put(LISTA, listaActualizada);
@@ -296,7 +357,10 @@ public class ListaUsuarioController extends BaseListaController {
             logger.error("Error al eliminar contenido de lista de usuario {}: {}", id, e.getMessage());
             return manejarExcepcion(e, "Error al eliminar contenido de la lista");
         } catch (Exception e) {
-            return manejarExcepcionGeneral(e, "eliminar contenido de lista de usuario " + id);
+            logger.error("Error inesperado al eliminar contenido de lista de usuario {}", id, e);
+            response.put(SUCCESS, false);
+            response.put(MENSAJE, ERROR_INTERNO);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
     
@@ -309,21 +373,35 @@ public class ListaUsuarioController extends BaseListaController {
     public ResponseEntity<Map<String, Object>> obtenerListasPublicas(
             @RequestHeader(value = "Authorization", required = false) String authHeader) {
         
-        ResponseEntity<Map<String, Object>> validacion = validarToken(authHeader, "acceder a listas públicas");
-        if (validacion != null) return validacion;
+        Map<String, Object> response = new HashMap<>();
         
         try {
+            if (authHeader == null || authHeader.trim().isEmpty()) {
+                logger.warn("Intento de acceder a listas públicas sin token de autorización");
+                response.put(SUCCESS, false);
+                response.put(MENSAJE, TOKEN_REQUERIDO);
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+            }
+            
             String token = extraerToken(authHeader);
             List<PlaylistDto> listas = listaService.findListasVisiblesGestores(token);
             
+            response.put(SUCCESS, true);
+            response.put(MENSAJE, "Listas públicas obtenidas exitosamente");
+            response.put(LISTAS, listas);
+            response.put(TOTAL, listas.size());
+            
             logger.info("Listas públicas obtenidas exitosamente: {} lista(s)", listas.size());
-            return crearRespuestaExitoListas("Listas públicas obtenidas exitosamente", listas);
+            return ResponseEntity.ok(response);
             
         } catch (RuntimeException e) {
             logger.error("Error al obtener listas públicas: {}", e.getMessage());
             return manejarExcepcion(e, "Error al obtener las listas públicas");
         } catch (Exception e) {
-            return manejarExcepcionGeneral(e, "obtener listas públicas");
+            logger.error("Error inesperado al obtener listas públicas", e);
+            response.put(SUCCESS, false);
+            response.put(MENSAJE, ERROR_INTERNO);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
     
@@ -337,14 +415,19 @@ public class ListaUsuarioController extends BaseListaController {
             @PathVariable String id,
             @RequestHeader(value = "Authorization", required = false) String authHeader) {
         
-        ResponseEntity<Map<String, Object>> validacion = validarToken(authHeader, "obtener lista pública " + id);
-        if (validacion != null) return validacion;
+        Map<String, Object> response = new HashMap<>();
         
         try {
+            if (authHeader == null || authHeader.trim().isEmpty()) {
+                logger.warn("Intento de obtener lista pública {} sin token de autorización", id);
+                response.put(SUCCESS, false);
+                response.put(MENSAJE, TOKEN_REQUERIDO);
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+            }
+            
             String token = extraerToken(authHeader);
             PlaylistDto lista = listaService.findListaByIdConPermisos(id, token);
             
-            Map<String, Object> response = new HashMap<>();
             response.put(SUCCESS, true);
             response.put(MENSAJE, "Lista pública obtenida exitosamente");
             response.put(LISTA, lista);
@@ -359,7 +442,10 @@ public class ListaUsuarioController extends BaseListaController {
             logger.error("Error al obtener lista pública {}: {}", id, e.getMessage());
             return manejarExcepcion(e, "Error al obtener la lista pública");
         } catch (Exception e) {
-            return manejarExcepcionGeneral(e, "obtener lista pública " + id);
+            logger.error("Error inesperado al obtener lista pública {}", id, e);
+            response.put(SUCCESS, false);
+            response.put(MENSAJE, ERROR_INTERNO);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
     
@@ -373,10 +459,16 @@ public class ListaUsuarioController extends BaseListaController {
             @PathVariable String id,
             @RequestHeader(value = "Authorization", required = false) String authHeader) {
         
-        ResponseEntity<Map<String, Object>> validacion = validarToken(authHeader, "obtener contenidos de lista pública " + id);
-        if (validacion != null) return validacion;
+        Map<String, Object> response = new HashMap<>();
         
         try {
+            if (authHeader == null || authHeader.trim().isEmpty()) {
+                logger.warn("Intento de obtener contenidos de lista pública {} sin token de autorización", id);
+                response.put(SUCCESS, false);
+                response.put(MENSAJE, TOKEN_REQUERIDO);
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+            }
+            
             String token = extraerToken(authHeader);
             
             // Primero validar acceso a la lista
@@ -385,7 +477,6 @@ public class ListaUsuarioController extends BaseListaController {
             // Obtener contenidos con filtrado automático según tipo de usuario
             List<iso25.g05.esi_media.dto.ContenidoResumenDTO> contenidos = listaService.findContenidosListaConFiltrado(id, token);
             
-            Map<String, Object> response = new HashMap<>();
             response.put(SUCCESS, true);
             response.put(MENSAJE, "Contenidos filtrados obtenidos exitosamente");
             response.put(CONTENIDOS, contenidos);
@@ -399,7 +490,10 @@ public class ListaUsuarioController extends BaseListaController {
             logger.error("Error al obtener contenidos de lista pública {}: {}", id, e.getMessage());
             return manejarExcepcion(e, "Error al obtener los contenidos de la lista");
         } catch (Exception e) {
-            return manejarExcepcionGeneral(e, "obtener contenidos de lista pública " + id);
+            logger.error("Error inesperado al obtener contenidos de lista pública {}", id, e);
+            response.put(SUCCESS, false);
+            response.put(MENSAJE, ERROR_INTERNO);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
 
