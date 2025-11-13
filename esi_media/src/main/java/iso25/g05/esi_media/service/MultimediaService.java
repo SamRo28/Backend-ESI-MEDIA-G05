@@ -540,4 +540,40 @@ public class MultimediaService {
         LocalDate birth = fechaNac.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
         return Period.between(birth, LocalDate.now()).getYears();
     }
+
+    /**
+     * Registra una reproducción del contenido indicado, validando acceso del usuario.
+     *
+     * Contrato:
+     * - Requiere token (Authorization o token en claro) y cumplir restricciones de edad/VIP si es visualizador.
+     * - Incrementa en +1 el contador de nvisualizaciones y persiste el cambio.
+     * - Devuelve el nuevo total de visualizaciones.
+     */
+    public int registrarReproduccion(String id, String authHeaderOrToken) {
+        if (id == null || id.isBlank()) {
+            throw new PeticionInvalidaException("El id de contenido es obligatorio");
+        }
+
+        Usuario usuario = validarYObtenerUsuarioAutorizado(authHeaderOrToken);
+
+        Optional<Contenido> opt;
+        // Gestor: puede acceder siempre; Visualizador: solo visibles
+        if (usuario instanceof GestordeContenido) {
+            opt = contenidoRepository.findByIdForGestor(id);
+        } else {
+            opt = contenidoRepository.findByIdAndEstadoTrue(id);
+        }
+
+        Contenido contenido = opt.orElseThrow(() -> new RecursoNoEncontradoException("Contenido no encontrado"));
+
+        if (usuario instanceof Visualizador v) {
+            validarAcceso(contenido, v);
+        }
+
+        // Incrementar contador de visualizaciones de forma simple
+        int current = Math.max(0, contenido.getnvisualizaciones());
+        contenido.setnvisualizaciones(current + 1);
+        contenidoRepository.save(contenido);
+        return contenido.getnvisualizaciones();
+    }
 }
