@@ -21,7 +21,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import iso25.g05.esi_media.dto.PlaylistDto;
-
 import iso25.g05.esi_media.service.ListaService;
 
 /**
@@ -53,22 +52,9 @@ import iso25.g05.esi_media.service.ListaService;
 @RestController
 @RequestMapping("/listas/gestor")
 @CrossOrigin(origins = "*")
-public class ListaGestorController {
+public class ListaGestorController extends BaseListaController {
     
     private static final Logger logger = LoggerFactory.getLogger(ListaGestorController.class);
-    
-    // Constantes para respuestas
-    private static final String SUCCESS = "success";
-    private static final String MENSAJE = "mensaje";
-    private static final String LISTA = "lista";
-    private static final String LISTAS = "listas";
-    private static final String TOTAL = "total";
-    private static final String CONTENIDOS = "contenidos";
-    private static final String TOTAL_CONTENIDOS = "totalContenidos";
-    
-    // Constantes para mensajes comunes
-    private static final String TOKEN_REQUERIDO = "Token de autorización requerido";
-    private static final String ERROR_INTERNO = "Error interno del servidor";
     
     @Autowired
     private ListaService listaService;
@@ -82,21 +68,14 @@ public class ListaGestorController {
             @RequestBody PlaylistDto listaDto,
             @RequestHeader(value = "Authorization", required = false) String authHeader) {
         
-        Map<String, Object> response = new HashMap<>();
+        ResponseEntity<Map<String, Object>> validacion = validarToken(authHeader, "crear lista de gestor", logger);
+        if (validacion != null) return validacion;
         
         try {
-            if (authHeader == null || authHeader.trim().isEmpty()) {
-                logger.warn("Intento de crear lista de gestor sin token de autorización");
-                response.put(SUCCESS, false);
-                response.put(MENSAJE, TOKEN_REQUERIDO);
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
-            }
-            
             String token = extraerToken(authHeader);
             PlaylistDto listaCreada = listaService.crearListaDesdeDto(listaDto, token);
             
-            response.put(SUCCESS, true);
-            response.put(MENSAJE, "Lista creada correctamente y asociada al usuario.");
+            Map<String, Object> response = crearRespuestaExito("Lista creada correctamente y asociada al usuario.");
             response.put(LISTA, listaCreada);
             
             logger.info("Lista de gestor creada exitosamente: {} (ID: {})", listaCreada.getNombre(), listaCreada.getId());
@@ -106,10 +85,7 @@ public class ListaGestorController {
             logger.error("Error al crear lista de gestor: {}", e.getMessage());
             return manejarExcepcion(e, "Error al crear la lista");
         } catch (Exception e) {
-            logger.error("Error inesperado al crear lista de gestor", e);
-            response.put(SUCCESS, false);
-            response.put(MENSAJE, ERROR_INTERNO);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+            return manejarExcepcionGenerica(e, logger);
         }
     }
     
@@ -121,21 +97,14 @@ public class ListaGestorController {
     public ResponseEntity<Map<String, Object>> obtenerListasPropiasGestor(
             @RequestHeader(value = "Authorization", required = false) String authHeader) {
         
-        Map<String, Object> response = new HashMap<>();
+        ResponseEntity<Map<String, Object>> validacion = validarToken(authHeader, "obtener listas propias de gestor", logger);
+        if (validacion != null) return validacion;
         
         try {
-            if (authHeader == null || authHeader.trim().isEmpty()) {
-                logger.warn("Intento de obtener listas propias de gestor sin token de autorización");
-                response.put(SUCCESS, false);
-                response.put(MENSAJE, TOKEN_REQUERIDO);
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
-            }
-            
             String token = extraerToken(authHeader);
             List<PlaylistDto> listas = listaService.findListasPropias(token);
             
-            response.put(SUCCESS, true);
-            response.put(MENSAJE, "Listas propias obtenidas exitosamente");
+            Map<String, Object> response = crearRespuestaExito("Listas propias obtenidas exitosamente");
             response.put(LISTAS, listas);
             response.put(TOTAL, listas.size());
             
@@ -146,10 +115,7 @@ public class ListaGestorController {
             logger.error("Error al obtener listas propias de gestor: {}", e.getMessage());
             return manejarExcepcion(e, "Error al obtener las listas propias");
         } catch (Exception e) {
-            logger.error("Error inesperado al obtener listas propias de gestor", e);
-            response.put(SUCCESS, false);
-            response.put(MENSAJE, ERROR_INTERNO);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+            return manejarExcepcionGenerica(e, logger);
         }
     }
     
@@ -161,23 +127,14 @@ public class ListaGestorController {
     public ResponseEntity<Map<String, Object>> obtenerTodasLasListas(
             @RequestHeader(value = "Authorization", required = false) String authHeader) {
         
-        Map<String, Object> response = new HashMap<>();
+        ResponseEntity<Map<String, Object>> validacion = validarToken(authHeader, "obtener todas las listas", logger);
+        if (validacion != null) return validacion;
         
         try {
-            if (authHeader == null || authHeader.trim().isEmpty()) {
-                logger.warn("Intento de obtener todas las listas sin token de gestor");
-                response.put(SUCCESS, false);
-                response.put(MENSAJE, TOKEN_REQUERIDO);
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
-            }
-            
             String token = extraerToken(authHeader);
-            
-            // Obtener listas visibles de gestores (propias + de otros gestores)
             List<PlaylistDto> listas = listaService.findListasVisiblesGestores(token);
             
-            response.put(SUCCESS, true);
-            response.put(MENSAJE, "Todas las listas visibles obtenidas exitosamente");
+            Map<String, Object> response = crearRespuestaExito("Todas las listas visibles obtenidas exitosamente");
             response.put(LISTAS, listas);
             response.put(TOTAL, listas.size());
             
@@ -188,10 +145,7 @@ public class ListaGestorController {
             logger.error("Error al obtener todas las listas para gestor: {}", e.getMessage());
             return manejarExcepcion(e, "Error al obtener todas las listas");
         } catch (Exception e) {
-            logger.error("Error inesperado al obtener todas las listas para gestor", e);
-            response.put(SUCCESS, false);
-            response.put(MENSAJE, ERROR_INTERNO);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+            return manejarExcepcionGenerica(e, logger);
         }
     }
 
@@ -444,43 +398,4 @@ public class ListaGestorController {
     
 
 
-    /**
-     * Extrae el token del header de autorización
-     */
-    private String extraerToken(String authHeader) {
-        if (authHeader.startsWith("Bearer ")) {
-            return authHeader.substring(7).trim();
-        }
-        return authHeader.trim();
-    }
-    
-    /**
-     * Maneja las excepciones y retorna la respuesta HTTP apropiada
-     */
-    private ResponseEntity<Map<String, Object>> manejarExcepcion(RuntimeException e, String mensajeGenerico) {
-        Map<String, Object> response = new HashMap<>();
-        response.put(SUCCESS, false);
-        
-        String mensajeError = e.getMessage();
-        
-        if (mensajeError.contains("Token") && 
-            (mensajeError.contains("inválido") || mensajeError.contains("expirado") || 
-             mensajeError.contains("no proporcionado"))) {
-            response.put(MENSAJE, mensajeError);
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
-        }
-        
-        if (mensajeError.contains("no encontrada") || mensajeError.contains("no encontrado")) {
-            response.put(MENSAJE, mensajeError);
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
-        }
-        
-        if (mensajeError.contains("permisos") || mensajeError.contains("autorizado")) {
-            response.put(MENSAJE, mensajeError);
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
-        }
-        
-        response.put(MENSAJE, mensajeError != null ? mensajeError : mensajeGenerico);
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-    }
 }

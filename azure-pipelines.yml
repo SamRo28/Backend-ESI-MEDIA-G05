@@ -1,0 +1,94 @@
+# -----------------------------------------------------------------
+# azure-pipelines.yml
+# Versión con sonar-scanner CLI
+# -----------------------------------------------------------------
+
+trigger:
+- main
+
+variables:
+- name: DOCKER_IMAGE_NAME
+  value: 'samuelrodero/esi-media-g05-backend'
+- group: 'RenderProjectSecrets'
+- group: 'DockerRegistrySecrets'
+- group: 'SonarSecrets'
+
+stages:
+# -----------------------------------------------------------------
+# ETAPA 1: Compilar, Probar, Analizar y Publicar Imagen (CI)
+# -----------------------------------------------------------------
+- stage: Build
+  displayName: 'Build, Test, Analyze & Push'
+  jobs:
+  - job: BuildJob
+    displayName: 'CI & Docker Push (Windows Agent)'
+    
+    pool:
+      name: 'Default' # Tu pool de agente auto-hospedado
+      
+    steps:
+
+    # --- 1. Compilar y ejecutar tests ---
+    - task: Maven@4
+      inputs:
+        mavenPomFile: 'esi_media/pom.xml'
+        goals: 'clean verify'
+        options: '-Djava.awt.headless=true'
+      displayName: 'Compile & Run Tests (mvn verify)'
+
+    # --- 3. Ejecutar análisis de SonarQube con sonar-scanner CLI ---
+    - script: |
+
+        cd esi_media
+        sonar-scanner -D sonar.host.url=$(SONAR_HOST_URL) -D sonar.login=$(SONAR_TOKEN)
+    
+      displayName: 'Run SonarQube Analysis (CLI, Windows)'
+
+    # --- 4. Iniciar sesión en Docker Hub ---
+    - task: Docker@2
+      inputs:
+        containerRegistry: 'DockerHubConnection'
+        command: 'login'
+      displayName: 'Login to Docker Hub'
+
+    # --- 5. Construir la imagen de Docker ---
+    - task: Docker@2
+      inputs:
+        containerRegistry: 'DockerHubConnection'
+        repository: $(DOCKER_IMAGE_NAME)
+        command: 'build'
+        dockerfile: 'esi_media/Dockerfile'
+        buildContext: 'esi_media'
+        tags: 'latest'
+      displayName: 'Build Docker Image (Linux target)'
+
+    # --- 6. Subir la imagen de Docker ---
+    - task: Docker@2
+      inputs:
+        containerRegistry: 'DockerHubConnection'
+        repository: $(DOCKER_IMAGE_NAME)
+        command: 'push'
+        tags: 'latest'
+      displayName: 'Push Docker Image'
+
+# -----------------------------------------------------------------
+# ETAPA 2: Desplegar en Render (CD)
+# -----------------------------------------------------------------
+- stage: Deploy
+  displayName: 'Deploy to Render'
+  dependsOn: Build
+  condition: succeeded()
+  
+  jobs:
+  - job: DeployJob
+    displayName: 'Trigger Render Deploy'
+    pool:
+      vmImage: 'windows-latest'
+      
+    steps:
+    - script: |
+        curl -X POST "https://api.render.com/v1/services/$(RENDER_SERVICE_ID)/deploys" ^
+        -H "Authorization: Bearer $(RENDER_API_KEY)" ^
+        -H "Content-Type: application/json" ^
+        -d "{\"image_path\": \"docker.io/$(DOCKER_IMAGE_NAME):latest\"}"
+      displayName: 'Trigger Render API Deploy'

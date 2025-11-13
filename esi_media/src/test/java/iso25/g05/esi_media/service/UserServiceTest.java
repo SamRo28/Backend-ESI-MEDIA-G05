@@ -18,6 +18,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import iso25.g05.esi_media.model.Administrador;
 import iso25.g05.esi_media.model.Codigorecuperacion;
@@ -77,13 +79,17 @@ class UserServiceTest {
         Usuario user = new Usuario();
         user.setId("user123");
         user.setEmail("test@example.com");
-        // MD5 hash of "password" is "5f4dcc3b5aa765d61d8327deb882cf99"
-        Contrasenia contrasenia = new Contrasenia("1", null, "5f4dcc3b5aa765d61d8327deb882cf99", null);
+        // Use BCrypt to encode the password since the service uses BCryptPasswordEncoder
+        PasswordEncoder encoder = new BCryptPasswordEncoder(10);
+        String encodedPassword = encoder.encode("password");
+        Contrasenia contrasenia = new Contrasenia("1", null, encodedPassword, null);
         user.setContrasenia(contrasenia);
         user.setTwoFactorAutenticationEnabled(false);
 
         when(usuarioRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
         when(usuarioRepository.save(any(Usuario.class))).thenReturn(user);
+        when(ipLoginAttemptRepository.findById("127.0.0.1")).thenReturn(Optional.empty());
+        when(ipLoginAttemptRepository.save(any())).thenReturn(null);
 
         Usuario result = userService.login(loginData, "127.0.0.1");
 
@@ -138,13 +144,17 @@ class UserServiceTest {
         Usuario user = new Usuario();
         user.setId("user123");
         user.setEmail("user@example.com");
-        // MD5 hash of "password" is "5f4dcc3b5aa765d61d8327deb882cf99"
-        Contrasenia contrasenia = new Contrasenia("1", null, "5f4dcc3b5aa765d61d8327deb882cf99", null);
+        // Use BCrypt to encode the password since the service uses BCryptPasswordEncoder
+        PasswordEncoder encoder = new BCryptPasswordEncoder(10);
+        String encodedPassword = encoder.encode("password");
+        Contrasenia contrasenia = new Contrasenia("1", null, encodedPassword, null);
         user.setContrasenia(contrasenia);
         user.setTwoFactorAutenticationEnabled(false);
 
         when(usuarioRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
         when(usuarioRepository.save(any(Usuario.class))).thenReturn(user);
+        when(ipLoginAttemptRepository.findById("127.0.0.1")).thenReturn(Optional.empty());
+        when(ipLoginAttemptRepository.save(any())).thenReturn(null);
 
         // Act
         Usuario result = userService.login(loginData, "127.0.0.1");
@@ -166,12 +176,16 @@ class UserServiceTest {
         Usuario user = new Usuario();
         user.setId("user123");
         user.setEmail("user@example.com");
-        // MD5 hash of "password"
-        Contrasenia contrasenia = new Contrasenia("1", null, "5f4dcc3b5aa765d61d8327deb882cf99", null);
+        // Use BCrypt to encode the password since the service uses BCryptPasswordEncoder
+        PasswordEncoder encoder = new BCryptPasswordEncoder(10);
+        String encodedPassword = encoder.encode("password");
+        Contrasenia contrasenia = new Contrasenia("1", null, encodedPassword, null);
         user.setContrasenia(contrasenia);
         user.setTwoFactorAutenticationEnabled(true);
 
         when(usuarioRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
+        when(ipLoginAttemptRepository.findById("127.0.0.1")).thenReturn(Optional.empty());
+        when(ipLoginAttemptRepository.save(any())).thenReturn(null);
 
         // Act
         Usuario result = userService.login(loginData, "127.0.0.1");
