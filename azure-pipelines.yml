@@ -27,13 +27,6 @@ stages:
       name: 'Default' # Tu pool de agente auto-hospedado
       
     steps:
-    # --- 1. Configurar Java 17 ---
-    - task: JavaToolInstaller@0
-      inputs:
-        versionSpec: '17'
-        jdkArchitecture: 'x64'
-        jdkSourceOption: 'PreInstalled'
-      displayName: 'Set up JDK 17'
 
     # --- 2. Compilar y Ejecutar Tests (para JaCoCo) ---
     - task: Maven@4
