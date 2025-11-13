@@ -46,7 +46,8 @@ stages:
           -Dsonar.login=$(SONAR_TOKEN) ^
           -Dsonar.sources=esi_media/src ^
           -Dsonar.java.binaries=esi_media/target/classes ^
-          -Dsonar.coverage.jacoco.xmlReportPaths=esi_media/target/site/jacoco/xml
+          -Dsonar.coverage.jacoco.xmlReportPaths=esi_media/target/site/jacoco/xml ^
+          -Dsonar.exclusions=**/test/**, **/tests/**, **/resources/**, **/config/**, **/dto/**
       displayName: 'Run SonarQube Analysis (CLI, Windows)'
 
     # --- 3. Iniciar sesión en Docker Hub ---
