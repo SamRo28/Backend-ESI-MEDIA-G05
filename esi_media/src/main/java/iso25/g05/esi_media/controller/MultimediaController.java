@@ -12,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -99,6 +100,30 @@ public class MultimediaController {
 
         ContenidoDetalleDTO detalle = multimediaService.obtenerContenidoPorId(id, authHeader);
         return ResponseEntity.ok(detalle);
+    }
+
+    /**
+     * POST /multimedia/{id}/reproducir
+     * Incrementa en 1 el contador de visualizaciones del contenido indicado.
+     * Requiere autenticación y validar acceso (edad/VIP para visualizadores).
+     * Devuelve el nuevo total de visualizaciones.
+     */
+    @PostMapping("/{id}/reproducir")
+    public ResponseEntity<?> registrarReproduccion(
+            @PathVariable String id,
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+        if (authHeader == null || authHeader.isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("mensaje", "No autenticado"));
+        }
+
+        try {
+            int total = multimediaService.registrarReproduccion(id, authHeader);
+            return ResponseEntity.ok(Map.of("nvisualizaciones", total));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("mensaje", "Error al registrar reproducción", "detalle", e.getMessage() != null ? e.getMessage() : ""));
+        }
     }
 
     /**

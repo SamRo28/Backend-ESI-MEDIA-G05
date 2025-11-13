@@ -1,20 +1,27 @@
 package iso25.g05.esi_media.controller;
 
-import iso25.g05.esi_media.dto.VisualizadorRegistroDTO;
-import iso25.g05.esi_media.service.RegistroResultado;
-import iso25.g05.esi_media.service.VisualizadorService;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
+import iso25.g05.esi_media.dto.VisualizadorRegistroDTO;
+import iso25.g05.esi_media.service.RegistroResultado;
+import iso25.g05.esi_media.service.VisualizadorService;
 import jakarta.validation.Valid;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Controlador REST para gestionar el registro de visualizadores.
@@ -40,6 +47,9 @@ public class VisualizadorController {
      * Servicio que contiene la lógica de negocio del registro
      */
     private final VisualizadorService visualizadorService;
+
+    private String MSG = "mensaje";
+    private String EXITO = "exitoso";
     
     /**
      * Constructor que inyecta el servicio
@@ -56,9 +66,9 @@ public class VisualizadorController {
         String res = visualizadorService.activar2FA(email);
 
         if (!res.isEmpty()) {
-            return ResponseEntity.ok(Map.of("mensaje", res));
+            return ResponseEntity.ok(Map.of(MSG, res));
         } else {
-            return ResponseEntity.badRequest().body(Map.of("mensaje", "Error al activar 2FA"));
+            return ResponseEntity.badRequest().body(Map.of(MSG, "Error al activar 2FA"));
         }
     }
 
@@ -77,12 +87,12 @@ public class VisualizadorController {
      * CASO EXITOSO:
      * POST /api/visualizador/registro
      * Body: {"nombre": "Juan", "apellidos": "Pérez", "email": "juan@email.com", ...}
-     * → Response 201: {"mensaje": "Usuario registrado", "exitoso": true, "visualizador": {...}}
+     * → Response 201: {MSG: "Usuario registrado", EXITO: true, "visualizador": {...}}
      * 
      * CASO CON ERRORES:
      * POST /api/visualizador/registro  
      * Body: {"nombre": "", "email": "email-inválido", ...}
-     * → Response 400: {"mensaje": "Errores de validación", "errores": ["El nombre es obligatorio", "Email inválido"]}
+     * → Response 400: {MSG: "Errores de validación", "errores": ["El nombre es obligatorio", "Email inválido"]}
      */
     @PostMapping("/registro")
     public ResponseEntity<Map<String, Object>> registrarVisualizador(
@@ -123,8 +133,8 @@ public class VisualizadorController {
      * 
      * ESTRUCTURA DE RESPUESTA EXITOSA:
      * {
-     *   "exitoso": true,
-     *   "mensaje": "Visualizador registrado exitosamente",
+     *   EXITO: true,
+     *   MSG: "Visualizador registrado exitosamente",
      *   "visualizador": {
      *     "nombre": "Juan",
      *     "email": "juan@email.com",
@@ -134,8 +144,8 @@ public class VisualizadorController {
      */
     private ResponseEntity<Map<String, Object>> crearRespuestaExito(HttpStatus status, RegistroResultado resultado) {
         Map<String, Object> respuesta = new HashMap<>();
-        respuesta.put("exitoso", true);
-        respuesta.put("mensaje", resultado.getMensaje());
+        respuesta.put(EXITO, true);
+        respuesta.put(MSG, resultado.getMensaje());
         
         // Incluir datos del visualizador (sin información sensible)
         if (resultado.getVisualizador() != null) {
@@ -158,8 +168,8 @@ public class VisualizadorController {
      * 
      * ESTRUCTURA DE RESPUESTA DE ERROR:
      * {
-     *   "exitoso": false,
-     *   "mensaje": "Registro fallido: corrija los errores indicados",
+     *   EXITO: false,
+     *   MSG: "Registro fallido: corrija los errores indicados",
      *   "errores": [
      *     "El nombre es obligatorio",
      *     "El email ya está registrado",
@@ -169,8 +179,8 @@ public class VisualizadorController {
      */
     private ResponseEntity<Map<String, Object>> crearRespuestaError(HttpStatus status, String mensaje, List<String> errores) {
         Map<String, Object> respuesta = new HashMap<>();
-        respuesta.put("exitoso", false);
-        respuesta.put("mensaje", mensaje);
+        respuesta.put(EXITO, false);
+        respuesta.put(MSG, mensaje);
         respuesta.put("errores", errores != null ? errores : new ArrayList<>());
         
         return new ResponseEntity<>(respuesta, status);
@@ -202,8 +212,8 @@ public class VisualizadorController {
         visualizadorService.limpiarRegistros();
         
         Map<String, Object> respuesta = new HashMap<>();
-        respuesta.put("mensaje", "Todos los registros han sido eliminados");
-        respuesta.put("exitoso", true);
+        respuesta.put(MSG, "Todos los registros han sido eliminados");
+        respuesta.put(EXITO, true);
         
         return ResponseEntity.ok(respuesta);
     }
@@ -220,14 +230,14 @@ public class VisualizadorController {
         
         if (!eliminado) {
             Map<String, Object> respuesta = new HashMap<>();
-            respuesta.put("mensaje", "Visualizador no encontrado o no se pudo eliminar");
-            respuesta.put("exitoso", false);
+            respuesta.put(MSG, "Visualizador no encontrado o no se pudo eliminar");
+            respuesta.put(EXITO, false);
             return ResponseEntity.notFound().build();
         }
         
         Map<String, Object> respuesta = new HashMap<>();
-        respuesta.put("mensaje", "Visualizador eliminado correctamente");
-        respuesta.put("exitoso", true);
+        respuesta.put(MSG, "Visualizador eliminado correctamente");
+        respuesta.put(EXITO, true);
         
         return ResponseEntity.ok(respuesta);
     }

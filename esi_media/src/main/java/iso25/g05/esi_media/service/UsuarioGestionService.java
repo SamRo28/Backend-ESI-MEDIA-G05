@@ -1,5 +1,16 @@
 package iso25.g05.esi_media.service;
 
+import java.util.Date;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.stereotype.Service;
+
 import iso25.g05.esi_media.dto.AdministradorGestionDTO;
 import iso25.g05.esi_media.dto.GestorGestionDTO;
 import iso25.g05.esi_media.dto.VisualizadorGestionDTO;
@@ -9,16 +20,6 @@ import iso25.g05.esi_media.model.Token;
 import iso25.g05.esi_media.model.Usuario;
 import iso25.g05.esi_media.model.Visualizador;
 import iso25.g05.esi_media.repository.TokenRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.query.Criteria;
-import org.springframework.data.mongodb.core.query.Query;
-import org.springframework.stereotype.Service;
-
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * Servicio para gestión de usuarios por administradores
@@ -32,6 +33,13 @@ public class UsuarioGestionService {
     
     @Autowired
     private TokenRepository tokenRepository;
+
+    private String VISUALIZADOR = "iso25.g05.esi_media.model.Visualizador";
+    private String CLASE = "_class";
+    private String USUARIOS = "users";
+    private String ADMIN = "iso25.g05.esi_media.model.Administrador";
+    private String GESTOR = "iso25.g05.esi_media.model.GestordeContenido";
+    
     
     /**
      * Verifica si el token pertenece a un administrador válido
@@ -71,8 +79,8 @@ public class UsuarioGestionService {
     public List<VisualizadorGestionDTO> obtenerVisualizadores(String authHeader) {
         validarAdministrador(authHeader);
         
-        Query query = new Query(Criteria.where("_class").is("iso25.g05.esi_media.model.Visualizador"));
-        List<Visualizador> visualizadores = mongoTemplate.find(query, Visualizador.class, "users");
+        Query query = new Query(Criteria.where(CLASE).is(VISUALIZADOR));
+        List<Visualizador> visualizadores = mongoTemplate.find(query, Visualizador.class, USUARIOS);
         
         return visualizadores.stream()
                 .map(this::convertirAVisualizadorDTO)
@@ -85,8 +93,8 @@ public class UsuarioGestionService {
     public List<GestorGestionDTO> obtenerGestores(String authHeader) {
         validarAdministrador(authHeader);
         
-        Query query = new Query(Criteria.where("_class").is("iso25.g05.esi_media.model.GestordeContenido"));
-        List<GestordeContenido> gestores = mongoTemplate.find(query, GestordeContenido.class, "users");
+        Query query = new Query(Criteria.where(CLASE).is(GESTOR));
+        List<GestordeContenido> gestores = mongoTemplate.find(query, GestordeContenido.class, USUARIOS);
         
         return gestores.stream()
                 .map(this::convertirAGestorDTO)
@@ -99,8 +107,8 @@ public class UsuarioGestionService {
     public List<AdministradorGestionDTO> obtenerAdministradores(String authHeader) {
         validarAdministrador(authHeader);
         
-        Query query = new Query(Criteria.where("_class").is("iso25.g05.esi_media.model.Administrador"));
-        List<Administrador> administradores = mongoTemplate.find(query, Administrador.class, "users");
+        Query query = new Query(Criteria.where(CLASE).is(ADMIN));
+        List<Administrador> administradores = mongoTemplate.find(query, Administrador.class, USUARIOS);
         
         return administradores.stream()
                 .map(this::convertirAAdministradorDTO)
@@ -114,8 +122,8 @@ public class UsuarioGestionService {
         validarAdministrador(authHeader);
         
         Query query = new Query(Criteria.where("id").is(id)
-                .and("_class").is("iso25.g05.esi_media.model.Visualizador"));
-        Visualizador visualizador = mongoTemplate.findOne(query, Visualizador.class, "users");
+                .and(CLASE).is(VISUALIZADOR));
+        Visualizador visualizador = mongoTemplate.findOne(query, Visualizador.class, USUARIOS);
         
         if (visualizador == null) {
             throw new RuntimeException("Visualizador no encontrado");
@@ -131,8 +139,8 @@ public class UsuarioGestionService {
         validarAdministrador(authHeader);
         
         Query query = new Query(Criteria.where("id").is(id)
-                .and("_class").is("iso25.g05.esi_media.model.Visualizador"));
-        Visualizador visualizador = mongoTemplate.findOne(query, Visualizador.class, "users");
+                .and(CLASE).is(VISUALIZADOR));
+        Visualizador visualizador = mongoTemplate.findOne(query, Visualizador.class, USUARIOS);
         
         if (visualizador == null) {
             throw new RuntimeException("Visualizador no encontrado");
@@ -146,7 +154,7 @@ public class UsuarioGestionService {
         visualizador.setFechaNac(dto.getFechanac());
         // email, bloqueado, fecharegistro, vip son solo lectura
         
-        mongoTemplate.save(visualizador, "users");
+        mongoTemplate.save(visualizador, USUARIOS);
         return convertirAVisualizadorDTO(visualizador);
     }
     
@@ -157,8 +165,8 @@ public class UsuarioGestionService {
         validarAdministrador(authHeader);
         
         Query query = new Query(Criteria.where("id").is(id)
-                .and("_class").is("iso25.g05.esi_media.model.GestordeContenido"));
-        GestordeContenido gestor = mongoTemplate.findOne(query, GestordeContenido.class, "users");
+                .and(CLASE).is(GESTOR));
+        GestordeContenido gestor = mongoTemplate.findOne(query, GestordeContenido.class, USUARIOS);
         
         if (gestor == null) {
             throw new RuntimeException("Gestor no encontrado");
@@ -174,8 +182,8 @@ public class UsuarioGestionService {
         validarAdministrador(authHeader);
         
         Query query = new Query(Criteria.where("id").is(id)
-                .and("_class").is("iso25.g05.esi_media.model.GestordeContenido"));
-        GestordeContenido gestor = mongoTemplate.findOne(query, GestordeContenido.class, "users");
+                .and(CLASE).is(GESTOR));
+        GestordeContenido gestor = mongoTemplate.findOne(query, GestordeContenido.class, USUARIOS);
         
         if (gestor == null) {
             throw new RuntimeException("Gestor no encontrado");
@@ -190,7 +198,7 @@ public class UsuarioGestionService {
         gestor.setdescripcion(dto.getDescripcion());
         // email, bloqueado, fecharegistro, tipocontenidovideooaudio son solo lectura para este servicio
         
-        mongoTemplate.save(gestor, "users");
+        mongoTemplate.save(gestor, USUARIOS);
         return convertirAGestorDTO(gestor);
     }
     
@@ -201,8 +209,8 @@ public class UsuarioGestionService {
         validarAdministrador(authHeader);
         
         Query query = new Query(Criteria.where("id").is(id)
-                .and("_class").is("iso25.g05.esi_media.model.Administrador"));
-        Administrador administrador = mongoTemplate.findOne(query, Administrador.class, "users");
+                .and(CLASE).is(ADMIN));
+        Administrador administrador = mongoTemplate.findOne(query, Administrador.class, USUARIOS);
         
         if (administrador == null) {
             throw new RuntimeException("Administrador no encontrado");
@@ -218,8 +226,8 @@ public class UsuarioGestionService {
         validarAdministrador(authHeader);
         
         Query query = new Query(Criteria.where("id").is(id)
-                .and("_class").is("iso25.g05.esi_media.model.Administrador"));
-        Administrador administrador = mongoTemplate.findOne(query, Administrador.class, "users");
+                .and(CLASE).is(ADMIN));
+        Administrador administrador = mongoTemplate.findOne(query, Administrador.class, USUARIOS);
         
         if (administrador == null) {
             throw new RuntimeException("Administrador no encontrado");
@@ -232,7 +240,7 @@ public class UsuarioGestionService {
         administrador.setDepartamento(dto.getDepartamento());
         // email, bloqueado, fecharegistro son solo lectura para este servicio
         
-        mongoTemplate.save(administrador, "users");
+        mongoTemplate.save(administrador, USUARIOS);
         return convertirAAdministradorDTO(administrador);
     }
     

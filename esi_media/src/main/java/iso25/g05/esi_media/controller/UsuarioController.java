@@ -47,7 +47,9 @@ public class UsuarioController {
     private static final String APELLIDOS = "apellidos";
     private static final String EMAIL = "email";
     private static final String BLOQUEADO = "bloqueado";
-    private static final String DEPARTAMENTO = "departamento";
+
+    
+
     private final UsuarioRepository usuarioRepository;
     private final UserService userService;
     private final LogService logService;
@@ -199,7 +201,7 @@ public class UsuarioController {
             if (token == null || token.trim().isEmpty()) {
                 logger.warn("Intento de acceso sin token al listar usuarios");
                 Map<String, String> error = new HashMap<>();
-                error.put("mensaje", "Token de autorización requerido");
+                error.put(MSG, "Token de autorización requerido");
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
             }
              
@@ -219,7 +221,7 @@ public class UsuarioController {
         } catch (Exception e) {
             logger.error("{}: {}", MSG, e.getMessage());
             Map<String, String> error = new HashMap<>();
-            error.put("mensaje", "Error interno del servidor");
+            error.put(MSG, "Error interno del servidor");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
@@ -428,7 +430,7 @@ public class UsuarioController {
                 }
                 
                 long duration = System.currentTimeMillis() - startTime;
-                response.put("mensaje", "Usuario eliminado correctamente");
+                response.put(MSG, "Usuario eliminado correctamente");
                 response.put("tiempoEjecucion", duration + "ms");
                 return ResponseEntity.ok(response);
             } else {

@@ -81,4 +81,68 @@ public interface ContenidoRepository extends MongoRepository<Contenido, String> 
 
     @Query("{'estado': true, 'vip': false, 'edadvisualizacion': {$lte: ?1}, 'mimeType': {$exists: true}, $or: [{'titulo': {$regex: ?0, $options: 'i'}}, {'descripcion': {$regex: ?0, $options: 'i'}}]}")
     Page<Contenido> searchAudiosNoVip(String query, int edadvisualizacion, Pageable pageable);
+
+    // Métodos para Gestores de Contenido (sin restricciones de edad o VIP)
+    
+    // Listar todos los contenidos visibles sin restricciones
+    @Query("{'estado': true}")
+    Page<Contenido> findByEstadoTrue(Pageable pageable);
+
+    // Listar por tipo específico sin restricciones
+    @Query("{'estado': true, '_class': ?0}")
+    Page<Contenido> findByEstadoTrueAndClass(String className, Pageable pageable);
+
+    // Listar videos sin restricciones
+    @Query("{'estado': true, 'url': {$exists: true}}")
+    Page<Contenido> findAllVideos(Pageable pageable);
+
+    // Listar audios sin restricciones
+    @Query("{'estado': true, 'mimeType': {$exists: true}}")
+    Page<Contenido> findAllAudios(Pageable pageable);
+
+    // Búsqueda de contenidos sin restricciones
+    @Query("{'estado': true, $or: [{'titulo': {$regex: ?0, $options: 'i'}}, {'descripcion': {$regex: ?0, $options: 'i'}}]}")
+    Page<Contenido> searchAllContenidos(String query, Pageable pageable);
+
+    // Búsqueda de videos sin restricciones
+    @Query("{'estado': true, 'url': {$exists: true}, $or: [{'titulo': {$regex: ?0, $options: 'i'}}, {'descripcion': {$regex: ?0, $options: 'i'}}]}")
+    Page<Contenido> searchAllVideos(String query, Pageable pageable);
+
+    // Búsqueda de audios sin restricciones
+    @Query("{'estado': true, 'mimeType': {$exists: true}, $or: [{'titulo': {$regex: ?0, $options: 'i'}}, {'descripcion': {$regex: ?0, $options: 'i'}}]}")
+    Page<Contenido> searchAllAudios(String query, Pageable pageable);
+
+    // Métodos especiales para Gestores de Contenido (SIN filtro de estado - pueden ver contenidos ocultos)
+    
+    // Listar TODOS los contenidos sin restricciones de estado (para Gestores)
+    @Query("{}")
+    Page<Contenido> findAllContenidosForGestor(Pageable pageable);
+
+    // Listar por tipo específico sin restricciones de estado (para Gestores)
+    @Query("{'_class': ?0}")
+    Page<Contenido> findAllContenidosByClassForGestor(String className, Pageable pageable);
+
+    // Listar todos los videos sin restricciones de estado (para Gestores)
+    @Query("{'url': {$exists: true}}")
+    Page<Contenido> findAllVideosForGestor(Pageable pageable);
+
+    // Listar todos los audios sin restricciones de estado (para Gestores)
+    @Query("{'mimeType': {$exists: true}}")
+    Page<Contenido> findAllAudiosForGestor(Pageable pageable);
+
+    // Búsqueda de contenidos sin restricciones de estado (para Gestores)
+    @Query("{$or: [{'titulo': {$regex: ?0, $options: 'i'}}, {'descripcion': {$regex: ?0, $options: 'i'}}]}")
+    Page<Contenido> searchAllContenidosForGestor(String query, Pageable pageable);
+
+    // Búsqueda de videos sin restricciones de estado (para Gestores)
+    @Query("{'url': {$exists: true}, $or: [{'titulo': {$regex: ?0, $options: 'i'}}, {'descripcion': {$regex: ?0, $options: 'i'}}]}")
+    Page<Contenido> searchAllVideosForGestor(String query, Pageable pageable);
+
+    // Búsqueda de audios sin restricciones de estado (para Gestores)
+    @Query("{'mimeType': {$exists: true}, $or: [{'titulo': {$regex: ?0, $options: 'i'}}, {'descripcion': {$regex: ?0, $options: 'i'}}]}")
+    Page<Contenido> searchAllAudiosForGestor(String query, Pageable pageable);
+
+    // Buscar contenido por ID sin filtro de estado (para Gestores)
+    @Query("{'_id': ?0}")
+    Optional<Contenido> findByIdForGestor(String id);
 }

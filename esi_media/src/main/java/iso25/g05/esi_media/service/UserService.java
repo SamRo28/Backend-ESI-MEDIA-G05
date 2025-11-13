@@ -1,7 +1,7 @@
 package iso25.g05.esi_media.service;
 
+
 import java.io.IOException;
-import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -70,6 +70,8 @@ public class UserService {
 
     private final GoogleAuthenticator gAuth = new GoogleAuthenticator();
 
+    private String EMAIL = "email";
+    
     public Usuario login(Map<String, String> loginData, String ipAddress) {
         
         IpLoginAttempt attempt = ipLoginAttemptRepository.findById(ipAddress)
@@ -86,7 +88,7 @@ public class UserService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, message);
         }
         
-        String email = loginData.get("email");
+        String email = loginData.get(EMAIL);
         String password = loginData.get("password");
 
         Optional<Usuario> existingUser = this.usuarioRepository.findByEmail(email);
@@ -132,7 +134,7 @@ public class UserService {
     }
 
     public String login3Auth(Map<String, String> loginData) {
-        String email = loginData.get("email");
+        String email = loginData.get(EMAIL);
         Optional<Usuario> existingUser = this.usuarioRepository.findByEmail(email);
         if (existingUser.isPresent()) {
             Codigorecuperacion cr = emailService.send3FAemail(email, existingUser.get());
@@ -159,7 +161,7 @@ public class UserService {
 
     public String confirm2faCode(Map<String, String> data) {
         int code = Integer.parseInt(data.get("code"));
-        String email = data.get("email");
+        String email = data.get(EMAIL);
         Optional<Usuario> existingUser = this.usuarioRepository.findByEmail(email);
 
         if (existingUser.isPresent()) {
@@ -274,14 +276,16 @@ public class UserService {
             new java.util.ArrayList<>()
         );
         
-        // Hashear la contraseña
-        contrasenia = hashearContrasenia(contrasenia);
-        contrasenia.getContraseniasUsadas().add(contrasenia.getContraseniaActual());
-        
         // Validar que no sea una contraseña común
         if (contraseniaComunRepository.existsById(contrasenia.getContraseniaActual())) {
             throw new RuntimeException("La contraseña proporcionada está en la lista de contraseñas comunes");
         }
+
+        // Hashear la contraseña
+        contrasenia = hashearContrasenia(contrasenia);
+        contrasenia.getContraseniasUsadas().add(contrasenia.getContraseniaActual());
+        
+        
         
         // Guardar la contraseña en la base de datos
         contrasenia = contraseniaRepository.save(contrasenia);
@@ -296,15 +300,15 @@ public class UserService {
 
         if(userOpt.isPresent()){
             Usuario user = userOpt.get();
-            String nuevoHash = md5Hex(contraseniaNueva);
 
-            if (contraseniaComunRepository.existsById(nuevoHash)) {
+
+            if (contraseniaComunRepository.existsById(contraseniaNueva)) {
                 throw new RuntimeException("La contraseña proporcionada está en la lista de contraseñas comunes");
             }
 
             Contrasenia c = user.getContrasenia();
             // Actualizar objeto Contrasenia en memoria
-            Contrasenia actualizado = comprobarContraseniasAntiguas(c, nuevoHash);
+            Contrasenia actualizado = comprobarContraseniasAntiguas(c, contraseniaNueva);
             user.setContrasenia(actualizado);
             // Persistir cambios (DBRef + documento de contraseñas)
             contraseniaRepository.save(actualizado);
@@ -320,22 +324,22 @@ public class UserService {
         List<String> listaNueva = new ArrayList<String>();
 
         listaActual = c.getContraseniasUsadas();
-        
-        if(listaActual.contains(contraseniaNueva)){
-            throw new RuntimeException("La contraseña proporcionada ya ha sido usada");
+        for(int i = 0; i<listaActual.size();i++){
+            
+            if(encoder.matches(contraseniaNueva, listaActual.get(i))){
+                throw new RuntimeException("La contraseña proporcionada ya ha sido usada");
+            }
+        }
+              
+        if(listaActual.size()==5){
+            for(int i = 1; i<5; i++){                    
+                listaNueva.add(listaActual.get(i));     
+            }
         }
         else{
-            if(listaActual.size()==5){
-                for(int i = 1; i<5; i++){
-                    
-                    listaNueva.add(listaActual.get(i));
-                    
-                }
-            }
-            else{
-                listaNueva.addAll(listaActual);
-            }
+            listaNueva.addAll(listaActual);
         }
+        
 
         listaNueva.add(contraseniaNueva);
         c.setContraseniasUsadas(listaNueva);
@@ -346,7 +350,7 @@ public class UserService {
 
     public Usuario login(Map<String, String> loginData) {
         // Llamada simple sin lógica de IP
-        String email = loginData.get("email");
+        String email = loginData.get(EMAIL);
         String password = md5Hex(loginData.get("password"));
 
         Optional<Usuario> existingUser = this.usuarioRepository.findByEmail(email);
