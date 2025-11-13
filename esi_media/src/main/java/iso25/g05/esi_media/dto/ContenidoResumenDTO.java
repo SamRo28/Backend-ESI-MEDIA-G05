@@ -13,15 +13,17 @@ public class ContenidoResumenDTO {
     private Object caratula;
     /** Indica si el contenido es VIP (requiere usuario VIP) */
     private boolean vip;
+    private String resolucion;
 
     public ContenidoResumenDTO() {}
 
-    public ContenidoResumenDTO(String id, String titulo, String tipo, Object caratula, boolean vip) {
+    public ContenidoResumenDTO(String id, String titulo, String tipo, Object caratula, boolean vip, String resolucion) {
         this.id = id;
         this.titulo = titulo;
         this.tipo = tipo;
         this.caratula = caratula;
         this.vip = vip;
+        this.resolucion = resolucion;
     }
 
     public String getId() { return id; }
@@ -38,4 +40,7 @@ public class ContenidoResumenDTO {
 
     public boolean isVip() { return vip; }
     public void setVip(boolean vip) { this.vip = vip; }
+
+    public String getResolucion() { return resolucion; }
+    public void setResolucion(String resolucion) { this.resolucion = resolucion; }
 }

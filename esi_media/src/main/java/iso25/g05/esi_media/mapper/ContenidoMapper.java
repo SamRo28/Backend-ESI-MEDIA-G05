@@ -24,7 +24,8 @@ public final class ContenidoMapper {
             c.gettitulo(),
             tipo,
             c.getcaratula(),
-            c.isvip()
+            c.isvip(),
+            (c instanceof Video) ? ((Video) c).getresolucion() : null
         );
     }
 
@@ -48,7 +49,8 @@ public final class ContenidoMapper {
             c.getedadvisualizacion(),
             c.getnvisualizaciones(),
             c.gettags(),
-            referenciaReproduccion
+            referenciaReproduccion,
+            (c instanceof Video) ? ((Video) c).getresolucion() : null
         );
     }
 

@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
@@ -29,6 +30,7 @@ import iso25.g05.esi_media.model.Usuario;
 import iso25.g05.esi_media.model.Visualizador;
 import iso25.g05.esi_media.repository.UsuarioRepository;
 import iso25.g05.esi_media.service.UserService;
+import iso25.g05.esi_media.service.LogService;
 import jakarta.servlet.http.HttpServletRequest;
 
 /**
@@ -50,10 +52,12 @@ public class UsuarioController {
 
     private final UsuarioRepository usuarioRepository;
     private final UserService userService;
+    private final LogService logService;
 
-    public UsuarioController(UsuarioRepository usuarioRepository, UserService userService) {
+    public UsuarioController(UsuarioRepository usuarioRepository, UserService userService, LogService logService) {
         this.usuarioRepository = usuarioRepository;
         this.userService = userService;
+        this.logService = logService;
     }
     
     // ==================== ENDPOINTS DE LOGIN (/users) ====================
@@ -85,6 +89,82 @@ public class UsuarioController {
          
         
         
+    }
+
+    // ==================== SUSCRIPCION (VIP/ESTANDAR) ====================
+
+    @GetMapping("/{id}/subscription")
+    public ResponseEntity<?> getSubscription(
+            @PathVariable String id,
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @RequestParam(value = "auth", required = false) String authQueryParam) {
+        try {
+            Usuario authUser = validarTokenYObtenerUsuario(authHeader, authQueryParam);
+            if (authUser == null || authUser.getId() == null || !authUser.getId().equals(id)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(MSG, "No autorizado"));
+            }
+            if (!(authUser instanceof Visualizador visualizador)) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(MSG, "Solo visualizadores"));
+            }
+            Map<String, Object> resp = new HashMap<>();
+            resp.put("vip", visualizador.isVip());
+            resp.put("fechaCambio", visualizador.getFechacambiosuscripcion());
+            return ResponseEntity.ok(resp);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(MSG, "No se pudo obtener suscripción"));
+        }
+    }
+
+    @PutMapping("/{id}/subscription")
+    public ResponseEntity<?> updateSubscription(
+            @PathVariable String id,
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @RequestParam(value = "auth", required = false) String authQueryParam,
+            @RequestBody Map<String, Object> body) {
+        try {
+            Usuario authUser = validarTokenYObtenerUsuario(authHeader, authQueryParam);
+            if (authUser == null || authUser.getId() == null || !authUser.getId().equals(id)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(MSG, "No autorizado"));
+            }
+            if (!(authUser instanceof Visualizador visualizador)) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(MSG, "Solo visualizadores"));
+            }
+            Object v = body != null ? body.get("vip") : null;
+            if (!(v instanceof Boolean)) {
+                return ResponseEntity.badRequest().body(Map.of(MSG, "Solicitud inválida"));
+            }
+            boolean nuevoVip = (Boolean) v;
+            boolean anteriorVip = visualizador.isVip();
+            if (nuevoVip != anteriorVip) {
+                visualizador.setVip(nuevoVip);
+                visualizador.setFechacambiosuscripcion(new java.util.Date());
+                usuarioRepository.save(visualizador);
+                // Log de auditoría
+                try { logService.registrarAccion("Cambio de suscripción a " + (nuevoVip ? "VIP" : "Estándar"), authUser.getEmail()); } catch (Exception ignore) {}
+            }
+            Map<String, Object> resp = new HashMap<>();
+            resp.put("vip", visualizador.isVip());
+            resp.put("fechaCambio", visualizador.getFechacambiosuscripcion());
+            return ResponseEntity.ok(resp);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(MSG, "No se pudo actualizar la suscripción"));
+        }
+    }
+
+    // ==================== Helpers ====================
+    private Usuario validarTokenYObtenerUsuario(String authHeader, String authQueryParam) {
+        String tokenValue = extraerToken((authHeader != null && !authHeader.isBlank()) ? authHeader : authQueryParam);
+        if (tokenValue == null || tokenValue.isBlank()) return null;
+        return usuarioRepository.findBySesionToken(tokenValue).orElse(null);
+    }
+
+    private String extraerToken(String headerOrToken) {
+        if (headerOrToken == null) return null;
+        String v = headerOrToken.trim();
+        if (v.toLowerCase().startsWith("bearer ")) {
+            return v.substring(7).trim();
+        }
+        return v;
     }
 
 
