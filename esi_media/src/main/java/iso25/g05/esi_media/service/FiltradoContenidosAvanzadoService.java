@@ -2,11 +2,7 @@ package iso25.g05.esi_media.service;
 
 import iso25.g05.esi_media.dto.ContenidoDTO;
 import iso25.g05.esi_media.dto.TagStatDTO;
-import iso25.g05.esi_media.model.Audio;
-import iso25.g05.esi_media.model.Contenido;
 import iso25.g05.esi_media.model.Usuario;
-import iso25.g05.esi_media.model.Video;
-import iso25.g05.esi_media.repository.ContenidoRepository;
 import iso25.g05.esi_media.repository.UsuarioRepository;
 
 import org.springframework.stereotype.Service;
@@ -35,14 +31,31 @@ import java.util.stream.Collectors;
 public class FiltradoContenidosAvanzadoService {
     private static final Logger logger = LoggerFactory.getLogger(FiltradoContenidosAvanzadoService.class);
     
-    private final ContenidoRepository contenidoRepository;
+    // Reusable string constants to avoid duplicated literals (SonarQube warnings)
+    private static final String FIELD_ESTADO = "estado";
+    private static final String FIELD_URL = "url";
+    private static final String FIELD_MIME_TYPE = "mimeType";
+    private static final String FIELD_EDAD_VISUALIZACION = "edadvisualizacion";
+    private static final String FIELD_NVISUALIZACIONES = "nvisualizaciones";
+    private static final String FIELD_TAGS = "tags";
+    private static final String FIELD_RESOLUCION = "resolucion";
+    private static final String FIELD_ID = "id";
+    private static final String FIELD_UNDERSCORE_ID = "_id";
+    private static final String FIELD_TITULO = "titulo";
+    private static final String FIELD_DESCRIPCION = "descripcion";
+    private static final String COLLECTION_CONTENIDOS = "contenidos";
+    private static final String TAG_ALIAS = "tag";
+    private static final String VIEWS_ALIAS = "views";
+    private static final String TOTAL_VIEWS_ALIAS = "totalViews";
+    private static final String TYPE_VIDEO = "video";
+    private static final String TYPE_AUDIO = "audio";
+    private static final String TYPE_ALL = "all";
+    private static final String TYPE_CONTENIDO = "contenido";
     private final UsuarioRepository usuarioRepository;
     private final MongoTemplate mongoTemplate;
     
-    public FiltradoContenidosAvanzadoService(ContenidoRepository contenidoRepository, 
-                                             UsuarioRepository usuarioRepository,
+    public FiltradoContenidosAvanzadoService(UsuarioRepository usuarioRepository,
                                              MongoTemplate mongoTemplate) {
-        this.contenidoRepository = contenidoRepository;
         this.usuarioRepository = usuarioRepository;
         this.mongoTemplate = mongoTemplate;
     }
@@ -64,19 +77,19 @@ public class FiltradoContenidosAvanzadoService {
         List<Criteria> criteria = new ArrayList<>();
         
         // Solo contenidos visibles
-        criteria.add(Criteria.where("estado").is(true));
+        criteria.add(Criteria.where(FIELD_ESTADO).is(true));
         
         // Filtro por edad si el usuario no es adulto
         if (!userIsAdult) {
-            criteria.add(Criteria.where("edadvisualizacion").lte(0));
+            criteria.add(Criteria.where(FIELD_EDAD_VISUALIZACION).lte(0));
         }
         
         // Filtro por tipo de contenido
-        if (!"all".equals(contentType)) {
-            if ("video".equals(contentType)) {
-                criteria.add(Criteria.where("url").exists(true)); // Videos tienen campo url
-            } else if ("audio".equals(contentType)) {
-                criteria.add(Criteria.where("mimeType").exists(true)); // Audios tienen campo mimeType
+        if (!TYPE_ALL.equals(contentType)) {
+            if (TYPE_VIDEO.equals(contentType)) {
+                criteria.add(Criteria.where(FIELD_URL).exists(true)); // Videos tienen campo url
+            } else if (TYPE_AUDIO.equals(contentType)) {
+                criteria.add(Criteria.where(FIELD_MIME_TYPE).exists(true)); // Audios tienen campo mimeType
             }
         }
         
@@ -86,22 +99,22 @@ public class FiltradoContenidosAvanzadoService {
         );
         
         SortOperation sortOperation = Aggregation.sort(
-            org.springframework.data.domain.Sort.Direction.DESC, "nvisualizaciones"
+            org.springframework.data.domain.Sort.Direction.DESC, FIELD_NVISUALIZACIONES
         );
         
         LimitOperation limitOperation = Aggregation.limit(limit);
         
         ProjectionOperation projectionOperation = Aggregation.project()
-            .and("_id").as("id")
-            .and("titulo").as("titulo")
-            .and("descripcion").as("descripcion")
-            .and("nvisualizaciones").as("nvisualizaciones")
-            .and("edadvisualizacion").as("edadvisualizacion")
-            .and("estado").as("estado")
-            .and("tags").as("tags")
-            .and("url").as("url")          // Para videos
-            .and("resolucion").as("resolucion") // Para videos
-            .and("mimeType").as("mimeType"); // Para audios
+            .and(FIELD_UNDERSCORE_ID).as(FIELD_ID)
+            .and(FIELD_TITULO).as(FIELD_TITULO)
+            .and(FIELD_DESCRIPCION).as(FIELD_DESCRIPCION)
+            .and(FIELD_NVISUALIZACIONES).as(FIELD_NVISUALIZACIONES)
+            .and(FIELD_EDAD_VISUALIZACION).as(FIELD_EDAD_VISUALIZACION)
+            .and(FIELD_ESTADO).as(FIELD_ESTADO)
+            .and(FIELD_TAGS).as(FIELD_TAGS)
+            .and(FIELD_URL).as(FIELD_URL)          // Para videos
+            .and(FIELD_RESOLUCION).as(FIELD_RESOLUCION) // Para videos
+            .and(FIELD_MIME_TYPE).as(FIELD_MIME_TYPE); // Para audios
         
         Aggregation aggregation = Aggregation.newAggregation(
             matchOperation,
@@ -112,7 +125,7 @@ public class FiltradoContenidosAvanzadoService {
         
         // Ejecutar agregación
         AggregationResults<Map> results = mongoTemplate.aggregate(
-            aggregation, "contenidos", Map.class
+            aggregation, COLLECTION_CONTENIDOS, Map.class
         );
 
         // DEBUG: loguear contenido exacto devuelto por la agregación para depuración
@@ -148,19 +161,19 @@ public class FiltradoContenidosAvanzadoService {
         List<Criteria> criteria = new ArrayList<>();
         
         // Solo contenidos visibles
-        criteria.add(Criteria.where("estado").is(true));
+        criteria.add(Criteria.where(FIELD_ESTADO).is(true));
         
         // Filtro por edad si el usuario no es adulto
         if (!userIsAdult) {
-            criteria.add(Criteria.where("edadvisualizacion").lte(0));
+            criteria.add(Criteria.where(FIELD_EDAD_VISUALIZACION).lte(0));
         }
         
         // Filtro por tipo de contenido
-        if (!"all".equals(contentType)) {
-            if ("video".equals(contentType)) {
-                criteria.add(Criteria.where("url").exists(true)); // Videos tienen campo url
-            } else if ("audio".equals(contentType)) {
-                criteria.add(Criteria.where("mimeType").exists(true)); // Audios tienen campo mimeType
+        if (!TYPE_ALL.equals(contentType)) {
+            if (TYPE_VIDEO.equals(contentType)) {
+                criteria.add(Criteria.where(FIELD_URL).exists(true)); // Videos tienen campo url
+            } else if (TYPE_AUDIO.equals(contentType)) {
+                criteria.add(Criteria.where(FIELD_MIME_TYPE).exists(true)); // Audios tienen campo mimeType
             }
         }
         
@@ -170,21 +183,21 @@ public class FiltradoContenidosAvanzadoService {
         );
         
         // Desenrollar los tags para procesar cada tag individualmente
-        UnwindOperation unwindOperation = Aggregation.unwind("tags");
-        
+        UnwindOperation unwindOperation = Aggregation.unwind(FIELD_TAGS);
+
         // Agrupar por tag y sumar las visualizaciones
-        GroupOperation groupOperation = Aggregation.group("tags")
-            .sum("nvisualizaciones").as("totalViews");
-        
+        GroupOperation groupOperation = Aggregation.group(FIELD_TAGS)
+            .sum(FIELD_NVISUALIZACIONES).as(TOTAL_VIEWS_ALIAS);
+
         SortOperation sortOperation = Aggregation.sort(
-            org.springframework.data.domain.Sort.Direction.DESC, "totalViews"
+            org.springframework.data.domain.Sort.Direction.DESC, TOTAL_VIEWS_ALIAS
         );
         
         LimitOperation limitOperation = Aggregation.limit(limit);
         
         ProjectionOperation projectionOperation = Aggregation.project()
-            .and("_id").as("tag")
-            .and("totalViews").as("views");
+            .and(FIELD_UNDERSCORE_ID).as(TAG_ALIAS)
+            .and(TOTAL_VIEWS_ALIAS).as(VIEWS_ALIAS);
         
         Aggregation aggregation = Aggregation.newAggregation(
             matchOperation,
@@ -197,7 +210,7 @@ public class FiltradoContenidosAvanzadoService {
         
         // Ejecutar agregación
         AggregationResults<Map> results = mongoTemplate.aggregate(
-            aggregation, "contenidos", Map.class
+            aggregation, COLLECTION_CONTENIDOS, Map.class
         );
         
         // Convertir resultados a DTOs
@@ -224,8 +237,8 @@ public class FiltradoContenidosAvanzadoService {
                 return true;
             }
         } catch (Exception e) {
-            // En caso de error, política conservadora
-            System.err.println("Error al verificar usuario: " + e.getMessage());
+            // En caso de error, aplicamos la política conservadora (no adulto).
+            logger.error("Error al verificar usuario: {}", e.getMessage(), e);
         }
         
         return false;
@@ -236,93 +249,77 @@ public class FiltradoContenidosAvanzadoService {
      */
     private ContenidoDTO mapToContenidoDTO(Map<String, Object> map) {
         ContenidoDTO dto = new ContenidoDTO();
-        
-        // El _id de Mongo puede venir como ObjectId; convertir a String de forma segura
-        // Intentar 'id' (proyección), si no existe, probar '_id'
-        Object idObj = map.get("id");
-        if (idObj == null) {
-            idObj = map.get("_id");
-        }
-        if (idObj == null) {
-            dto.setId(null);
-        } else if (idObj instanceof ObjectId) {
-            dto.setId(((ObjectId) idObj).toHexString());
-        } else {
-            dto.setId(idObj.toString());
-        }
-        Object tituloObj = map.get("titulo");
-        dto.setTitulo(tituloObj == null ? null : tituloObj.toString());
 
-        Object descripcionObj = map.get("descripcion");
-        dto.setDescripcion(descripcionObj == null ? null : descripcionObj.toString());
-        
-        // Determinar el tipo basado en los campos presentes
-        if (map.get("url") != null) {
-            dto.setTipo("video");
-            Object resolucionObj = map.get("resolucion");
-            dto.setResolucion(resolucionObj == null ? null : resolucionObj.toString());
-        } else if (map.get("mimeType") != null) {
-            dto.setTipo("audio");
-        } else {
-            dto.setTipo("contenido");
-        }
-        
-        // Conversión segura de números
-        Object nvisualizaciones = map.get("nvisualizaciones");
-        if (nvisualizaciones instanceof Number) {
-            dto.setNvisualizaciones(((Number) nvisualizaciones).intValue());
-        } else if (nvisualizaciones != null) {
-            try {
-                dto.setNvisualizaciones(Integer.parseInt(nvisualizaciones.toString()));
-            } catch (NumberFormatException ex) {
-                dto.setNvisualizaciones(0);
-            }
-        } else {
-            dto.setNvisualizaciones(0);
-        }
-        
-        Object edadvisualizacion = map.get("edadvisualizacion");
-        if (edadvisualizacion instanceof Number) {
-            dto.setEdadvisualizacion(((Number) edadvisualizacion).intValue());
-        } else if (edadvisualizacion != null) {
-            try {
-                dto.setEdadvisualizacion(Integer.parseInt(edadvisualizacion.toString()));
-            } catch (NumberFormatException ex) {
-                dto.setEdadvisualizacion(0);
-            }
-        } else {
-            dto.setEdadvisualizacion(0);
-        }
-        
-        Object estadoObj = map.get("estado");
-        dto.setEstado(Boolean.TRUE.equals(estadoObj));
+        dto.setId(extractId(map));
+        dto.setTitulo(toStringSafe(map, FIELD_TITULO));
+        dto.setDescripcion(toStringSafe(map, FIELD_DESCRIPCION));
 
-        // Tags (puede ser List de cualquier tipo) -> normalizar a List<String>
-        Object tagsObj = map.get("tags");
-        List<String> normalizedTags = new ArrayList<>();
-        if (tagsObj instanceof List) {
-            for (Object t : (List<?>) tagsObj) {
-                if (t != null) normalizedTags.add(t.toString());
-            }
+        if (map.get(FIELD_URL) != null) {
+            dto.setTipo(TYPE_VIDEO);
+            dto.setResolucion(toStringSafe(map, FIELD_RESOLUCION));
+        } else if (map.get(FIELD_MIME_TYPE) != null) {
+            dto.setTipo(TYPE_AUDIO);
+        } else {
+            dto.setTipo(TYPE_CONTENIDO);
         }
-        dto.setTags(normalizedTags);
-        
-        // Por ahora thumbnailUrl lo dejamos null, se puede implementar más tarde
+
+        dto.setNvisualizaciones(toIntSafe(map, FIELD_NVISUALIZACIONES));
+        dto.setEdadvisualizacion(toIntSafe(map, FIELD_EDAD_VISUALIZACION));
+        dto.setEstado(Boolean.TRUE.equals(map.get(FIELD_ESTADO)));
+        dto.setTags(normalizeTags(map, FIELD_TAGS));
         dto.setThumbnailUrl(null);
-        
         return dto;
+    }
+
+    // -- helpers to reduce cognitive complexity (preserve exact behavior) --
+    private String extractId(Map<String, Object> map) {
+        Object idObj = map.get(FIELD_ID);
+        if (idObj == null) idObj = map.get(FIELD_UNDERSCORE_ID);
+        if (idObj == null) return null;
+        if (idObj instanceof ObjectId objectId) return objectId.toHexString();
+        return idObj.toString();
+    }
+
+    private String toStringSafe(Map<String, Object> map, String key) {
+        Object o = map.get(key);
+        return o == null ? null : o.toString();
+    }
+
+    private int toIntSafe(Map<String, Object> map, String key) {
+        Object o = map.get(key);
+        if (o instanceof Number number) return number.intValue();
+        if (o != null) {
+            try {
+                return Integer.parseInt(o.toString());
+            } catch (NumberFormatException ex) {
+                // No se pudo parsear la representación a entero; retornamos 0 como fallback.
+                if (logger.isDebugEnabled()) {
+                    logger.debug("toIntSafe: no se pudo parsear '{}' para la clave '{}', usando 0", o, key, ex);
+                }
+            }
+        }
+        return 0;
+    }
+
+    private List<String> normalizeTags(Map<String, Object> map, String key) {
+        Object tagsObj = map.get(key);
+        List<String> normalized = new ArrayList<>();
+        if (tagsObj instanceof List) {
+            for (Object t : (List<?>) tagsObj) if (t != null) normalized.add(t.toString());
+        }
+        return normalized;
     }
     
     /**
      * Convierte un Map resultado de agregación a TagStatDTO
      */
     private TagStatDTO mapToTagStatDTO(Map<String, Object> map) {
-        Object tagObj = map.get("tag");
+        Object tagObj = map.get(TAG_ALIAS);
         String tag = tagObj == null ? null : tagObj.toString();
-        Object viewsObj = map.get("views");
+        Object viewsObj = map.get(VIEWS_ALIAS);
         long views;
-        if (viewsObj instanceof Number) {
-            views = ((Number) viewsObj).longValue();
+        if (viewsObj instanceof Number number) {
+            views = number.longValue();
         } else if (viewsObj != null) {
             try {
                 views = Long.parseLong(viewsObj.toString());

@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Controlador REST para el filtrado avanzado de contenidos
@@ -22,6 +24,7 @@ import java.util.HashMap;
 public class FiltradoContenidosAvanzadoController {
     
     private final FiltradoContenidosAvanzadoService filtradoService;
+    private static final Logger logger = LoggerFactory.getLogger(FiltradoContenidosAvanzadoController.class);
     
     public FiltradoContenidosAvanzadoController(FiltradoContenidosAvanzadoService filtradoService) {
         this.filtradoService = filtradoService;
@@ -52,12 +55,17 @@ public class FiltradoContenidosAvanzadoController {
         final int FIXED_LIMIT = 5; // TOP 5 obligatorio
 
         try {
-            if (!isValidContentType(contentType)) {
-                contentType = "all"; // Valor por defecto si no es válido
-            }
+                // Validar contentType in situ (sin utilidades externas)
+                if (contentType == null || !(contentType.equals("video") || contentType.equals("audio") || contentType.equals("all"))) {
+                    contentType = "all"; // Valor por defecto si no es válido
+                }
 
             // Extraer userId del token (simplificado por ahora)
-            String userId = extractUserIdFromToken(authHeader);
+                // Extraer userId del token (simplificado e inline): devolver la parte del token sin "Bearer "
+                String userId = null;
+                if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                    userId = authHeader.substring(7);
+                }
 
             // Llamar al servicio con límite fijo
             List<ContenidoDTO> topContents = filtradoService.getTopContents(FIXED_LIMIT, contentType, userId);
@@ -65,8 +73,7 @@ public class FiltradoContenidosAvanzadoController {
             return ResponseEntity.ok(topContents);
 
         } catch (Exception e) {
-            System.err.println("Error en top-contents: " + e.getMessage());
-            e.printStackTrace();
+            logger.error("Error en top-contents: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
@@ -96,12 +103,17 @@ public class FiltradoContenidosAvanzadoController {
         final int FIXED_LIMIT = 5; // TOP 5 obligatorio
 
         try {
-            if (!isValidContentType(contentType)) {
-                contentType = "all"; // Valor por defecto si no es válido
-            }
+                // Validar contentType in situ (sin utilidades externas)
+                if (contentType == null || !(contentType.equals("video") || contentType.equals("audio") || contentType.equals("all"))) {
+                    contentType = "all"; // Valor por defecto si no es válido
+                }
 
             // Extraer userId del token (simplificado por ahora)
-            String userId = extractUserIdFromToken(authHeader);
+                // Extraer userId del token (simplificado e inline): devolver la parte del token sin "Bearer "
+                String userId = null;
+                if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                    userId = authHeader.substring(7);
+                }
 
             // Llamar al servicio con límite fijo
             List<TagStatDTO> topTags = filtradoService.getTopTags(FIXED_LIMIT, contentType, userId);
@@ -109,8 +121,7 @@ public class FiltradoContenidosAvanzadoController {
             return ResponseEntity.ok(topTags);
 
         } catch (Exception e) {
-            System.err.println("Error en top-tags: " + e.getMessage());
-            e.printStackTrace();
+            logger.error("Error en top-tags: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
@@ -140,35 +151,5 @@ public class FiltradoContenidosAvanzadoController {
         }
     }
     
-    /**
-     * Valida si el tipo de contenido es válido
-     */
-    private boolean isValidContentType(String contentType) {
-        return contentType != null && 
-               (contentType.equals("video") || contentType.equals("audio") || contentType.equals("all"));
-    }
-    
-    /**
-     * Extrae el ID de usuario del token de autorización
-     * Por ahora implementación simplificada - se puede mejorar más tarde
-     * 
-     * @param authHeader Header Authorization
-     * @return ID de usuario o null si no hay token válido
-     */
-    private String extractUserIdFromToken(String authHeader) {
-        // Implementación simplificada por ahora
-        // En el futuro se puede integrar con el sistema de tokens existente
-        
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return null; // Usuario anónimo
-        }
-        
-        String token = authHeader.substring(7); // Remover "Bearer "
-        
-        // Por ahora retornamos null (usuario anónimo) hasta que se implemente 
-        // la decodificación completa del token
-        // TODO: Integrar con el sistema de tokens existente
-        
-        return null;
-    }
+    // Helpers intentionally inlined earlier; no private helpers remain in controller.
 }
