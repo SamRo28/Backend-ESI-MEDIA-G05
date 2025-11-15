@@ -264,9 +264,11 @@ public class GestorContenidoService {
 
     private String construirReferenciaReproduccion(Contenido contenido) {
         if (contenido instanceof Video v) {
-            return v.getUrl();
+            // En Video el getter est�� definido como geturl()
+            return v.geturl();
         }
         if (contenido instanceof Audio a) {
+            // Usar URL absoluta coherente con MultimediaService
             return "http://localhost:8080/multimedia/audio/" + a.getId();
         }
         return "";
