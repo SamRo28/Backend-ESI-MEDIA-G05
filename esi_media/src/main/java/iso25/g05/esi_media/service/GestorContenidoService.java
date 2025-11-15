@@ -90,18 +90,15 @@ public class GestorContenidoService {
         String referencia = construirReferenciaReproduccion(contenido);
         ContenidoDetalleDTO dto = ContenidoMapper.aDetalle(contenido, referencia);
 
-        // Añadir información del creador
-        if (contenido.getcreadorId() != null) {
-            usuarioRepository.findById(contenido.getcreadorId()).ifPresentOrElse(creador -> {
+        // Añadir información del creador (gestor que subió el contenido)
+        if (contenido.getgestorId() != null) {
+            usuarioRepository.findById(contenido.getgestorId()).ifPresentOrElse(creador -> {
                 dto.setCreadorNombre(creador.getNombre());
                 dto.setCreadorApellidos(creador.getApellidos());
             }, () -> {
                 dto.setCreadorNombre(null); // El creador fue eliminado
             });
         }
-
-        // Añadir fecha de creación
-        dto.setFechaCreacion(contenido.getfechaCreacion());
 
         logService.registrarAccion("Consulta detalle contenido " + contenido.getId(), gestor.getEmail());
         return dto;
@@ -144,7 +141,7 @@ public class GestorContenidoService {
             contenido.setfechaestadoautomatico(new Date());
         }
 
-        // Regla: contenido estándar no puede tener resolución 4K
+        // Regla: contenido estándar no puede tener resolución 4K si no es VIP
         if (contenido instanceof Video v && !contenido.isvip()) {
             String resolucion = v.getresolucion();
             if (resolucion != null && "4k".equalsIgnoreCase(resolucion)) {
@@ -185,8 +182,6 @@ public class GestorContenidoService {
         List<String> tags = mongoTemplate.query(Contenido.class).distinct("tags").as(String.class).all();
         return tags.stream().sorted().collect(Collectors.toList());
     }
-
-
 
     // ====================== MÉTODOS PRIVADOS =========================
 
@@ -264,7 +259,7 @@ public class GestorContenidoService {
 
     private String construirReferenciaReproduccion(Contenido contenido) {
         if (contenido instanceof Video v) {
-            // En Video el getter est�� definido como geturl()
+            // En Video el getter está definido como geturl()
             return v.geturl();
         }
         if (contenido instanceof Audio a) {
@@ -274,3 +269,4 @@ public class GestorContenidoService {
         return "";
     }
 }
+
