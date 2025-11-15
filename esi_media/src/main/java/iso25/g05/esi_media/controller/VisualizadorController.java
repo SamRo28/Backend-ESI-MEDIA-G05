@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -126,6 +127,60 @@ public class VisualizadorController {
                                      resultado.getMensaje(), 
                                      resultado.getErrores());
         }
+    }
+
+    @PostMapping("/activar")
+    public ResponseEntity<Map<String, Object>> activarCuenta(@RequestBody Map<String, String> body) {
+        String token = body.get("token");
+        String sesion = visualizadorService.activarCuentaYEmitirToken(token);
+        Map<String, Object> resp = new HashMap<>();
+        if (sesion != null) {
+            resp.put(EXITO, true);
+            resp.put(MSG, "Cuenta activada correctamente");
+            resp.put("token", sesion);
+            return ResponseEntity.ok(resp);
+        } else {
+            resp.put(EXITO, false);
+            resp.put(MSG, "Token de activación inválido o expirado");
+            return new ResponseEntity<>(resp, HttpStatus.NOT_FOUND);
+        }
+    }
+
+    /**
+     * Endpoint utilizado desde el email: activa la cuenta y devuelve una pequeña
+     * página HTML con el estado, sin redirigir a la SPA.
+     */
+    @GetMapping(value = "/activar-web")
+    public ResponseEntity<String> activarCuentaWeb(@RequestParam("token") String token) {
+        boolean ok = visualizadorService.activarCuenta(token);
+        String htmlOk = "<!doctype html><html lang=es><head><meta charset=utf-8>" +
+                "<meta name=viewport content=\"width=device-width, initial-scale=1\">" +
+                "<title>Cuenta activada</title>" +
+                "<style>body{background:#2b1853;color:#fff;font-family:Inter,Segoe UI,Arial,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}" +
+                ".card{background:rgba(255,255,255,.06);padding:28px 32px;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.25);text-align:center}h1{margin:0 0 8px;font-size:22px}p{margin:0;color:#d7c8ff}</style></head>" +
+                "<body><div class=card><h1>Cuenta activada con éxito</h1><p>Vuelve a la aplicación para continuar.</p></div></body></html>";
+        String htmlErr = "<!doctype html><html lang=es><head><meta charset=utf-8><meta name=viewport content=\"width=device-width, initial-scale=1\"><title>Token inválido</title>" +
+                "<style>body{background:#2b1853;color:#fff;font-family:Inter,Segoe UI,Arial,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}" +
+                ".card{background:rgba(255,255,255,.06);padding:28px 32px;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.25);text-align:center;border:1px solid #ff6b6b}h1{margin:0 0 8px;font-size:22px}p{margin:0;color:#ffd7d7}</style></head>" +
+                "<body><div class=card><h1>Token inválido o expirado</h1><p>Solicita un nuevo correo de activación.</p></div></body></html>";
+        return ok ? ResponseEntity.ok(htmlOk) : new ResponseEntity<>(htmlErr, HttpStatus.NOT_FOUND);
+    }
+
+    /**
+     * Polling desde la pantalla de registro: si el email ya está activado,
+     * devuelve { activated: true, token } y el front continúa el flujo.
+     */
+    @GetMapping("/estado-activacion")
+    public ResponseEntity<Map<String, Object>> estadoActivacion(@RequestParam("email") String email) {
+        Map<String, Object> resp = new HashMap<>();
+        String token = visualizadorService.tokenSiActivado(email);
+        if (token != null) {
+            resp.put("activated", true);
+            resp.put("token", token);
+            return ResponseEntity.ok(resp);
+        }
+        resp.put("activated", false);
+        return ResponseEntity.ok(resp);
     }
     
     /**
