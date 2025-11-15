@@ -49,6 +49,7 @@ public class VisualizadorController {
      */
     private final VisualizadorService visualizadorService;
 
+    private static final String TOKEN = "token";
     private String MSG = "mensaje";
     private String EXITO = "exitoso";
     
@@ -131,13 +132,13 @@ public class VisualizadorController {
 
     @PostMapping("/activar")
     public ResponseEntity<Map<String, Object>> activarCuenta(@RequestBody Map<String, String> body) {
-        String token = body.get("token");
+        String token = body.get(TOKEN);
         String sesion = visualizadorService.activarCuentaYEmitirToken(token);
         Map<String, Object> resp = new HashMap<>();
         if (sesion != null) {
             resp.put(EXITO, true);
             resp.put(MSG, "Cuenta activada correctamente");
-            resp.put("token", sesion);
+            resp.put(TOKEN, sesion);
             return ResponseEntity.ok(resp);
         } else {
             resp.put(EXITO, false);
@@ -151,7 +152,7 @@ public class VisualizadorController {
      * página HTML con el estado, sin redirigir a la SPA.
      */
     @GetMapping(value = "/activar-web")
-    public ResponseEntity<String> activarCuentaWeb(@RequestParam("token") String token) {
+    public ResponseEntity<String> activarCuentaWeb(@RequestParam(TOKEN) String token) {
         boolean ok = visualizadorService.activarCuenta(token);
         String htmlOk = "<!doctype html><html lang=es><head><meta charset=utf-8>" +
                 "<meta name=viewport content=\"width=device-width, initial-scale=1\">" +
@@ -176,7 +177,7 @@ public class VisualizadorController {
         String token = visualizadorService.tokenSiActivado(email);
         if (token != null) {
             resp.put("activated", true);
-            resp.put("token", token);
+            resp.put(TOKEN, token);
             return ResponseEntity.ok(resp);
         }
         resp.put("activated", false);
