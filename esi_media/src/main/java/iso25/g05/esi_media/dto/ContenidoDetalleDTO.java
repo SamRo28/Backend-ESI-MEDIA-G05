@@ -32,6 +32,11 @@ public class ContenidoDetalleDTO {
      */
     private String referenciaReproduccion;
 
+    private String creadorNombre;
+    private String creadorApellidos;
+
+    private java.util.Date fechaCreacion;
+
     public ContenidoDetalleDTO() {
     }
 
@@ -181,5 +186,28 @@ public class ContenidoDetalleDTO {
     public void setResolucion(String resolucion) {
         this.resolucion = resolucion;
     }
-}
 
+    public String getCreadorNombre() {
+        return creadorNombre;
+    }
+
+    public void setCreadorNombre(String creadorNombre) {
+        this.creadorNombre = creadorNombre;
+    }
+
+    public String getCreadorApellidos() {
+        return creadorApellidos;
+    }
+
+    public void setCreadorApellidos(String creadorApellidos) {
+        this.creadorApellidos = creadorApellidos;
+    }
+
+    public java.util.Date getFechaCreacion() {
+        return fechaCreacion;
+    }
+
+    public void setFechaCreacion(java.util.Date fechaCreacion) {
+        this.fechaCreacion = fechaCreacion;
+    }
+}

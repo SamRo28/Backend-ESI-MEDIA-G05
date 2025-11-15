@@ -1,11 +1,14 @@
 package iso25.g05.esi_media.service;
 
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.stereotype.Service;
 
 import iso25.g05.esi_media.dto.ContenidoDetalleDTO;
@@ -51,6 +54,9 @@ public class GestorContenidoService {
     @Autowired
     private LogService logService;
 
+    @Autowired
+    private MongoTemplate mongoTemplate;
+
     /**
      * Lista todos los contenidos gestionables por el Gestor autenticado.
      * Incluye contenidos visibles y no visibles, de audio y vídeo.
@@ -82,8 +88,23 @@ public class GestorContenidoService {
                 .orElseThrow(() -> new RecursoNoEncontradoException(CONTENIDO_NO_ENCONTRADO));
 
         String referencia = construirReferenciaReproduccion(contenido);
+        ContenidoDetalleDTO dto = ContenidoMapper.aDetalle(contenido, referencia);
+
+        // Añadir información del creador
+        if (contenido.getcreadorId() != null) {
+            usuarioRepository.findById(contenido.getcreadorId()).ifPresentOrElse(creador -> {
+                dto.setCreadorNombre(creador.getNombre());
+                dto.setCreadorApellidos(creador.getApellidos());
+            }, () -> {
+                dto.setCreadorNombre(null); // El creador fue eliminado
+            });
+        }
+
+        // Añadir fecha de creación
+        dto.setFechaCreacion(contenido.getfechaCreacion());
+
         logService.registrarAccion("Consulta detalle contenido " + contenido.getId(), gestor.getEmail());
-        return ContenidoMapper.aDetalle(contenido, referencia);
+        return dto;
     }
 
     /**
@@ -155,6 +176,17 @@ public class GestorContenidoService {
         // Registrar eliminación en log para trazabilidad
         logService.registrarAccion("Eliminación de contenido " + contenido.getId(), gestor.getEmail());
     }
+
+    /**
+     * Devuelve una lista única y ordenada de todos los tags existentes en la plataforma.
+     */
+    public List<String> obtenerTodosLosTags(String authHeaderOrToken) {
+        validarYObtenerGestor(authHeaderOrToken);
+        List<String> tags = mongoTemplate.query(Contenido.class).distinct("tags").as(String.class).all();
+        return tags.stream().sorted().collect(Collectors.toList());
+    }
+
+
 
     // ====================== MÉTODOS PRIVADOS =========================
 
@@ -232,7 +264,7 @@ public class GestorContenidoService {
 
     private String construirReferenciaReproduccion(Contenido contenido) {
         if (contenido instanceof Video v) {
-            return v.geturl();
+            return v.getUrl();
         }
         if (contenido instanceof Audio a) {
             return "http://localhost:8080/multimedia/audio/" + a.getId();
