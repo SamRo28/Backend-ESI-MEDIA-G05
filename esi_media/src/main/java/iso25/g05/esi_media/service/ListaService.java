@@ -273,19 +273,11 @@ public class ListaService {
                 lista.setEspecializacionGestor(gestor.getcampoespecializacion());
             }
         } else {
-            // Es Visualizador o Administrador
-            // Verificar si es Visualizador
-            Optional<Visualizador> visualizadorOpt = visualizadorRepository.findById(usuario.getId());
-            
-            if (visualizadorOpt.isPresent()) {
+
                 // Visualizador: forzar visible=false y especializacionGestor=null
                 lista.setVisible(false);
                 lista.setEspecializacionGestor(null);
-            } else {
-                // Administrador no debería crear listas (pero por si acaso)
-                lista.setVisible(false);
-                lista.setEspecializacionGestor(null);
-            }
+
         }
     }
     
@@ -1121,7 +1113,8 @@ public class ListaService {
             contenido.gettitulo(),
             tipo,
             contenido.getcaratula(),
-            contenido.isvip()
+            contenido.isvip(),
+            (contenido instanceof iso25.g05.esi_media.model.Video) ? ((iso25.g05.esi_media.model.Video) contenido).getresolucion() : null
         );
     }
 }

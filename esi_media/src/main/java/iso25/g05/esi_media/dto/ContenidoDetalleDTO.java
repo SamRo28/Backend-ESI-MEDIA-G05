@@ -13,10 +13,13 @@ public class ContenidoDetalleDTO {
     private Object caratula;
     /** Indica si el contenido es VIP (requiere usuario VIP) */
     private boolean vip;
+    /** Duración en segundos */
+    private double duracion;
     // Información adicional de detalle que debe mostrarse al visualizador
     private java.util.Date fechadisponiblehasta;
     private int edadvisualizacion;
     private int nvisualizaciones;
+    private String resolucion;
     private java.util.List<String> tags;
     /**
      * Para VIDEO: será la URL externa (YouTube, etc.).
@@ -26,22 +29,37 @@ public class ContenidoDetalleDTO {
 
     public ContenidoDetalleDTO() {}
 
+    /**
+     * Constructor de compatibilidad (sin duración). Mantiene compatibilidad con tests existentes.
+     * Asigna duracion = -1 para indicar "no indicada".
+     */
     public ContenidoDetalleDTO(String id, String titulo, String descripcion, String tipo,
                                Object caratula, boolean vip,
                                java.util.Date fechadisponiblehasta, int edadvisualizacion,
                                int nvisualizaciones, java.util.List<String> tags,
-                               String referenciaReproduccion) {
+                               String referenciaReproduccion, String resolucion) {
+        this(id, titulo, descripcion, tipo, caratula, vip, -1d,
+                fechadisponiblehasta, edadvisualizacion, nvisualizaciones, tags, referenciaReproduccion, resolucion);
+    }
+
+    public ContenidoDetalleDTO(String id, String titulo, String descripcion, String tipo,
+                               Object caratula, boolean vip, double duracion,
+                               java.util.Date fechadisponiblehasta, int edadvisualizacion,
+                               int nvisualizaciones, java.util.List<String> tags,
+                               String referenciaReproduccion, String resolucion) {
         this.id = id;
         this.titulo = titulo;
         this.descripcion = descripcion;
         this.tipo = tipo;
         this.caratula = caratula;
         this.vip = vip;
+        this.duracion = duracion;
         this.fechadisponiblehasta = fechadisponiblehasta;
         this.edadvisualizacion = edadvisualizacion;
         this.nvisualizaciones = nvisualizaciones;
         this.tags = tags;
         this.referenciaReproduccion = referenciaReproduccion;
+        this.resolucion = resolucion;
     }
 
     public String getId() { return id; }
@@ -62,6 +80,9 @@ public class ContenidoDetalleDTO {
     public boolean isVip() { return vip; }
     public void setVip(boolean vip) { this.vip = vip; }
 
+    public double getDuracion() { return duracion; }
+    public void setDuracion(double duracion) { this.duracion = duracion; }
+
     public java.util.Date getFechaDisponibleHasta() { return fechadisponiblehasta; }
     public void setFechaDisponibleHasta(java.util.Date fechadisponiblehasta) { this.fechadisponiblehasta = fechadisponiblehasta; }
 
@@ -76,4 +97,7 @@ public class ContenidoDetalleDTO {
 
     public String getReferenciaReproduccion() { return referenciaReproduccion; }
     public void setReferenciaReproduccion(String referenciaReproduccion) { this.referenciaReproduccion = referenciaReproduccion; }
+
+    public String getResolucion() { return resolucion; }
+    public void setResolucion(String resolucion) { this.resolucion = resolucion; }
 }

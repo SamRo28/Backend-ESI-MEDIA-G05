@@ -37,6 +37,10 @@ public class PasswordResetController {
     private final EmailService emailService;
     private final UserService userService;
 
+    private String MSG = "message";
+    private String VALID = "valid";
+    private String CADUCADO = "El enlace no es válido o ha caducado";
+
     public PasswordResetController(
         UsuarioRepository usuarioRepository,
         CodigoRecuperacionRepository codigoRepo,
@@ -54,7 +58,7 @@ public class PasswordResetController {
         String email = body != null ? body.getOrDefault("email", "").trim() : "";
         // Mensaje genÃ©rico para no revelar informaciÃ³n sensible
         Map<String, String> resp = new HashMap<>();
-        resp.put("message", "Si el correo existe, enviaremos instrucciones para restablecer la contraseÃ±a.");
+        resp.put(MSG, "Si el correo existe, enviaremos instrucciones para restablecer la contraseÃ±a.");
 
         if (email.isEmpty()) {
             return ResponseEntity.status(HttpStatus.ACCEPTED).body(resp);
@@ -74,7 +78,7 @@ public class PasswordResetController {
                 // PolÃ­tica solicitada: avisar si el correo no existe
                 log.info("Solicitud de restablecimiento para email no registrado: {}", email);
                 Map<String, String> noFound = new HashMap<>();
-                noFound.put("message", "No existe una cuenta con ese correo");
+                noFound.put(MSG, "No existe una cuenta con ese correo");
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(noFound);
             }
         } catch (Exception e) {
@@ -90,17 +94,17 @@ public class PasswordResetController {
         Map<String, Object> resp = new HashMap<>();
         Optional<Codigorecuperacion> crOpt = codigoRepo.findByCodigo(token);
         if (crOpt.isEmpty()) {
-            resp.put("valid", false);
+            resp.put(VALID, false);
             return ResponseEntity.status(HttpStatus.OK).body(resp);
         }
         Codigorecuperacion cr = crOpt.get();
         try {
             LocalDateTime exp = LocalDateTime.parse(cr.getfechaexpiracion(), FORMATTER);
             boolean valid = LocalDateTime.now().isBefore(exp);
-            resp.put("valid", valid);
+            resp.put(VALID, valid);
             return ResponseEntity.ok(resp);
         } catch (Exception e) {
-            resp.put("valid", false);
+            resp.put(VALID, false);
             return ResponseEntity.ok(resp);
         }
     }
@@ -112,13 +116,13 @@ public class PasswordResetController {
         String newPassword = body != null ? body.getOrDefault("newPassword", "").trim() : "";
 
         if (token.isEmpty() || newPassword.isEmpty()) {
-            resp.put("message", "Solicitud inválida");
+            resp.put(MSG, "Solicitud inválida");
             return ResponseEntity.badRequest().body(resp);
         }
 
         Optional<Codigorecuperacion> crOpt = codigoRepo.findByCodigo(token);
         if (crOpt.isEmpty()) {
-            resp.put("message", "El enlace no es válido o ha caducado");
+            resp.put(MSG, CADUCADO);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(resp);
         }
 
@@ -128,18 +132,18 @@ public class PasswordResetController {
             LocalDateTime exp = LocalDateTime.parse(cr.getfechaexpiracion(), FORMATTER);
             if (!LocalDateTime.now().isBefore(exp)) {
                 codigoRepo.deleteById(cr.getId()); // invalidar token
-                resp.put("message", "El enlace no es válido o ha caducado");
+                resp.put(MSG, CADUCADO);
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(resp);
             }
         } catch (Exception e) {
-            resp.put("message", "El enlace no es válido o ha caducado");
+            resp.put(MSG, CADUCADO);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(resp);
         }
 
         try {
             Usuario user = cr.getunnamedUsuario();
             if (user == null || user.getEmail() == null) {
-                resp.put("message", "El enlace no es válido o ha caducado");
+                resp.put(MSG, CADUCADO);
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(resp);
             }
             // Delegar validaciones de contraseÃ±as a la lógica existente
@@ -151,20 +155,20 @@ public class PasswordResetController {
                 log.info("[SECURITY][PASSWORD_CHANGE] user={} origin={} at={}", user.getEmail(), "RECOVERY", LocalDateTime.now().format(FORMATTER));
                 // Notificar por correo la confirmación del cambio (best-effort)
                 try { emailService.sendPasswordChangedEmail(user.getEmail()); } catch (Exception ex) { System.err.println("[PasswordReset] No se pudo enviar email de confirmación: " + ex.getMessage()); }
-                resp.put("message", "Contraseña actualizada correctamente");
+                resp.put(MSG, "Contraseña actualizada correctamente");
                 return ResponseEntity.ok(resp);
             } else {
-                resp.put("message", "No se pudo actualizar la contraseÃ±a");
+                resp.put(MSG, "No se pudo actualizar la contraseÃ±a");
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(resp);
             }
         } catch (RuntimeException ex) {
             // Mensajes genéricos para no filtrar detalles
             log.warn("Error al cambiar contraseña por recuperación: {}", ex.getMessage());
-            resp.put("message", "No se pudo establecer la contraseña. Verifique la polí­tica de seguridad.");
+            resp.put(MSG, "No se pudo establecer la contraseña. Verifique la polí­tica de seguridad.");
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(resp);
         } catch (Exception e) {
             log.error("Fallo inesperado en reset de contraseña", e);
-            resp.put("message", "No se pudo completar la operación");
+            resp.put(MSG, "No se pudo completar la operación");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(resp);
         }
     }
