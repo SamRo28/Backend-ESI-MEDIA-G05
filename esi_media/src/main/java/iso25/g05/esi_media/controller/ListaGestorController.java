@@ -6,6 +6,7 @@ import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import iso25.g05.esi_media.dto.PlaylistDto;
+import iso25.g05.esi_media.service.ListaService;
 
 /**
  * Controlador REST específico para gestores en gestión de listas
@@ -54,10 +56,8 @@ public class ListaGestorController extends BaseListaController {
     
     private static final Logger logger = LoggerFactory.getLogger(ListaGestorController.class);
     
-    @Override
-    protected Logger getLogger() {
-        return logger;
-    }
+    @Autowired
+    private ListaService listaService;
     
     /**
      * Crea una nueva lista para el gestor autenticado
@@ -68,16 +68,14 @@ public class ListaGestorController extends BaseListaController {
             @RequestBody PlaylistDto listaDto,
             @RequestHeader(value = "Authorization", required = false) String authHeader) {
         
-        ResponseEntity<Map<String, Object>> validacion = validarToken(authHeader, "crear lista de gestor");
+        ResponseEntity<Map<String, Object>> validacion = validarToken(authHeader, "crear lista de gestor", logger);
         if (validacion != null) return validacion;
         
         try {
             String token = extraerToken(authHeader);
             PlaylistDto listaCreada = listaService.crearListaDesdeDto(listaDto, token);
             
-            Map<String, Object> response = new HashMap<>();
-            response.put(SUCCESS, true);
-            response.put(MENSAJE, "Lista creada correctamente y asociada al usuario.");
+            Map<String, Object> response = crearRespuestaExito("Lista creada correctamente y asociada al usuario.");
             response.put(LISTA, listaCreada);
             
             logger.info("Lista de gestor creada exitosamente: {} (ID: {})", listaCreada.getNombre(), listaCreada.getId());
@@ -87,7 +85,7 @@ public class ListaGestorController extends BaseListaController {
             logger.error("Error al crear lista de gestor: {}", e.getMessage());
             return manejarExcepcion(e, "Error al crear la lista");
         } catch (Exception e) {
-            return manejarExcepcionGeneral(e, "crear lista de gestor");
+            return manejarExcepcionGenerica(e, logger);
         }
     }
     
@@ -99,21 +97,25 @@ public class ListaGestorController extends BaseListaController {
     public ResponseEntity<Map<String, Object>> obtenerListasPropiasGestor(
             @RequestHeader(value = "Authorization", required = false) String authHeader) {
         
-        ResponseEntity<Map<String, Object>> validacion = validarToken(authHeader, "obtener listas propias de gestor");
+        ResponseEntity<Map<String, Object>> validacion = validarToken(authHeader, "obtener listas propias de gestor", logger);
         if (validacion != null) return validacion;
         
         try {
             String token = extraerToken(authHeader);
             List<PlaylistDto> listas = listaService.findListasPropias(token);
             
+            Map<String, Object> response = crearRespuestaExito("Listas propias obtenidas exitosamente");
+            response.put(LISTAS, listas);
+            response.put(TOTAL, listas.size());
+            
             logger.info("Listas propias de gestor obtenidas exitosamente: {} lista(s)", listas.size());
-            return crearRespuestaExitoListas("Listas propias obtenidas exitosamente", listas);
+            return ResponseEntity.ok(response);
             
         } catch (RuntimeException e) {
             logger.error("Error al obtener listas propias de gestor: {}", e.getMessage());
             return manejarExcepcion(e, "Error al obtener las listas propias");
         } catch (Exception e) {
-            return manejarExcepcionGeneral(e, "obtener listas propias de gestor");
+            return manejarExcepcionGenerica(e, logger);
         }
     }
     
@@ -125,23 +127,25 @@ public class ListaGestorController extends BaseListaController {
     public ResponseEntity<Map<String, Object>> obtenerTodasLasListas(
             @RequestHeader(value = "Authorization", required = false) String authHeader) {
         
-        ResponseEntity<Map<String, Object>> validacion = validarToken(authHeader, "obtener todas las listas de gestores");
+        ResponseEntity<Map<String, Object>> validacion = validarToken(authHeader, "obtener todas las listas", logger);
         if (validacion != null) return validacion;
         
         try {
             String token = extraerToken(authHeader);
-            
-            // Obtener listas visibles de gestores (propias + de otros gestores)
             List<PlaylistDto> listas = listaService.findListasVisiblesGestores(token);
             
+            Map<String, Object> response = crearRespuestaExito("Todas las listas visibles obtenidas exitosamente");
+            response.put(LISTAS, listas);
+            response.put(TOTAL, listas.size());
+            
             logger.info("Todas las listas obtenidas por gestor exitosamente: {} lista(s)", listas.size());
-            return crearRespuestaExitoListas("Todas las listas visibles obtenidas exitosamente", listas);
+            return ResponseEntity.ok(response);
             
         } catch (RuntimeException e) {
             logger.error("Error al obtener todas las listas para gestor: {}", e.getMessage());
             return manejarExcepcion(e, "Error al obtener todas las listas");
         } catch (Exception e) {
-            return manejarExcepcionGeneral(e, "obtener todas las listas para gestor");
+            return manejarExcepcionGenerica(e, logger);
         }
     }
 
@@ -154,21 +158,34 @@ public class ListaGestorController extends BaseListaController {
             @PathVariable String id,
             @RequestHeader(value = "Authorization", required = false) String authHeader) {
         
-        ResponseEntity<Map<String, Object>> validacion = validarToken(authHeader, "obtener lista " + id);
-        if (validacion != null) return validacion;
+        Map<String, Object> response = new HashMap<>();
         
         try {
+            if (authHeader == null || authHeader.trim().isEmpty()) {
+                logger.warn("Intento de obtener lista {} sin token de autorización", id);
+                response.put(SUCCESS, false);
+                response.put(MENSAJE, TOKEN_REQUERIDO);
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+            }
+            
             String token = extraerToken(authHeader);
             PlaylistDto lista = listaService.findListaById(id, token);
             
+            response.put(SUCCESS, true);
+            response.put(MENSAJE, "Lista obtenida exitosamente");
+            response.put(LISTA, lista);
+            
             logger.info("Lista de gestor obtenida exitosamente: {} (ID: {})", lista.getNombre(), lista.getId());
-            return crearRespuestaExitoLista("Lista obtenida exitosamente", lista);
+            return ResponseEntity.ok(response);
             
         } catch (RuntimeException e) {
             logger.error("Error al obtener lista de gestor {}: {}", id, e.getMessage());
             return manejarExcepcion(e, "Error al obtener la lista");
         } catch (Exception e) {
-            return manejarExcepcionGeneral(e, "obtener lista de gestor " + id);
+            logger.error("Error inesperado al obtener lista de gestor {}", id, e);
+            response.put(SUCCESS, false);
+            response.put(MENSAJE, ERROR_INTERNO);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
 
@@ -181,14 +198,19 @@ public class ListaGestorController extends BaseListaController {
             @PathVariable String id,
             @RequestHeader(value = "Authorization", required = false) String authHeader) {
         
-        ResponseEntity<Map<String, Object>> validacion = validarToken(authHeader, "obtener contenidos de lista " + id);
-        if (validacion != null) return validacion;
+        Map<String, Object> response = new HashMap<>();
         
         try {
+            if (authHeader == null || authHeader.trim().isEmpty()) {
+                logger.warn("Intento de obtener contenidos de lista {} sin token de autorización", id);
+                response.put(SUCCESS, false);
+                response.put(MENSAJE, TOKEN_REQUERIDO);
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+            }
+            
             String token = extraerToken(authHeader);
             List<iso25.g05.esi_media.dto.ContenidoResumenDTO> contenidos = listaService.findContenidosLista(id, token);
             
-            Map<String, Object> response = new HashMap<>();
             response.put(SUCCESS, true);
             response.put(MENSAJE, "Contenidos obtenidos exitosamente");
             response.put(CONTENIDOS, contenidos);
@@ -201,7 +223,10 @@ public class ListaGestorController extends BaseListaController {
             logger.error("Error al obtener contenidos de lista {}: {}", id, e.getMessage());
             return manejarExcepcion(e, "Error al obtener los contenidos de la lista");
         } catch (Exception e) {
-            return manejarExcepcionGeneral(e, "obtener contenidos de lista " + id);
+            logger.error("Error inesperado al obtener contenidos de lista {}", id, e);
+            response.put(SUCCESS, false);
+            response.put(MENSAJE, ERROR_INTERNO);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
     
@@ -215,23 +240,36 @@ public class ListaGestorController extends BaseListaController {
             @RequestBody PlaylistDto updatedListaDto,
             @RequestHeader(value = "Authorization", required = false) String authHeader) {
         
-        ResponseEntity<Map<String, Object>> validacion = validarToken(authHeader, "editar lista de gestor " + id);
-        if (validacion != null) return validacion;
+        Map<String, Object> response = new HashMap<>();
         
         try {
+            if (authHeader == null || authHeader.trim().isEmpty()) {
+                logger.warn("Intento de editar lista de gestor {} sin token de autorización", id);
+                response.put(SUCCESS, false);
+                response.put(MENSAJE, TOKEN_REQUERIDO);
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+            }
+            
             String token = extraerToken(authHeader);
             
             // Usar el nuevo método que maneja DTOs completos incluyendo contenidosIds
             PlaylistDto listaEditada = listaService.updateListaDesdeDto(id, updatedListaDto, token);
             
+            response.put(SUCCESS, true);
+            response.put(MENSAJE, "Lista actualizada exitosamente");
+            response.put(LISTA, listaEditada);
+            
             logger.info("Lista de gestor editada exitosamente: {} (ID: {})", listaEditada.getNombre(), listaEditada.getId());
-            return crearRespuestaExitoLista("Lista actualizada exitosamente", listaEditada);
+            return ResponseEntity.ok(response);
             
         } catch (RuntimeException e) {
             logger.error("Error al editar lista de gestor {}: {}", id, e.getMessage());
             return manejarExcepcion(e, "Error al editar la lista");
         } catch (Exception e) {
-            return manejarExcepcionGeneral(e, "editar lista de gestor " + id);
+            logger.error("Error inesperado al editar lista de gestor {}", id, e);
+            response.put(SUCCESS, false);
+            response.put(MENSAJE, ERROR_INTERNO);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
     
@@ -244,21 +282,33 @@ public class ListaGestorController extends BaseListaController {
             @PathVariable String id,
             @RequestHeader(value = "Authorization", required = false) String authHeader) {
         
-        ResponseEntity<Map<String, Object>> validacion = validarToken(authHeader, "eliminar lista de gestor " + id);
-        if (validacion != null) return validacion;
+        Map<String, Object> response = new HashMap<>();
         
         try {
+            if (authHeader == null || authHeader.trim().isEmpty()) {
+                logger.warn("Intento de eliminar lista de gestor {} sin token de autorización", id);
+                response.put(SUCCESS, false);
+                response.put(MENSAJE, TOKEN_REQUERIDO);
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+            }
+            
             String token = extraerToken(authHeader);
             listaService.deleteLista(id, token);
             
+            response.put(SUCCESS, true);
+            response.put(MENSAJE, "Lista eliminada exitosamente");
+            
             logger.info("Lista de gestor eliminada exitosamente: ID {}", id);
-            return crearRespuestaExitoSimple("Lista eliminada exitosamente");
+            return ResponseEntity.ok(response);
             
         } catch (RuntimeException e) {
             logger.error("Error al eliminar lista de gestor {}: {}", id, e.getMessage());
             return manejarExcepcion(e, "Error al eliminar la lista");
         } catch (Exception e) {
-            return manejarExcepcionGeneral(e, "eliminar lista de gestor " + id);
+            logger.error("Error inesperado al eliminar lista de gestor {}", id, e);
+            response.put(SUCCESS, false);
+            response.put(MENSAJE, ERROR_INTERNO);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
     
@@ -272,14 +322,19 @@ public class ListaGestorController extends BaseListaController {
             @PathVariable String contenidoId,
             @RequestHeader(value = "Authorization", required = false) String authHeader) {
         
-        ResponseEntity<Map<String, Object>> validacion = validarToken(authHeader, "añadir contenido a lista de gestor " + id);
-        if (validacion != null) return validacion;
+        Map<String, Object> response = new HashMap<>();
         
         try {
+            if (authHeader == null || authHeader.trim().isEmpty()) {
+                logger.warn("Intento de añadir contenido a lista de gestor {} sin token de autorización", id);
+                response.put(SUCCESS, false);
+                response.put(MENSAJE, TOKEN_REQUERIDO);
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+            }
+            
             String token = extraerToken(authHeader);
             PlaylistDto listaActualizada = listaService.addContenido(id, contenidoId, token);
             
-            Map<String, Object> response = new HashMap<>();
             response.put(SUCCESS, true);
             response.put(MENSAJE, "Contenido añadido a la lista exitosamente");
             response.put(LISTA, listaActualizada);
@@ -292,7 +347,10 @@ public class ListaGestorController extends BaseListaController {
             logger.error("Error al añadir contenido a lista de gestor {}: {}", id, e.getMessage());
             return manejarExcepcion(e, "Error al añadir contenido a la lista");
         } catch (Exception e) {
-            return manejarExcepcionGeneral(e, "añadir contenido a lista de gestor " + id);
+            logger.error("Error inesperado al añadir contenido a lista de gestor {}", id, e);
+            response.put(SUCCESS, false);
+            response.put(MENSAJE, ERROR_INTERNO);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
     
@@ -306,14 +364,19 @@ public class ListaGestorController extends BaseListaController {
             @PathVariable String contenidoId,
             @RequestHeader(value = "Authorization", required = false) String authHeader) {
         
-        ResponseEntity<Map<String, Object>> validacion = validarToken(authHeader, "eliminar contenido de lista de gestor " + id);
-        if (validacion != null) return validacion;
+        Map<String, Object> response = new HashMap<>();
         
         try {
+            if (authHeader == null || authHeader.trim().isEmpty()) {
+                logger.warn("Intento de eliminar contenido de lista de gestor {} sin token de autorización", id);
+                response.put(SUCCESS, false);
+                response.put(MENSAJE, TOKEN_REQUERIDO);
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+            }
+            
             String token = extraerToken(authHeader);
             PlaylistDto listaActualizada = listaService.removeContenido(id, contenidoId, token);
             
-            Map<String, Object> response = new HashMap<>();
             response.put(SUCCESS, true);
             response.put(MENSAJE, "Contenido eliminado de la lista exitosamente");
             response.put(LISTA, listaActualizada);
@@ -326,7 +389,10 @@ public class ListaGestorController extends BaseListaController {
             logger.error("Error al eliminar contenido de lista de gestor {}: {}", id, e.getMessage());
             return manejarExcepcion(e, "Error al eliminar contenido de la lista");
         } catch (Exception e) {
-            return manejarExcepcionGeneral(e, "eliminar contenido de lista de gestor " + id);
+            logger.error("Error inesperado al eliminar contenido de lista de gestor {}", id, e);
+            response.put(SUCCESS, false);
+            response.put(MENSAJE, ERROR_INTERNO);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
     

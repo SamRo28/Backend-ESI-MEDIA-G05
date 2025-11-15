@@ -65,6 +65,10 @@ public class Usuario {
     private boolean twoFactorAutenticationEnabled;
     private boolean threeFactorAutenticationEnabled;
 
+    // Activación por email
+    protected String activationToken;
+    protected boolean hasActivated;
+
     // Constructor vacío requerido por MongoDB
     public Usuario() {
         this.codigosrecuperacion = new ArrayList<>();
@@ -207,6 +211,21 @@ public class Usuario {
         this.secretkey = secretkey;
     }
 
+    public String getActivationToken() {
+        return activationToken;
+    }
+
+    public void setActivationToken(String activationToken) {
+        this.activationToken = activationToken;
+    }
+
+    public boolean isHasActivated() {
+        return hasActivated;
+    }
+
+    public void setHasActivated(boolean hasActivated) {
+        this.hasActivated = hasActivated;
+    }
 
 
 }

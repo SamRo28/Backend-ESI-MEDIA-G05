@@ -4,22 +4,16 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.slf4j.Logger;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
-import iso25.g05.esi_media.service.ListaService;
-
 /**
- * Controlador base común para ListaUsuarioController y ListaGestorController
- * Contiene funcionalidad compartida para evitar duplicación de código.
- * 
- * IMPORTANTE: Esta clase NO modifica la API pública de los controladores,
- * solo factoriza código común para resolver problemas de duplicación reportados por SonarQube.
+ * Clase base abstracta para controladores de listas.
+ * Contiene métodos comunes y constantes compartidas para reducir duplicación.
  */
 public abstract class BaseListaController {
     
-    // Constantes para respuestas - mantenidas exactamente igual que los controladores originales
+    // Constantes para respuestas
     protected static final String SUCCESS = "success";
     protected static final String MENSAJE = "mensaje";
     protected static final String LISTA = "lista";
@@ -28,48 +22,59 @@ public abstract class BaseListaController {
     protected static final String CONTENIDOS = "contenidos";
     protected static final String TOTAL_CONTENIDOS = "totalContenidos";
     
-    // Constantes para mensajes comunes - mantenidas exactamente igual
+    // Constantes para mensajes comunes
     protected static final String TOKEN_REQUERIDO = "Token de autorización requerido";
     protected static final String ERROR_INTERNO = "Error interno del servidor";
     
-    @Autowired
-    protected ListaService listaService;
-    
-    /**
-     * Obtiene el logger específico de cada controlador hijo
-     * Cada controlador debe implementar este método para mantener logs diferenciados
-     */
-    protected abstract Logger getLogger();
-    
     /**
      * Extrae el token del header de autorización
-     * Método común mantenido exactamente igual que en ambos controladores
      */
     protected String extraerToken(String authHeader) {
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+        if (authHeader == null) {
+            return null;
+        }
+        if (authHeader.startsWith("Bearer ")) {
             return authHeader.substring(7).trim();
         }
-        return authHeader != null ? authHeader.trim() : null;
+        return authHeader.trim();
     }
     
     /**
      * Valida que el token de autorización esté presente
-     * Retorna ResponseEntity con error si no hay token, null si está presente
      */
-    protected ResponseEntity<Map<String, Object>> validarToken(String authHeader, String operacion) {
+    protected ResponseEntity<Map<String, Object>> validarToken(String authHeader, String accion, Logger logger) {
         if (authHeader == null || authHeader.trim().isEmpty()) {
-            getLogger().warn("Intento de {} sin token de autorización", operacion);
+            logger.warn("Intento de {} sin token de autorización", accion);
             Map<String, Object> response = new HashMap<>();
             response.put(SUCCESS, false);
             response.put(MENSAJE, TOKEN_REQUERIDO);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
         }
-        return null; // Token válido
+        return null;
+    }
+    
+    /**
+     * Crea una respuesta de éxito estándar
+     */
+    protected Map<String, Object> crearRespuestaExito(String mensaje) {
+        Map<String, Object> response = new HashMap<>();
+        response.put(SUCCESS, true);
+        response.put(MENSAJE, mensaje);
+        return response;
+    }
+    
+    /**
+     * Crea una respuesta de error estándar
+     */
+    protected Map<String, Object> crearRespuestaError(String mensaje) {
+        Map<String, Object> response = new HashMap<>();
+        response.put(SUCCESS, false);
+        response.put(MENSAJE, mensaje);
+        return response;
     }
     
     /**
      * Maneja las excepciones y retorna la respuesta HTTP apropiada
-     * Lógica mantenida exactamente igual que en ambos controladores originales
      */
     protected ResponseEntity<Map<String, Object>> manejarExcepcion(RuntimeException e, String mensajeGenerico) {
         Map<String, Object> response = new HashMap<>();
@@ -77,73 +82,96 @@ public abstract class BaseListaController {
         
         String mensajeError = e.getMessage();
         
-        if (mensajeError != null && mensajeError.contains("Token") && 
-            (mensajeError.contains("inválido") || mensajeError.contains("expirado") || 
-             mensajeError.contains("no proporcionado"))) {
+        if (esErrorAutorizacion(mensajeError)) {
             response.put(MENSAJE, mensajeError);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
         }
         
-        if (mensajeError != null && (mensajeError.contains("no encontrada") || mensajeError.contains("no encontrado"))) {
+        if (esErrorNoEncontrado(mensajeError)) {
             response.put(MENSAJE, mensajeError);
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
         }
         
-        if (mensajeError != null && (mensajeError.contains("permisos") || mensajeError.contains("autorizado"))) {
+        if (esErrorPermisos(mensajeError)) {
             response.put(MENSAJE, mensajeError);
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
         }
         
-        // Mantener el comportamiento original: usar mensaje de error específico si existe
         response.put(MENSAJE, mensajeError != null ? mensajeError : mensajeGenerico);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
     
     /**
-     * Maneja excepciones generales no capturadas (Exception)
-     * Comportamiento mantenido exactamente igual que en controladores originales
+     * Maneja excepciones genéricas no esperadas
      */
-    protected ResponseEntity<Map<String, Object>> manejarExcepcionGeneral(Exception e, String operacion) {
-        getLogger().error("Error inesperado en {}", operacion, e);
-        Map<String, Object> response = new HashMap<>();
-        response.put(SUCCESS, false);
-        response.put(MENSAJE, ERROR_INTERNO);
+    protected ResponseEntity<Map<String, Object>> manejarExcepcionGenerica(Exception e, Logger logger) {
+        logger.error("Error inesperado", e);
+        Map<String, Object> response = crearRespuestaError(ERROR_INTERNO);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
     
     /**
-     * Crea una respuesta de éxito estándar para una sola lista
-     * Simplifica creación de respuestas manteniendo estructura exacta
+     * Verifica si el error es de autorización
      */
-    protected ResponseEntity<Map<String, Object>> crearRespuestaExitoLista(String mensaje, Object lista) {
-        Map<String, Object> response = new HashMap<>();
-        response.put(SUCCESS, true);
-        response.put(MENSAJE, mensaje);
-        response.put(LISTA, lista);
-        return ResponseEntity.ok(response);
+    private boolean esErrorAutorizacion(String mensajeError) {
+        return mensajeError != null && 
+               mensajeError.contains("Token") && 
+               (mensajeError.contains("inválido") || 
+                mensajeError.contains("expirado") || 
+                mensajeError.contains("no proporcionado"));
     }
     
     /**
-     * Crea una respuesta de éxito para múltiples listas con conteo
-     * Mantiene estructura exacta de respuestas originales
+     * Verifica si el error es de recurso no encontrado
      */
-    protected ResponseEntity<Map<String, Object>> crearRespuestaExitoListas(String mensaje, java.util.List<?> listas) {
-        Map<String, Object> response = new HashMap<>();
-        response.put(SUCCESS, true);
-        response.put(MENSAJE, mensaje);
-        response.put(LISTAS, listas);
-        response.put(TOTAL, listas.size());
-        return ResponseEntity.ok(response);
+    private boolean esErrorNoEncontrado(String mensajeError) {
+        return mensajeError != null && 
+               (mensajeError.contains("no encontrada") || 
+                mensajeError.contains("no encontrado"));
     }
     
     /**
-     * Crea una respuesta de éxito simple (solo mensaje)
-     * Para endpoints como DELETE que no retornan datos específicos
+     * Verifica si el error es de permisos
      */
-    protected ResponseEntity<Map<String, Object>> crearRespuestaExitoSimple(String mensaje) {
-        Map<String, Object> response = new HashMap<>();
-        response.put(SUCCESS, true);
-        response.put(MENSAJE, mensaje);
-        return ResponseEntity.ok(response);
+    private boolean esErrorPermisos(String mensajeError) {
+        return mensajeError != null && 
+               (mensajeError.contains("permisos") || 
+                mensajeError.contains("autorizado"));
+    }
+    
+    /**
+     * Ejecuta una operación con manejo de excepciones estándar
+     */
+    protected <T> ResponseEntity<Map<String, Object>> ejecutarOperacion(
+            String authHeader,
+            String accion,
+            Logger logger,
+            OperacionConToken<T> operacion,
+            String mensajeExito) {
+        
+        ResponseEntity<Map<String, Object>> validacion = validarToken(authHeader, accion, logger);
+        if (validacion != null) return validacion;
+        
+        try {
+            String token = extraerToken(authHeader);
+            operacion.ejecutar(token);
+            
+            Map<String, Object> response = crearRespuestaExito(mensajeExito);
+            return ResponseEntity.ok(response);
+            
+        } catch (RuntimeException e) {
+            logger.error("Error en {}: {}", accion, e.getMessage());
+            return manejarExcepcion(e, "Error en " + accion);
+        } catch (Exception e) {
+            return manejarExcepcionGenerica(e, logger);
+        }
+    }
+    
+    /**
+     * Interfaz funcional para operaciones que requieren token
+     */
+    @FunctionalInterface
+    protected interface OperacionConToken<T> {
+        T ejecutar(String token);
     }
 }

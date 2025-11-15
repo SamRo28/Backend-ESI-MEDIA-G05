@@ -19,6 +19,7 @@ public class ContenidoDetalleDTO {
     private java.util.Date fechadisponiblehasta;
     private int edadvisualizacion;
     private int nvisualizaciones;
+    private String resolucion;
     private java.util.List<String> tags;
     /**
      * Para VIDEO: será la URL externa (YouTube, etc.).
@@ -36,16 +37,16 @@ public class ContenidoDetalleDTO {
                                Object caratula, boolean vip,
                                java.util.Date fechadisponiblehasta, int edadvisualizacion,
                                int nvisualizaciones, java.util.List<String> tags,
-                               String referenciaReproduccion) {
+                               String referenciaReproduccion, String resolucion) {
         this(id, titulo, descripcion, tipo, caratula, vip, -1d,
-                fechadisponiblehasta, edadvisualizacion, nvisualizaciones, tags, referenciaReproduccion);
+                fechadisponiblehasta, edadvisualizacion, nvisualizaciones, tags, referenciaReproduccion, resolucion);
     }
 
     public ContenidoDetalleDTO(String id, String titulo, String descripcion, String tipo,
                                Object caratula, boolean vip, double duracion,
                                java.util.Date fechadisponiblehasta, int edadvisualizacion,
                                int nvisualizaciones, java.util.List<String> tags,
-                               String referenciaReproduccion) {
+                               String referenciaReproduccion, String resolucion) {
         this.id = id;
         this.titulo = titulo;
         this.descripcion = descripcion;
@@ -58,6 +59,7 @@ public class ContenidoDetalleDTO {
         this.nvisualizaciones = nvisualizaciones;
         this.tags = tags;
         this.referenciaReproduccion = referenciaReproduccion;
+        this.resolucion = resolucion;
     }
 
     public String getId() { return id; }
@@ -95,4 +97,7 @@ public class ContenidoDetalleDTO {
 
     public String getReferenciaReproduccion() { return referenciaReproduccion; }
     public void setReferenciaReproduccion(String referenciaReproduccion) { this.referenciaReproduccion = referenciaReproduccion; }
+
+    public String getResolucion() { return resolucion; }
+    public void setResolucion(String resolucion) { this.resolucion = resolucion; }
 }

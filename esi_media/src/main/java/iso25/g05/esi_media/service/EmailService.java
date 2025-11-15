@@ -32,6 +32,30 @@ public class EmailService {
         return UUID.randomUUID().toString();
     }
 
+    public String sendActivationEmail(Usuario user) {
+        try {
+            String token = generateConfirmationToken();
+            user.setActivationToken(token);
+            user.setHasActivated(false);
+            userRepository.save(user);
+
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true);
+            helper.setTo(user.getEmail());
+            helper.setSubject("Confirmación de Registro en ESIMedia");
+
+            String link = "http://localhost:8080/api/visualizador/activar-web?token=" + token;
+            String html = loadEmailTemplate("email-templates/verify-email.html");
+            html = html.replace("{{CONFIRM_LINK}}", link)
+                       .replace("{{USER_NAME}}", user.getNombre() != null ? user.getNombre() : "");
+            helper.setText(html, true);
+            mailSender.send(mimeMessage);
+            return token;
+        } catch (Exception e) {
+            throw new RuntimeException("Error al enviar el correo de verificación", e);
+        }
+    }
+
     public Codigorecuperacion send3FAemail(String email, Usuario user) {
         try {
             MimeMessage mimeMessage = mailSender.createMimeMessage();
