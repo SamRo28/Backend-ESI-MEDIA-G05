@@ -13,7 +13,6 @@ import iso25.g05.esi_media.model.Audio;
 import iso25.g05.esi_media.model.GestordeContenido;
 import iso25.g05.esi_media.repository.AudioRepository;
 import iso25.g05.esi_media.repository.GestorDeContenidoRepository;
-import iso25.g05.esi_media.repository.UsuarioRepository;
 
 /**
  * Servicio para gestión de contenido de audio
@@ -30,9 +29,6 @@ public class AudioService {
     
     @Autowired
     private GestorDeContenidoRepository gestorRepository;
-    
-    @Autowired
-    private UsuarioRepository usuarioRepository;
 
     @Autowired
     private VideoService videoService;
@@ -69,6 +65,9 @@ public class AudioService {
         MultipartFile archivo = audioDTO.getArchivo();
         validarArchivo(archivo);
         
+        // 2.1. Validar carátula si está presente
+        validarCaratula(audioDTO.getCaratula());
+        
         // 3. Crear entidad Audio
         Audio audio = crearAudioDesdeDTO(audioDTO, archivo, gestorId);
         
@@ -98,6 +97,56 @@ public class AudioService {
         }
         
         return gestor;
+    }
+    
+    /**
+     * Valida la carátula opcional con múltiples capas de seguridad
+     */
+    private void validarCaratula(MultipartFile caratula) {
+        if (caratula == null || caratula.isEmpty()) {
+            return; // La carátula es opcional
+        }
+        
+        // Validar tamaño máximo de 1MB para carátula
+        if (caratula.getSize() > 1024 * 1024) {
+            throw new IllegalArgumentException("La carátula excede el tamaño máximo de 1MB");
+        }
+        
+        // Validar que tiene nombre
+        String filename = caratula.getOriginalFilename();
+        if (filename == null || filename.trim().isEmpty()) {
+            throw new IllegalArgumentException("La carátula debe tener un nombre válido");
+        }
+        
+        // Validar MIME type de imagen
+        String mimeType = caratula.getContentType();
+        if (mimeType == null) {
+            throw new IllegalArgumentException("No se pudo determinar el tipo MIME de la carátula");
+        }
+        
+        if (!mimeType.startsWith("image/")) {
+            throw new IllegalArgumentException("La carátula debe ser un archivo de imagen (PNG, JPG, JPEG)");
+        }
+        
+        String[] allowedImageTypes = {"image/png", "image/jpeg", "image/jpg"};
+        boolean mimeValido = false;
+        for (String allowedType : allowedImageTypes) {
+            if (allowedType.equals(mimeType)) {
+                mimeValido = true;
+                break;
+            }
+        }
+        
+        if (!mimeValido) {
+            throw new IllegalArgumentException(
+                String.format("Tipo MIME de carátula no válido: %s. Solo se permiten PNG, JPG o JPEG", mimeType));
+        }
+        
+        // Validar extensión del nombre de archivo
+        String lowerFilename = filename.toLowerCase();
+        if (!lowerFilename.endsWith(".png") && !lowerFilename.endsWith(".jpg") && !lowerFilename.endsWith(".jpeg")) {
+            throw new IllegalArgumentException("Extensión de carátula no válida. Se requiere archivo PNG, JPG o JPEG");
+        }
     }
     
     /**
@@ -224,6 +273,17 @@ public class AudioService {
     private Audio crearAudioDesdeDTO(AudioUploadDTO dto, MultipartFile archivo, String gestorId) throws IOException {
         Binary audioBinary = new Binary(archivo.getBytes());
         
+        // Procesar carátula si está presente
+        Object caratula = null;
+        MultipartFile caratulaFile = dto.getCaratula();
+        if (caratulaFile != null && !caratulaFile.isEmpty()) {
+            // Convertir la carátula a base64 string para mantener consistencia con video
+            byte[] caratulaBytes = caratulaFile.getBytes();
+            String base64String = java.util.Base64.getEncoder().encodeToString(caratulaBytes);
+            String mimeType = caratulaFile.getContentType();
+            caratula = "data:" + mimeType + ";base64," + base64String;
+        }
+        
         return new Audio(
             null, // ID será generado por MongoDB
             dto.getTitulo(),
@@ -235,7 +295,7 @@ public class AudioService {
             null,
             dto.getFechaDisponibleHasta(),
             dto.getEdadVisualizacion(),
-            dto.getCaratula(),
+            caratula,
             0, // Número de visualizaciones inicial
             audioBinary,
             archivo.getContentType(),

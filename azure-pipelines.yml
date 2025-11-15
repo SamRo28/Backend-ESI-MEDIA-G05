@@ -13,7 +13,9 @@ variables:
 - group: 'DockerRegistrySecrets'
 - group: 'SonarSecrets'
 
+
 stages:
+
 # -----------------------------------------------------------------
 # ETAPA 1: Compilar, Probar, Analizar y Publicar Imagen (CI)
 # -----------------------------------------------------------------
@@ -86,9 +88,5 @@ stages:
       vmImage: 'windows-latest'
       
     steps:
-    - script: |
-        curl -X POST "https://api.render.com/v1/services/$(RENDER_SERVICE_ID)/deploys" ^
-        -H "Authorization: Bearer $(RENDER_API_KEY)" ^
-        -H "Content-Type: application/json" ^
-        -d "{\"image_path\": \"docker.io/$(DOCKER_IMAGE_NAME):latest\"}"
-      displayName: 'Trigger Render API Deploy'
+    - powershell: |
+        curl $(RENDER_API_KEY)
