@@ -60,12 +60,17 @@ public class FiltradoContenidosAvanzadoController {
                     contentType = "all"; // Valor por defecto si no es válido
                 }
 
-            // Extraer userId del token (simplificado por ahora)
-                // Extraer userId del token (simplificado e inline): devolver la parte del token sin "Bearer "
-                String userId = null;
-                if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                    userId = authHeader.substring(7);
-                }
+            // Extraemos únicamente el token si se proporciona.
+            /* TODO: No intentamos decodificar ni extraer el userId aquí. La extracción
+               del identificador del usuario (userId) debe realizarse en la capa de autenticación
+               (filtro o servicio de seguridad). Pasamos `null` como userId para mantener un
+               comportamiento conservador (no mostrar +18) hasta que la capa de auth entregue
+               un userId validado.*/ 
+            String token = null;
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                token = authHeader.substring(7);
+            }
+            String userId = null;
 
             // Llamar al servicio con límite fijo
             List<ContenidoDTO> topContents = filtradoService.getTopContents(FIXED_LIMIT, contentType, userId);
@@ -108,8 +113,8 @@ public class FiltradoContenidosAvanzadoController {
                     contentType = "all"; // Valor por defecto si no es válido
                 }
 
-            // Extraer userId del token (simplificado por ahora)
-                // Extraer userId del token (simplificado e inline): devolver la parte del token sin "Bearer "
+                // Extraemos el token si viene, pero NO extraemos ni decodificamos userId aquí.
+                // No extraemos ni usamos el token aquí; userId debe venir validado desde la capa de auth
                 String userId = null;
                 if (authHeader != null && authHeader.startsWith("Bearer ")) {
                     userId = authHeader.substring(7);
@@ -150,6 +155,4 @@ public class FiltradoContenidosAvanzadoController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorStats);
         }
     }
-    
-    // Helpers intentionally inlined earlier; no private helpers remain in controller.
 }

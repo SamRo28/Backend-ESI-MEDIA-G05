@@ -3,6 +3,7 @@ package iso25.g05.esi_media.service;
 import iso25.g05.esi_media.dto.ContenidoDTO;
 import iso25.g05.esi_media.dto.TagStatDTO;
 import iso25.g05.esi_media.model.Usuario;
+import iso25.g05.esi_media.model.Visualizador;
 import iso25.g05.esi_media.repository.UsuarioRepository;
 
 import org.springframework.stereotype.Service;
@@ -30,8 +31,7 @@ import java.util.stream.Collectors;
 @Service
 public class FiltradoContenidosAvanzadoService {
     private static final Logger logger = LoggerFactory.getLogger(FiltradoContenidosAvanzadoService.class);
-    
-    // Reusable string constants to avoid duplicated literals (SonarQube warnings)
+
     private static final String FIELD_ESTADO = "estado";
     private static final String FIELD_URL = "url";
     private static final String FIELD_MIME_TYPE = "mimeType";
@@ -79,10 +79,10 @@ public class FiltradoContenidosAvanzadoService {
         // Solo contenidos visibles
         criteria.add(Criteria.where(FIELD_ESTADO).is(true));
         
-        // Filtro por edad si el usuario no es adulto
-        if (!userIsAdult) {
-            criteria.add(Criteria.where(FIELD_EDAD_VISUALIZACION).lte(0));
-        }
+        // Nota: no filtramos todavía por edad aquí; calculamos TOP5 global y luego
+        // aplicamos un post-filter para usuarios menores. Esto garantiza que
+        // los TOP5 se calculen siempre globalmente, y que el frontend vea
+        // sólo los contenidos permitidos para su edad.
         
         // Filtro por tipo de contenido
         if (!TYPE_ALL.equals(contentType)) {
@@ -124,24 +124,24 @@ public class FiltradoContenidosAvanzadoService {
         );
         
         // Ejecutar agregación
-        AggregationResults<Map> results = mongoTemplate.aggregate(
+        AggregationResults<Map<String, Object>> results = (AggregationResults<Map<String, Object>>) (AggregationResults<?>) mongoTemplate.aggregate(
             aggregation, COLLECTION_CONTENIDOS, Map.class
         );
 
-        // DEBUG: loguear contenido exacto devuelto por la agregación para depuración
-        if (logger.isDebugEnabled()) {
-            List<Map> mapped = results.getMappedResults();
-            logger.debug("[Filtrado] Aggregation returned {} items", mapped.size());
-            int i = 0;
-            for (Map item : mapped) {
-                logger.debug("[Filtrado] item[{}] keys={} => {}", i++, item.keySet(), item);
-            }
-        }
-
         // Convertir resultados a DTOs
-        return results.getMappedResults().stream()
+        List<ContenidoDTO> contenidos = results.getMappedResults().stream()
             .map(this::mapToContenidoDTO)
             .collect(Collectors.toList());
+
+        // Log de los contenidos antes del filtrado por edad
+        // Si el usuario NO es adulto, ocultar los contenidos +18 del resultado
+        if (!userIsAdult) {
+            contenidos = contenidos.stream()
+                .filter(c -> c.getEdadvisualizacion() <= 0)
+                .collect(Collectors.toList());
+        }
+
+        return contenidos;
     }
     
     /**
@@ -209,7 +209,7 @@ public class FiltradoContenidosAvanzadoService {
         );
         
         // Ejecutar agregación
-        AggregationResults<Map> results = mongoTemplate.aggregate(
+        AggregationResults<Map<String, Object>> results = (AggregationResults<Map<String, Object>>) (AggregationResults<?>) mongoTemplate.aggregate(
             aggregation, COLLECTION_CONTENIDOS, Map.class
         );
         
@@ -227,21 +227,31 @@ public class FiltradoContenidosAvanzadoService {
         if (userId == null || userId.trim().isEmpty()) {
             return false; // Usuario anónimo, política conservadora
         }
-        
+
         try {
-            Optional<Usuario> usuario = usuarioRepository.findById(userId);
-            if (usuario.isPresent()) {
-                // Aquí puedes implementar tu lógica específica para determinar si es adulto
-                // Por ahora asumimos que todos los usuarios registrados pueden ver +18
-                // En el futuro podrías usar la fecha de nacimiento u otros campos
-                return true;
-            }
+            Optional<Usuario> usuarioOpt = usuarioRepository.findById(userId);
+            return usuarioOpt.map(this::isUsuarioAdult).orElse(false);
         } catch (Exception e) {
-            // En caso de error, aplicamos la política conservadora (no adulto).
             logger.error("Error al verificar usuario: {}", e.getMessage(), e);
+            return false;
         }
-        
-        return false;
+    }
+
+    /**
+     * Comprueba si un `Usuario` encontrado en BD es adulto.
+     * - Si es `Visualizador` y tiene `fechaNac`, calcula edad.
+     */
+    private boolean isUsuarioAdult(Usuario usuario) {
+        if (usuario instanceof Visualizador visualizador) {
+            Date fechaNac = visualizador.getFechaNac();
+            if (fechaNac != null) {
+                java.time.LocalDate dob = fechaNac.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate();
+                int age = java.time.Period.between(dob, java.time.LocalDate.now()).getYears();
+                return age >= 18;
+            }
+        }
+        // Fallback: usuario registrado sin DOB => permitir +18 (comportamiento previo)
+        return true;
     }
     
     /**
@@ -271,7 +281,6 @@ public class FiltradoContenidosAvanzadoService {
         return dto;
     }
 
-    // -- helpers to reduce cognitive complexity (preserve exact behavior) --
     private String extractId(Map<String, Object> map) {
         Object idObj = map.get(FIELD_ID);
         if (idObj == null) idObj = map.get(FIELD_UNDERSCORE_ID);
@@ -292,7 +301,7 @@ public class FiltradoContenidosAvanzadoService {
             try {
                 return Integer.parseInt(o.toString());
             } catch (NumberFormatException ex) {
-                // No se pudo parsear la representación a entero; retornamos 0 como fallback.
+                // Si no se pudo parsear la representación a entero; retornamos 0 como fallback.
                 if (logger.isDebugEnabled()) {
                     logger.debug("toIntSafe: no se pudo parsear '{}' para la clave '{}', usando 0", o, key, ex);
                 }
