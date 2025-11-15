@@ -5,6 +5,7 @@ package iso25.g05.esi_media.dto;
  * Incluye la referencia de reproducción (URL de vídeo o endpoint de audio).
  */
 public class ContenidoDetalleDTO {
+
     private String id;
     private String titulo;
     private String descripcion;
@@ -15,19 +16,24 @@ public class ContenidoDetalleDTO {
     private boolean vip;
     /** Duración en segundos */
     private double duracion;
-    // Información adicional de detalle que debe mostrarse al visualizador
+    /** Indica si el contenido está visible (estado) */
+    private boolean estado;
+
+    // Información adicional de detalle que debe mostrarse al visualizador/gestor
     private java.util.Date fechadisponiblehasta;
     private int edadvisualizacion;
     private int nvisualizaciones;
     private String resolucion;
     private java.util.List<String> tags;
+
     /**
      * Para VIDEO: será la URL externa (YouTube, etc.).
      * Para AUDIO: será el endpoint del backend, por ejemplo: "/multimedia/audio/{id}".
      */
     private String referenciaReproduccion;
 
-    public ContenidoDetalleDTO() {}
+    public ContenidoDetalleDTO() {
+    }
 
     /**
      * Constructor de compatibilidad (sin duración). Mantiene compatibilidad con tests existentes.
@@ -60,44 +66,120 @@ public class ContenidoDetalleDTO {
         this.tags = tags;
         this.referenciaReproduccion = referenciaReproduccion;
         this.resolucion = resolucion;
+        // por defecto, estado visible; el mapper lo sobreescribirá
+        this.estado = true;
     }
 
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
+    public String getId() {
+        return id;
+    }
 
-    public String getTitulo() { return titulo; }
-    public void setTitulo(String titulo) { this.titulo = titulo; }
+    public void setId(String id) {
+        this.id = id;
+    }
 
-    public String getDescripcion() { return descripcion; }
-    public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
+    public String getTitulo() {
+        return titulo;
+    }
 
-    public String getTipo() { return tipo; }
-    public void setTipo(String tipo) { this.tipo = tipo; }
+    public void setTitulo(String titulo) {
+        this.titulo = titulo;
+    }
 
-    public Object getCaratula() { return caratula; }
-    public void setCaratula(Object caratula) { this.caratula = caratula; }
+    public String getDescripcion() {
+        return descripcion;
+    }
 
-    public boolean isVip() { return vip; }
-    public void setVip(boolean vip) { this.vip = vip; }
+    public void setDescripcion(String descripcion) {
+        this.descripcion = descripcion;
+    }
 
-    public double getDuracion() { return duracion; }
-    public void setDuracion(double duracion) { this.duracion = duracion; }
+    public String getTipo() {
+        return tipo;
+    }
 
-    public java.util.Date getFechaDisponibleHasta() { return fechadisponiblehasta; }
-    public void setFechaDisponibleHasta(java.util.Date fechadisponiblehasta) { this.fechadisponiblehasta = fechadisponiblehasta; }
+    public void setTipo(String tipo) {
+        this.tipo = tipo;
+    }
 
-    public int getEdadVisualizacion() { return edadvisualizacion; }
-    public void setEdadVisualizacion(int edadvisualizacion) { this.edadvisualizacion = edadvisualizacion; }
+    public Object getCaratula() {
+        return caratula;
+    }
 
-    public int getNvisualizaciones() { return nvisualizaciones; }
-    public void setNvisualizaciones(int nvisualizaciones) { this.nvisualizaciones = nvisualizaciones; }
+    public void setCaratula(Object caratula) {
+        this.caratula = caratula;
+    }
 
-    public java.util.List<String> getTags() { return tags; }
-    public void setTags(java.util.List<String> tags) { this.tags = tags; }
+    public boolean isVip() {
+        return vip;
+    }
 
-    public String getReferenciaReproduccion() { return referenciaReproduccion; }
-    public void setReferenciaReproduccion(String referenciaReproduccion) { this.referenciaReproduccion = referenciaReproduccion; }
+    public void setVip(boolean vip) {
+        this.vip = vip;
+    }
 
-    public String getResolucion() { return resolucion; }
-    public void setResolucion(String resolucion) { this.resolucion = resolucion; }
+    public double getDuracion() {
+        return duracion;
+    }
+
+    public void setDuracion(double duracion) {
+        this.duracion = duracion;
+    }
+
+    public boolean isEstado() {
+        return estado;
+    }
+
+    public void setEstado(boolean estado) {
+        this.estado = estado;
+    }
+
+    public java.util.Date getFechaDisponibleHasta() {
+        return fechadisponiblehasta;
+    }
+
+    public void setFechaDisponibleHasta(java.util.Date fechadisponiblehasta) {
+        this.fechadisponiblehasta = fechadisponiblehasta;
+    }
+
+    public int getEdadVisualizacion() {
+        return edadvisualizacion;
+    }
+
+    public void setEdadVisualizacion(int edadvisualizacion) {
+        this.edadvisualizacion = edadvisualizacion;
+    }
+
+    public int getNvisualizaciones() {
+        return nvisualizaciones;
+    }
+
+    public void setNvisualizaciones(int nvisualizaciones) {
+        this.nvisualizaciones = nvisualizaciones;
+    }
+
+    public java.util.List<String> getTags() {
+        return tags;
+    }
+
+    public void setTags(java.util.List<String> tags) {
+        this.tags = tags;
+    }
+
+    public String getReferenciaReproduccion() {
+        return referenciaReproduccion;
+    }
+
+    public void setReferenciaReproduccion(String referenciaReproduccion) {
+        this.referenciaReproduccion = referenciaReproduccion;
+    }
+
+    public String getResolucion() {
+        return resolucion;
+    }
+
+    public void setResolucion(String resolucion) {
+        this.resolucion = resolucion;
+    }
 }
+
