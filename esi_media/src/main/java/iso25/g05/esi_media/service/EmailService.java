@@ -94,7 +94,7 @@ public class EmailService {
     public void sendPasswordResetEmail(String email, String token) {
         try {
             MimeMessage mimeMessage = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true);
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
 
             helper.setTo(email);
             helper.setSubject("Solicitud de cambio de contraseña en ESIMedia");
@@ -115,7 +115,7 @@ public class EmailService {
     public void sendPasswordChangedEmail(String email) {
         try {
             MimeMessage mimeMessage = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true);
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
 
             helper.setTo(email);
             helper.setSubject("Tu contraseña se ha actualizado correctamente");
@@ -126,7 +126,7 @@ public class EmailService {
             helper.setText(html, true);
             mailSender.send(mimeMessage);
         } catch (Exception e) {
-            System.err.println("[EmailService] Error enviando confirmación de cambio de contraseña: " + e.getMessage());
+            System.err.println("[EmailService] Error enviando confirmacion de cambio de contrasena: " + e.getMessage());
         }
     }
 }
