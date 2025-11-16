@@ -19,6 +19,7 @@ import com.warrenstrange.googleauth.GoogleAuthenticatorQRGenerator;
 
 import iso25.g05.esi_media.dto.VisualizadorRegistroDTO;
 import iso25.g05.esi_media.model.Contrasenia;
+import iso25.g05.esi_media.model.Token;
 import iso25.g05.esi_media.model.Usuario;
 import iso25.g05.esi_media.model.Visualizador;
 import iso25.g05.esi_media.repository.ContraseniaComunRepository;
@@ -147,9 +148,15 @@ public class VisualizadorService {
             // - Índices únicos (email)
             // - Campo discriminador "_class" para herencia
             Visualizador visualizadorGuardado = visualizadorRepository.save(nuevoVisualizador);
-            
-            // Devolver resultado exitoso con el usuario guardado (incluye ID generado)
-            return new RegistroResultado(visualizadorGuardado, "Visualizador registrado exitosamente en base de datos");
+
+            try {
+                // Enviar email de verificación y dejar marcado el token en el usuario
+                emailService.sendActivationEmail(visualizadorGuardado);
+            } catch (Exception ex) {
+                logger.error("No se pudo enviar el email de verificación: {}", ex.getMessage());
+            }
+            // Devolver mensaje orientado a verificación
+            return new RegistroResultado(visualizadorGuardado, "Registro correcto. Revisa tu correo para activar la cuenta.");
             
         } catch (org.springframework.dao.DuplicateKeyException e) {
             // Error específico: intento de guardar email duplicado (violación de índice único)
@@ -172,6 +179,78 @@ public class VisualizadorService {
             logger.error("Error interno al crear visualizador: {}", e.getMessage(), e);
             return new RegistroResultado("Error interno al crear visualizador: " + e.getMessage(), 
                                         "Registro fallido por error del sistema");
+        }
+    }
+
+    @Autowired
+    private EmailService emailService;
+
+    public String activarCuentaYEmitirToken(String token) {
+        Optional<Usuario> userOpt = usuarioRepository.findByActivationToken(token);
+        if (userOpt.isPresent()) {
+            Usuario u = userOpt.get();
+            u.setActivationToken(null);
+            u.setHasActivated(true);
+            // Generar token de sesión
+            Token t = userServicePublicToken(u);
+            usuarioRepository.save(u);
+            return t != null ? t.getToken() : null;
+        }
+        return null;
+    }
+
+    /**
+     * Activa la cuenta usando el token sin generar token de sesión.
+     * Devuelve true si se activó correctamente.
+     */
+    public boolean activarCuenta(String token) {
+        Optional<Usuario> userOpt = usuarioRepository.findByActivationToken(token);
+        if (userOpt.isPresent()) {
+            Usuario u = userOpt.get();
+            u.setActivationToken(null);
+            u.setHasActivated(true);
+            usuarioRepository.save(u);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Si el usuario con ese email ya ha activado su cuenta, genera y devuelve
+     * un token de sesión. Si no está activado, devuelve null.
+     */
+    public String tokenSiActivado(String email) {
+        if (email == null) return null;
+        Optional<Usuario> userOpt = usuarioRepository.findByEmail(email);
+        if (userOpt.isPresent()) {
+            Usuario u = userOpt.get();
+            if (Boolean.TRUE.equals(u.isHasActivated())) {
+                // Si ya tiene un token de sesión válido y no expirado, reutilizarlo
+                Token existing = u.getSesionstoken();
+                if (existing != null && !existing.isExpirado() && existing.getFechaExpiracion() != null
+                        && existing.getFechaExpiracion().after(new java.util.Date())) {
+                    return existing.getToken();
+                }
+                // Si no hay token válido, generar uno nuevo y devolverlo
+                Token t = userServicePublicToken(u);
+                return t != null ? t.getToken() : null;
+            }
+        }
+        return null;
+    }
+
+    private Token userServicePublicToken(Usuario u){
+        // Wrapper por si el método cambia de visibilidad
+        return userServiceGenerateToken(u);
+    }
+
+    private Token userServiceGenerateToken(Usuario u){
+        try {
+            java.lang.reflect.Method m = UserService.class.getDeclaredMethod("generateAndSaveToken", Usuario.class);
+            m.setAccessible(true);
+            return (Token) m.invoke(userService, u);
+        } catch (Exception e) {
+            return null;
         }
     }
     
