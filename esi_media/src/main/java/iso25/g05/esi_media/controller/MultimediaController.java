@@ -46,8 +46,6 @@ public class MultimediaController {
     @Autowired
     private MultimediaService multimediaService;
 
-    private String MSG = "mensaje";
-
     /**
      * GET /multimedia
      * Lista contenidos accesibles para el visualizador autenticado (paginado).
