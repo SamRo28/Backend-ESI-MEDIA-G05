@@ -13,7 +13,10 @@ public class Valoracion {
     private String contenidoId;
     private Double valoracionFinal; // si está en null, significa que está visto pero no valorado
 
-    public Valoracion() {}
+    public Valoracion() {
+        // Constructor vacío requerido por Spring Data / Jackson para deserialización
+        // No debe contener lógica. Se añade este comentario para evitar warnings del analizador.
+    }
 
     public String getId() {
         return id;
