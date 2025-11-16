@@ -17,6 +17,8 @@ import org.springframework.web.bind.annotation.RestController;
 import iso25.g05.esi_media.dto.CreateValoracionDTO;
 import iso25.g05.esi_media.dto.ValorarDTO;
 import iso25.g05.esi_media.model.Valoracion;
+import iso25.g05.esi_media.dto.ShowRatingDTO;
+import iso25.g05.esi_media.dto.AverageRatingDTO;
 import iso25.g05.esi_media.repository.ValoracionRepository;
 import iso25.g05.esi_media.service.TokenForValoracionService;
 import iso25.g05.esi_media.service.ValoracionService;
@@ -38,7 +40,7 @@ public class ValoracionController {
         this.tokenForValoracionService = tokenForValoracionService;
     }
 
-    // Crea la asociación play (valoracion con valor null) o devuelve la existente.
+    // Crea la instancia de clase asociación Valoracion con valor null o devuelve la existente.
     @PostMapping
     public ResponseEntity<Valoracion> createOrGet(@RequestHeader(value = "Authorization", required = false) String authHeader,
                                                    @RequestBody CreateValoracionDTO dto) {
@@ -50,7 +52,7 @@ public class ValoracionController {
         return ResponseEntity.status(HttpStatus.CREATED).body(v);
     }
 
-    // Obtener por visualizadorId y contenidoId
+    // Obtiene la Valoracion por visualizadorId y contenidoId
     @GetMapping
     public ResponseEntity<Valoracion> getByPair(@RequestParam(name = "visualizadorId", required = false) String visualizadorId,
                                                 @RequestParam(name = "contenidoId", required = false) String contenidoId) {
@@ -61,7 +63,56 @@ public class ValoracionController {
         return ResponseEntity.badRequest().build();
     }
 
-    // Valorar por id de la Valoracion (requiere que el token corresponda al visualizador)
+    // Muestra la Valoracion para un contenido y estado del usuario
+    @GetMapping("/show")
+    public ResponseEntity<ShowRatingDTO> showRating(@RequestHeader(value = "Authorization", required = false) String authHeader,
+                                                     @RequestParam(name = "contenidoId") String contenidoId) {
+        String usuarioId = tokenForValoracionService.resolveUsuarioIdFromAuth(authHeader);
+        if (usuarioId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        ShowRatingDTO dto = valoracionService.showRating(usuarioId, contenidoId);
+        // dto.getMyRating() == null puede significar dos cosas: no existe instancia o existe pero no valoró.
+        // Para diferenciarlas, consultamos la instancia directamente.
+        var opt = valoracionService.getMyValoracionInstance(usuarioId, contenidoId);
+        if (opt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        if (dto.getMyRating() == null) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(dto);
+    }
+
+    // Obtiene promedio de valoraciones para un contenido
+    @GetMapping("/average")
+    public ResponseEntity<AverageRatingDTO> average(@RequestParam(name = "contenidoId") String contenidoId) {
+        AverageRatingDTO dto = valoracionService.getAverageRating(contenidoId);
+        return ResponseEntity.ok(dto);
+    }
+
+    // Obtiene únicamente MI valoración para un contenido (si existe)
+    @GetMapping("/my")
+    public ResponseEntity<Double> myRating(@RequestHeader(value = "Authorization", required = false) String authHeader,
+                                           @RequestParam(name = "contenidoId") String contenidoId) {
+        String usuarioId = tokenForValoracionService.resolveUsuarioIdFromAuth(authHeader);
+        if (usuarioId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        var opt = valoracionService.getMyValoracionInstance(usuarioId, contenidoId);
+        if (opt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        Valoracion v = opt.get();
+        if (v.getValoracionFinal() == null) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(v.getValoracionFinal());
+    }
+
+    // Realiza la valoración (modifica el valor de una instancia existente de un Visualizador y un Contenido)
     @PostMapping("/{id}/valorar")
     public ResponseEntity<Void> valorarPorId(@RequestHeader(value = "Authorization", required = false) String authHeader,
                                              @PathVariable("id") String id,

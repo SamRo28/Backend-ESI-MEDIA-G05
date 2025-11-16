@@ -1,5 +1,6 @@
 package iso25.g05.esi_media.service;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +15,8 @@ import iso25.g05.esi_media.model.Valoracion;
 import iso25.g05.esi_media.repository.ContenidoRepository;
 import iso25.g05.esi_media.repository.UsuarioRepository;
 import iso25.g05.esi_media.repository.ValoracionRepository;
+import iso25.g05.esi_media.dto.ShowRatingDTO;
+import iso25.g05.esi_media.dto.AverageRatingDTO;
 
 @Service
 public class ValoracionService {
@@ -32,8 +35,8 @@ public class ValoracionService {
     }
 
     /**
-     * Registra la reproducción (play) creando la asociación Valoracion
-     * con valor null si no existía previamente. Idempotente.
+     * Registra la reproducción para crear la instancia de clase asociación Valoracion
+     * con valor null si no existía previamente.
      */
     public Valoracion registerPlay(String visualizadorId, String contenidoId) {
         // Verificar existencia de contenido y usuario
@@ -64,6 +67,71 @@ public class ValoracionService {
             return valoracionRepository.findByVisualizadorIdAndContenidoId(visualizadorId, contenidoId)
                     .orElseThrow(() -> ex);
         }
+    }
+
+    /**
+     * Muestra información agregada de valoración para un contenido y el estado
+     * de la instancia del usuario (si se proporciona visualizadorId).
+     * Devuelve el promedio de valoraciones existentes (null si no hay ninguna),
+     * cantidad de valoraciones y, si el usuario proporcionado tiene una
+     * instancia Valoracion, su valor (null si aún no valoró).
+     */
+    public ShowRatingDTO showRating(String visualizadorId, String contenidoId) {
+        // Mostrar únicamente la valoración del usuario indicado (myRating)
+        if (visualizadorId == null) {
+            // Este método asume que el controlador ya verificó autenticación; si no, lanzamos una excepción
+            throw new IllegalStateException("visualizadorId requerido");
+        }
+
+        Optional<Contenido> contenidoOpt = contenidoRepository.findById(contenidoId);
+        if (contenidoOpt.isEmpty()) {
+            throw new RecursoNoEncontradoException("Contenido no encontrado");
+        }
+
+        Optional<Valoracion> opt = valoracionRepository.findByVisualizadorIdAndContenidoId(visualizadorId, contenidoId);
+        if (opt.isEmpty()) {
+            // No hay instancia => el controlador decidirá devolver 404
+            return new ShowRatingDTO(null);
+        }
+
+        return new ShowRatingDTO(opt.get().getValoracionFinal());
+    }
+
+    /**
+     * Obtiene el promedio y cantidad de valoraciones para un contenido (solo agregados).
+     */
+    public AverageRatingDTO getAverageRating(String contenidoId) {
+        Optional<Contenido> contenidoOpt = contenidoRepository.findById(contenidoId);
+        if (contenidoOpt.isEmpty()) {
+            throw new RecursoNoEncontradoException("Contenido no encontrado");
+        }
+
+        List<Valoracion> todas = valoracionRepository.findByContenidoId(contenidoId);
+        long count = todas.stream().filter(v -> v.getValoracionFinal() != null).count();
+        Double average = null;
+        if (count > 0) {
+            double sum = todas.stream()
+                    .filter(v -> v.getValoracionFinal() != null)
+                    .mapToDouble(v -> v.getValoracionFinal())
+                    .sum();
+            average = sum / count;
+        }
+
+        return new AverageRatingDTO(average, count);
+    }
+
+    /**
+     * Devuelve la instancia Valoracion del usuario para el contenido si existe.
+     * - Si el contenido no existe lanza RecursoNoEncontradoException
+     * - Si no existe la instancia devuelve Optional.empty()
+     */
+    public Optional<Valoracion> getMyValoracionInstance(String visualizadorId, String contenidoId) {
+        Optional<Contenido> contenidoOpt = contenidoRepository.findById(contenidoId);
+        if (contenidoOpt.isEmpty()) {
+            throw new RecursoNoEncontradoException("Contenido no encontrado");
+        }
+
+        return valoracionRepository.findByVisualizadorIdAndContenidoId(visualizadorId, contenidoId);
     }
 
     /**
