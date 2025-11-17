@@ -5,28 +5,55 @@ import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
+import iso25.g05.esi_media.dto.EmailApiRequestDTO;
 import iso25.g05.esi_media.model.Codigorecuperacion;
 import iso25.g05.esi_media.model.Usuario;
 import iso25.g05.esi_media.repository.CodigoRecuperacionRepository;
 import iso25.g05.esi_media.repository.UsuarioRepository;
-import jakarta.mail.internet.MimeMessage;
 
 @Service
 public class EmailService {
 
-    @Autowired
-    private JavaMailSender mailSender;
+    // Eliminamos JavaMailSender
+    // @Autowired
+    // private JavaMailSender mailSender;
 
     @Autowired
     private UsuarioRepository userRepository;
 
     @Autowired
     private CodigoRecuperacionRepository codigoRecuperacionRepository;
+
+    // Inyectamos valores de configuración
+    @Value("${email.api.url}")
+    private String apiUrl;
+
+    @Value("${email.api.key}")
+    private String apiKey;
+
+    @Value("${email.sender.name}")
+    private String senderName;
+
+    @Value("${email.sender.address}")
+    private String senderAddress;
+
+    @Value("${app.backend.url}")
+    private String backendUrl;
+
+    @Value("${app.frontend.url}")
+    private String frontendUrl;
+
+    // Cliente HTTP para hacer la petición
+    private final RestTemplate restTemplate = new RestTemplate();
 
     public String generateConfirmationToken() {
         return UUID.randomUUID().toString();
@@ -39,44 +66,64 @@ public class EmailService {
             user.setHasActivated(false);
             userRepository.save(user);
 
-            MimeMessage mimeMessage = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true);
-            helper.setTo(user.getEmail());
-            helper.setSubject("Confirmación de Registro en ESIMedia");
-
-            String link = "http://localhost:8080/api/visualizador/activar-web?token=" + token;
+            String link = backendUrl + "/api/visualizador/activar-web?token=" + token;
             String html = loadEmailTemplate("email-templates/verify-email.html");
             html = html.replace("{{CONFIRM_LINK}}", link)
                        .replace("{{USER_NAME}}", user.getNombre() != null ? user.getNombre() : "");
-            helper.setText(html, true);
-            mailSender.send(mimeMessage);
+
+            // Cambio: Llamada a método HTTP en lugar de SMTP
+            sendHttpEmail(user.getEmail(), "Confirmación de Registro en ESIMedia", html);
+            
             return token;
         } catch (Exception e) {
-            throw new RuntimeException("Error al enviar el correo de verificación", e);
+            throw new RuntimeException("Error al enviar el correo de verificación vía API", e);
         }
     }
 
     public Codigorecuperacion send3FAemail(String email, Usuario user) {
         try {
-            MimeMessage mimeMessage = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true);
-
-            helper.setTo(email);
-            helper.setSubject("Confirmación de Registro");
-
             Codigorecuperacion codigoRecuperacion = new Codigorecuperacion(user);
             codigoRecuperacionRepository.save(codigoRecuperacion);
             
             String emailContent = loadEmailTemplate("email-templates/3FA-email.html");
             emailContent = emailContent.replace("{{CODIGO}}", codigoRecuperacion.getcodigo());
 
-            helper.setText(emailContent, true);
+            // Cambio: Llamada a método HTTP
+            sendHttpEmail(email, "Confirmación de Inicio de Sesión - Código de Seguridad", emailContent);
 
-            mailSender.send(mimeMessage);
             return codigoRecuperacion;
 
         } catch (Exception e) {
-            throw new RuntimeException("Error al enviar el correo de confirmación", e);
+            throw new RuntimeException("Error al enviar el correo de confirmación vía API", e);
+        }
+    }
+
+    public void sendPasswordResetEmail(String email, String token) {
+        try {
+            String resetLink = frontendUrl + "/reset-password?token=" + token;
+
+            String html = loadEmailTemplate("email-templates/password-reset.html");
+            html = html.replace("{{RESET_LINK}}", resetLink)
+                       .replace("{{BRAND}}", "ESIMedia");
+
+            // Cambio: Llamada a método HTTP
+            sendHttpEmail(email, "Solicitud de cambio de contraseña en ESIMedia", html);
+
+        } catch (Exception e) {
+            throw new RuntimeException("Error al enviar el correo de restablecimiento vía API", e);
+        }
+    }
+
+    public void sendPasswordChangedEmail(String email) {
+        try {
+            String html = loadEmailTemplate("email-templates/password-changed.html");
+            html = html.replace("{{BRAND}}", "ESIMedia");
+
+            // Cambio: Llamada a método HTTP
+            sendHttpEmail(email, "Tu contraseña se ha actualizado correctamente", html);
+
+        } catch (Exception e) {
+            System.err.println("[EmailService] Error enviando confirmación de cambio de contraseña: " + e.getMessage());
         }
     }
 
@@ -91,42 +138,35 @@ public class EmailService {
         }
     }
 
-    public void sendPasswordResetEmail(String email, String token) {
-        try {
-            MimeMessage mimeMessage = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true);
+    /**
+     * Método privado para realizar la petición POST a la API de correo externa.
+     */
+    private void sendHttpEmail(String to, String subject, String htmlBody) {
+        // 1. Crear el cuerpo de la petición (DTO)
+        EmailApiRequestDTO requestBody = new EmailApiRequestDTO(
+            senderName, 
+            senderAddress,
+            to, 
+            subject, 
+            htmlBody
+        );
 
-            helper.setTo(email);
-            helper.setSubject("Solicitud de cambio de contraseña en ESIMedia");
+        // 2. Configurar cabeceras (api-key y Content-Type)
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        // Brevo/Sendinblue usa 'api-key' en lugar de Authorization Bearer
+        headers.set("api-key", apiKey);
 
-            String resetLink = "http://localhost:4200/reset-password?token=" + token;
+        // 3. Crear la entidad HTTP
+        HttpEntity<EmailApiRequestDTO> requestEntity = new HttpEntity<>(requestBody, headers);
 
-            String html = loadEmailTemplate("email-templates/password-reset.html");
-            html = html.replace("{{RESET_LINK}}", resetLink)
-                       .replace("{{BRAND}}", "ESIMedia");
+        // 4. Enviar la petición POST
+        // Nota: Esto es síncrono. Si la API tarda, el usuario espera. 
+        // Considera usar @Async si necesitas que sea no bloqueante, aunque tu app ya tiene @EnableAsync.
+        ResponseEntity<String> response = restTemplate.postForEntity(apiUrl, requestEntity, String.class);
 
-            helper.setText(html, true);
-            mailSender.send(mimeMessage);
-        } catch (Exception e) {
-            throw new RuntimeException("Error al enviar el correo de restablecimiento", e);
-        }
-    }
-
-    public void sendPasswordChangedEmail(String email) {
-        try {
-            MimeMessage mimeMessage = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true);
-
-            helper.setTo(email);
-            helper.setSubject("Tu contraseña se ha actualizado correctamente");
-
-            String html = loadEmailTemplate("email-templates/password-changed.html");
-            html = html.replace("{{BRAND}}", "ESIMedia");
-
-            helper.setText(html, true);
-            mailSender.send(mimeMessage);
-        } catch (Exception e) {
-            System.err.println("[EmailService] Error enviando confirmación de cambio de contraseña: " + e.getMessage());
+        if (!response.getStatusCode().is2xxSuccessful()) {
+            throw new RuntimeException("Fallo al enviar email vía API. Status: " + response.getStatusCode());
         }
     }
 }
