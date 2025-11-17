@@ -123,7 +123,7 @@ public class EmailService {
             sendHttpEmail(email, "Tu contraseña se ha actualizado correctamente", html);
 
         } catch (Exception e) {
-            System.err.println("[EmailService] Error enviando confirmación de cambio de contraseña: " + e.getMessage());
+            System.err.println("[EmailService] Error enviando confirmacion de cambio de contrasena: " + e.getMessage());
         }
     }
 
