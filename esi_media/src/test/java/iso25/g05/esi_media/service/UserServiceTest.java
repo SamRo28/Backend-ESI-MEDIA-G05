@@ -1,10 +1,13 @@
 package iso25.g05.esi_media.service;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -12,6 +15,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import static org.mockito.Mockito.times;
@@ -66,6 +70,9 @@ class UserServiceTest {
 
     @Mock
     private IpLoginAttemptRepository ipLoginAttemptRepository;
+
+    @Mock
+    private LogService logService;
 
     @InjectMocks
     private UserService userService;
@@ -518,4 +525,384 @@ class UserServiceTest {
         assertNull(result);
         verify(administradorRepository, times(0)).save(any(Administrador.class));
     }
+
+    // ==================== TESTS ADICIONALES PARA MEJORAR COBERTURA ====================
+
+    @Test
+    @DisplayName("updateUser: debe llamar a LogService al actualizar un Visualizador")
+    void testUpdateUserVisualizadorConLog() throws Exception {
+        // Arrange - Corregido para incluir mock de LogService
+        String userId = "vis123";
+        String tipo = "Visualizador";
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("nombre", "María Actualizada");
+        updates.put("alias", "mary");
+
+        Visualizador visualizador = new Visualizador();
+        visualizador.setId(userId);
+        visualizador.setNombre("María");
+        visualizador.setEmail("maria@test.com");
+
+        when(visualizadorRepository.findById(userId)).thenReturn(Optional.of(visualizador));
+        when(visualizadorRepository.save(any(Visualizador.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // Act
+        Usuario result = userService.updateUser(userId, tipo, updates);
+
+        // Assert
+        assertNotNull(result);
+        assertTrue(result instanceof Visualizador);
+        verify(visualizadorRepository, times(1)).save(any(Visualizador.class));
+        verify(logService, times(1)).registrarAccion(anyString(), anyString());
+    }
+
+    @Test
+    @DisplayName("updateUser: debe actualizar contraseña de Visualizador cuando se proporciona")
+    void testUpdateUserVisualizadorConCambioContrasenia() throws Exception {
+        // Arrange
+        String userId = "vis123";
+        String tipo = "Visualizador";
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("contrasenia", "NuevaPassword123!");
+
+        Visualizador visualizador = new Visualizador();
+        visualizador.setId(userId);
+        visualizador.setNombre("María");
+        visualizador.setEmail("maria@test.com");
+
+        when(visualizadorRepository.findById(userId)).thenReturn(Optional.of(visualizador));
+        when(visualizadorRepository.save(any(Visualizador.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(contraseniaComunRepository.existsById(anyString())).thenReturn(false);
+        
+        Usuario usuarioMock = new Visualizador();
+        usuarioMock.setEmail("maria@test.com");
+        Contrasenia contraseniaActual = new Contrasenia();
+        contraseniaActual.setContraseniaActual("oldHashedPassword");
+        contraseniaActual.setContraseniasUsadas(new ArrayList<>());
+        usuarioMock.setContrasenia(contraseniaActual);
+        
+        when(usuarioRepository.findByEmail("maria@test.com")).thenReturn(Optional.of(usuarioMock));
+        when(contraseniaRepository.save(any(Contrasenia.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(usuarioRepository.save(any(Usuario.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // Act
+        Usuario result = userService.updateUser(userId, tipo, updates);
+
+        // Assert
+        assertNotNull(result);
+        assertTrue(result instanceof Visualizador);
+        verify(visualizadorRepository, times(1)).save(any(Visualizador.class));
+    }
+
+    @Test
+    @DisplayName("login: debe bloquear IP después de múltiples intentos fallidos")
+    void testLoginBloqueoPorIntentosMultiples() {
+        // Arrange
+        Map<String, String> loginData = new HashMap<>();
+        loginData.put("email", "test@example.com");
+        loginData.put("password", "wrongpassword");
+
+        Usuario user = new Usuario();
+        user.setEmail("test@example.com");
+        Contrasenia contrasenia = new Contrasenia("1", null, "correcthash", null);
+        user.setContrasenia(contrasenia);
+
+        when(usuarioRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
+        when(ipLoginAttemptRepository.findById("127.0.0.1")).thenReturn(Optional.empty());
+        when(ipLoginAttemptRepository.save(any())).thenReturn(null);
+
+        // Act
+        Usuario result = userService.login(loginData, "127.0.0.1");
+
+        // Assert
+        assertNull(result);
+        verify(ipLoginAttemptRepository, times(1)).save(any());
+    }
+
+    @Test
+    @DisplayName("cambiarContrasenia: debe cambiar contraseña exitosamente")
+    void testCambiarContraseniaExitoso() {
+        // Arrange
+        String email = "user@example.com";
+        String nuevaContrasenia = "NuevaPassword123!";
+
+        Usuario usuario = new Usuario();
+        usuario.setEmail(email);
+        Contrasenia contraseniaActual = new Contrasenia();
+        contraseniaActual.setContraseniaActual("oldHashedPassword");
+        contraseniaActual.setContraseniasUsadas(new ArrayList<>());
+        usuario.setContrasenia(contraseniaActual);
+
+        when(usuarioRepository.findByEmail(email)).thenReturn(Optional.of(usuario));
+        when(contraseniaComunRepository.existsById(nuevaContrasenia)).thenReturn(false);
+        when(contraseniaRepository.save(any(Contrasenia.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(usuarioRepository.save(any(Usuario.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // Act
+        boolean result = userService.cambiarContrasenia(email, nuevaContrasenia);
+
+        // Assert
+        assertTrue(result);
+        verify(contraseniaRepository, times(1)).save(any(Contrasenia.class));
+        verify(usuarioRepository, times(1)).save(any(Usuario.class));
+    }
+
+    @Test
+    @DisplayName("cambiarContrasenia: debe rechazar contraseña común")
+    void testCambiarContraseniaContraseniaComun() {
+        // Arrange
+        String email = "user@example.com";
+        String contraseniaComun = "123456";
+
+        Usuario usuario = new Usuario();
+        usuario.setEmail(email);
+
+        when(usuarioRepository.findByEmail(email)).thenReturn(Optional.of(usuario));
+        when(contraseniaComunRepository.existsById(contraseniaComun)).thenReturn(true);
+
+        // Act & Assert
+        try {
+            userService.cambiarContrasenia(email, contraseniaComun);
+            // Si no lanza excepción, el test falla
+            assertTrue(false, "Debe lanzar PeticionInvalidaException");
+        } catch (Exception e) {
+            assertTrue(e.getMessage().contains("politicas de seguridad"));
+        }
+
+        verify(contraseniaRepository, times(0)).save(any(Contrasenia.class));
+    }
+
+    @Test
+    @DisplayName("cambiarContrasenia: debe rechazar contraseña usada recientemente")
+    void testCambiarContraseniaRepetida() {
+        // Arrange
+        String email = "user@example.com";
+        String contraseniaRepetida = "OldPassword123!";
+
+        Usuario usuario = new Usuario();
+        usuario.setEmail(email);
+        
+        PasswordEncoder encoder = new BCryptPasswordEncoder(10);
+        String hashedPassword = encoder.encode(contraseniaRepetida);
+        
+        Contrasenia contraseniaActual = new Contrasenia();
+        contraseniaActual.setContraseniaActual(hashedPassword);
+        List<String> usadas = new ArrayList<>();
+        usadas.add(hashedPassword);
+        contraseniaActual.setContraseniasUsadas(usadas);
+        usuario.setContrasenia(contraseniaActual);
+
+        when(usuarioRepository.findByEmail(email)).thenReturn(Optional.of(usuario));
+        when(contraseniaComunRepository.existsById(contraseniaRepetida)).thenReturn(false);
+
+        // Act & Assert
+        try {
+            userService.cambiarContrasenia(email, contraseniaRepetida);
+            // Si no lanza excepción, el test falla
+            assertTrue(false, "Debe lanzar PeticionInvalidaException");
+        } catch (Exception e) {
+            assertTrue(e.getMessage().contains("5 ultimas"));
+        }
+
+        verify(contraseniaRepository, times(0)).save(any(Contrasenia.class));
+    }
+
+    @Test
+    @DisplayName("cambiarContrasenia: debe retornar false cuando usuario no existe")
+    void testCambiarContraseniaUsuarioNoExiste() {
+        // Arrange
+        String email = "noexiste@example.com";
+        String nuevaContrasenia = "NuevaPassword123!";
+
+        when(usuarioRepository.findByEmail(email)).thenReturn(Optional.empty());
+
+        // Act
+        boolean result = userService.cambiarContrasenia(email, nuevaContrasenia);
+
+        // Assert
+        assertFalse(result);
+        verify(contraseniaRepository, times(0)).save(any(Contrasenia.class));
+    }
+
+    @Test
+    @DisplayName("crearYValidarContrasenia: debe crear y hashear contraseña válida")
+    void testCrearYValidarContraseniaExitoso() {
+        // Arrange
+        String contraseniaTextoPlano = "ValidPassword123!";
+
+        when(contraseniaComunRepository.existsById(contraseniaTextoPlano)).thenReturn(false);
+        when(contraseniaRepository.save(any(Contrasenia.class))).thenAnswer(invocation -> {
+            Contrasenia c = invocation.getArgument(0);
+            c.setId("contrasenia123");
+            return c;
+        });
+
+        // Act
+        Contrasenia result = userService.crearYValidarContrasenia(contraseniaTextoPlano);
+
+        // Assert
+        assertNotNull(result);
+        assertNotNull(result.getId());
+        assertNotNull(result.getContraseniaActual());
+        assertNotNull(result.getContraseniasUsadas());
+        assertFalse(result.getContraseniasUsadas().isEmpty());
+        verify(contraseniaRepository, times(1)).save(any(Contrasenia.class));
+    }
+
+    @Test
+    @DisplayName("crearYValidarContrasenia: debe rechazar contraseña común")
+    void testCrearYValidarContraseniaComun() {
+        // Arrange
+        String contraseniaComun = "123456";
+
+        when(contraseniaComunRepository.existsById(contraseniaComun)).thenReturn(true);
+
+        // Act & Assert
+        try {
+            userService.crearYValidarContrasenia(contraseniaComun);
+            assertTrue(false, "Debe lanzar RuntimeException");
+        } catch (RuntimeException e) {
+            assertTrue(e.getMessage().contains("contraseñas comunes"));
+        }
+
+        verify(contraseniaRepository, times(0)).save(any(Contrasenia.class));
+    }
+
+    @Test
+    @DisplayName("crearYValidarContrasenia: debe rechazar contraseña vacía")
+    void testCrearYValidarContraseniaVacia() {
+        // Act & Assert
+        try {
+            userService.crearYValidarContrasenia("");
+            assertTrue(false, "Debe lanzar RuntimeException");
+        } catch (RuntimeException e) {
+            assertTrue(e.getMessage().contains("contraseña es obligatoria"));
+        }
+
+        verify(contraseniaRepository, times(0)).save(any(Contrasenia.class));
+    }
+
+    @Test
+    @DisplayName("validarEmailUnico: debe validar email único exitosamente")
+    void testValidarEmailUnicoExitoso() {
+        // Arrange
+        String email = "nuevo@example.com";
+
+        when(usuarioRepository.existsByEmail(email)).thenReturn(false);
+
+        // Act & Assert - No debe lanzar excepción
+        try {
+            userService.validarEmailUnico(email);
+        } catch (RuntimeException e) {
+            assertTrue(false, "No debe lanzar excepción para email único");
+        }
+    }
+
+    @Test
+    @DisplayName("validarEmailUnico: debe rechazar email duplicado")
+    void testValidarEmailUnicoDuplicado() {
+        // Arrange
+        String email = "existente@example.com";
+
+        when(usuarioRepository.existsByEmail(email)).thenReturn(true);
+
+        // Act & Assert
+        try {
+            userService.validarEmailUnico(email);
+            assertTrue(false, "Debe lanzar RuntimeException");
+        } catch (RuntimeException e) {
+            assertTrue(e.getMessage().contains("ya está registrado"));
+        }
+    }
+
+    @Test
+    @DisplayName("validarEmailUnico: debe rechazar email vacío")
+    void testValidarEmailUnicoVacio() {
+        // Act & Assert
+        try {
+            userService.validarEmailUnico("");
+            assertTrue(false, "Debe lanzar RuntimeException");
+        } catch (RuntimeException e) {
+            assertTrue(e.getMessage().contains("email es obligatorio"));
+        }
+    }
+
+    @Test
+    @DisplayName("login3Auth: debe enviar email 3FA cuando usuario existe")
+    void testLogin3AuthExitoso() {
+        // Arrange
+        Map<String, String> loginData = new HashMap<>();
+        loginData.put("email", "test@example.com");
+
+        Usuario user = new Usuario();
+        user.setEmail("test@example.com");
+
+        Codigorecuperacion codigo = new Codigorecuperacion();
+        codigo.setId("codigo123");
+
+        when(usuarioRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
+        when(emailService.send3FAemail("test@example.com", user)).thenReturn(codigo);
+
+        // Act
+        String result = userService.login3Auth(loginData);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals("codigo123", result);
+        verify(emailService, times(1)).send3FAemail("test@example.com", user);
+    }
+
+    @Test
+    @DisplayName("login3Auth: debe retornar null cuando usuario no existe")
+    void testLogin3AuthUsuarioNoExiste() {
+        // Arrange
+        Map<String, String> loginData = new HashMap<>();
+        loginData.put("email", "noexiste@example.com");
+
+        when(usuarioRepository.findByEmail("noexiste@example.com")).thenReturn(Optional.empty());
+
+        // Act
+        String result = userService.login3Auth(loginData);
+
+        // Assert
+        assertNull(result);
+        verify(emailService, times(0)).send3FAemail(anyString(), any(Usuario.class));
+    }
+
+    @Test
+    @DisplayName("hashearContrasenia: debe hashear contraseña correctamente")
+    void testHashearContrasenia() {
+        // Arrange
+        Contrasenia contrasenia = new Contrasenia();
+        contrasenia.setContraseniaActual("PlainTextPassword");
+
+        // Act
+        Contrasenia result = userService.hashearContrasenia(contrasenia);
+
+        // Assert
+        assertNotNull(result);
+        assertNotNull(result.getContraseniaActual());
+        // La contraseña hasheada no debe ser igual a la contraseña en texto plano
+        assertTrue(result.getContraseniaActual().length() > 20);
+    }
+
+    @Test
+    @DisplayName("updateUser: debe manejar tipo de usuario inválido")
+    void testUpdateUserTipoInvalido() throws Exception {
+        // Arrange
+        String userId = "user123";
+        String tipo = "TipoInvalido";
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("nombre", "Test");
+
+        // Act
+        Usuario result = userService.updateUser(userId, tipo, updates);
+
+        // Assert
+        assertNull(result);
+        verify(administradorRepository, times(0)).save(any(Administrador.class));
+        verify(visualizadorRepository, times(0)).save(any(Visualizador.class));
+        verify(gestorDeContenidoRepository, times(0)).save(any(GestordeContenido.class));
+    }
 }
+
