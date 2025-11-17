@@ -53,11 +53,138 @@ public class FiltradoContenidosAvanzadoService {
     private static final String TYPE_CONTENIDO = "contenido";
     private final UsuarioRepository usuarioRepository;
     private final MongoTemplate mongoTemplate;
+    private final ValoracionService valoracionService;
     
     public FiltradoContenidosAvanzadoService(UsuarioRepository usuarioRepository,
-                                             MongoTemplate mongoTemplate) {
+                                             MongoTemplate mongoTemplate,
+                                             ValoracionService valoracionService) {
         this.usuarioRepository = usuarioRepository;
         this.mongoTemplate = mongoTemplate;
+        this.valoracionService = valoracionService;
+    }
+
+    /**
+     * Obtiene los TOP N contenidos mejor valorados (por promedio de valoraciones)
+     * Se basa en las valoraciones existentes. Contenidos sin valoraciones no se tienen en cuenta.
+     * El comportamiento de filtrado por edad sigue la misma aproximación que `getTopContents`:
+     * calculamos TOP global por promedio y luego aplicamos el post-filter de edad (puede devolver < limit).
+     */
+    public List<ContenidoDTO> getTopRatedContents(int limit, String contentType, String userId) {
+        boolean userIsAdult = isUserAdult(userId);
+
+        List<String> contenidoIds = fetchContenidoIdsWithRatings();
+        if (contenidoIds.isEmpty()) return Collections.emptyList();
+
+        List<Rated> averages = computeAverages(contenidoIds);
+        if (averages.isEmpty()) return Collections.emptyList();
+
+        List<String> topIds = averages.stream()
+            .sorted(Comparator.comparingDouble(Rated::avg).reversed())
+            .limit(limit)
+            .map(Rated::id)
+            .toList();
+
+        if (topIds.isEmpty()) return Collections.emptyList();
+
+        List<ContenidoDTO> contents = fetchContentsByIds(topIds, contentType);
+
+        // Mantener el orden según topIds
+        Map<String, ContenidoDTO> dtoMap = contents.stream()
+            .filter(Objects::nonNull)
+            .collect(Collectors.toMap(ContenidoDTO::getId, d -> d));
+
+        List<ContenidoDTO> finalList = new ArrayList<>();
+        for (String id : topIds) {
+            ContenidoDTO dto = dtoMap.get(id);
+            if (dto != null) finalList.add(dto);
+        }
+
+        if (!userIsAdult) {
+            finalList = finalList.stream().filter(c -> c.getEdadvisualizacion() <= 0).toList();
+        }
+
+        return finalList;
+    }
+
+    private record Rated(String id, double avg) {}
+
+    private List<String> fetchContenidoIdsWithRatings() {
+        MatchOperation matchValoradas = Aggregation.match(Criteria.where("valoracionFinal").ne(null));
+        GroupOperation groupByContenido = Aggregation.group("contenidoId");
+        Aggregation agg = Aggregation.newAggregation(matchValoradas, groupByContenido);
+
+        AggregationResults<Map<String, Object>> grouped = (AggregationResults<Map<String, Object>>) (AggregationResults<?>) mongoTemplate.aggregate(
+            agg, "valoraciones", Map.class
+        );
+
+        return grouped.getMappedResults().stream()
+            .map(row -> {
+                Object idObj = row.get("_id");
+                return idObj == null ? null : idObj.toString();
+            })
+            .filter(Objects::nonNull)
+            .toList();
+    }
+
+    private List<Rated> computeAverages(List<String> contenidoIds) {
+        List<Rated> out = new ArrayList<>();
+        for (String contenidoId : contenidoIds) {
+            try {
+                var avgDto = valoracionService.getAverageRating(contenidoId);
+                if (avgDto != null && avgDto.getRatingsCount() > 0 && avgDto.getAverageRating() != null) {
+                    out.add(new Rated(contenidoId, avgDto.getAverageRating()));
+                }
+            } catch (Exception e) {
+                if (logger.isDebugEnabled()) logger.debug("No se pudo calcular promedio para {}: {}", contenidoId, e.getMessage());
+            }
+        }
+        return out;
+    }
+
+    private List<ContenidoDTO> fetchContentsByIds(List<String> ids, String contentType) {
+        List<Object> idObjects = new ArrayList<>();
+        for (String id : ids) {
+            try {
+                idObjects.add(new ObjectId(id));
+            } catch (IllegalArgumentException ex) {
+                idObjects.add(id);
+            }
+        }
+
+        List<Criteria> criteria = new ArrayList<>();
+        criteria.add(Criteria.where(FIELD_UNDERSCORE_ID).in(idObjects));
+        criteria.add(Criteria.where(FIELD_ESTADO).is(true));
+
+        if (!TYPE_ALL.equals(contentType)) {
+            if (TYPE_VIDEO.equals(contentType)) {
+                criteria.add(Criteria.where(FIELD_URL).exists(true));
+            } else if (TYPE_AUDIO.equals(contentType)) {
+                criteria.add(Criteria.where(FIELD_MIME_TYPE).exists(true));
+            }
+        }
+
+        MatchOperation matchOperation = Aggregation.match(new Criteria().andOperator(criteria.toArray(new Criteria[0])));
+        ProjectionOperation projectionOperation = Aggregation.project()
+            .and(FIELD_UNDERSCORE_ID).as(FIELD_ID)
+            .and(FIELD_TITULO).as(FIELD_TITULO)
+            .and(FIELD_DESCRIPCION).as(FIELD_DESCRIPCION)
+            .and(FIELD_NVISUALIZACIONES).as(FIELD_NVISUALIZACIONES)
+            .and(FIELD_EDAD_VISUALIZACION).as(FIELD_EDAD_VISUALIZACION)
+            .and(FIELD_ESTADO).as(FIELD_ESTADO)
+            .and(FIELD_TAGS).as(FIELD_TAGS)
+            .and(FIELD_URL).as(FIELD_URL)
+            .and(FIELD_RESOLUCION).as(FIELD_RESOLUCION)
+            .and(FIELD_MIME_TYPE).as(FIELD_MIME_TYPE);
+
+        Aggregation aggContents = Aggregation.newAggregation(matchOperation, projectionOperation);
+        AggregationResults<Map<String, Object>> contentResults = (AggregationResults<Map<String, Object>>) (AggregationResults<?>) mongoTemplate.aggregate(
+            aggContents, COLLECTION_CONTENIDOS, Map.class
+        );
+
+        return contentResults.getMappedResults().stream()
+            .map(this::mapToContenidoDTO)
+            .filter(Objects::nonNull)
+            .toList();
     }
     
     /**
