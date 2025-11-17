@@ -7,16 +7,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 
+import iso25.g05.esi_media.dto.AverageRatingDTO;
+import iso25.g05.esi_media.dto.ShowRatingDTO;
 import iso25.g05.esi_media.exception.RecursoNoEncontradoException;
 import iso25.g05.esi_media.model.Contenido;
 import iso25.g05.esi_media.model.Usuario;
-import iso25.g05.esi_media.model.Visualizador;
 import iso25.g05.esi_media.model.Valoracion;
+import iso25.g05.esi_media.model.Visualizador;
 import iso25.g05.esi_media.repository.ContenidoRepository;
 import iso25.g05.esi_media.repository.UsuarioRepository;
 import iso25.g05.esi_media.repository.ValoracionRepository;
-import iso25.g05.esi_media.dto.ShowRatingDTO;
-import iso25.g05.esi_media.dto.AverageRatingDTO;
 
 @Service
 public class ValoracionService {
@@ -34,6 +34,9 @@ public class ValoracionService {
         this.usuarioRepository = usuarioRepository;
     }
 
+    private String NOT_FOUND = "Contenido no encontrado";
+    private String U_NOT_FOUND = "Usuario no encontrado";
+
     /**
      * Registra la reproducción para crear la instancia de clase asociación Valoracion
      * con valor null si no existía previamente.
@@ -42,12 +45,12 @@ public class ValoracionService {
         // Verificar existencia de contenido y usuario
         Optional<Contenido> contenidoOpt = contenidoRepository.findById(contenidoId);
         if (contenidoOpt.isEmpty()) {
-            throw new RecursoNoEncontradoException("Contenido no encontrado");
+            throw new RecursoNoEncontradoException(NOT_FOUND);
         }
 
         Optional<Usuario> usuarioOpt = usuarioRepository.findById(visualizadorId);
         if (usuarioOpt.isEmpty()) {
-            throw new RecursoNoEncontradoException("Usuario no encontrado");
+            throw new RecursoNoEncontradoException(U_NOT_FOUND);
         }
 
         Optional<Valoracion> existing = valoracionRepository.findByVisualizadorIdAndContenidoId(visualizadorId, contenidoId);
@@ -85,7 +88,7 @@ public class ValoracionService {
 
         Optional<Contenido> contenidoOpt = contenidoRepository.findById(contenidoId);
         if (contenidoOpt.isEmpty()) {
-            throw new RecursoNoEncontradoException("Contenido no encontrado");
+            throw new RecursoNoEncontradoException(NOT_FOUND);
         }
 
         Optional<Valoracion> opt = valoracionRepository.findByVisualizadorIdAndContenidoId(visualizadorId, contenidoId);
@@ -103,7 +106,7 @@ public class ValoracionService {
     public AverageRatingDTO getAverageRating(String contenidoId) {
         Optional<Contenido> contenidoOpt = contenidoRepository.findById(contenidoId);
         if (contenidoOpt.isEmpty()) {
-            throw new RecursoNoEncontradoException("Contenido no encontrado");
+            throw new RecursoNoEncontradoException(NOT_FOUND);
         }
 
         List<Valoracion> todas = valoracionRepository.findByContenidoId(contenidoId);
@@ -128,7 +131,7 @@ public class ValoracionService {
     public Optional<Valoracion> getMyValoracionInstance(String visualizadorId, String contenidoId) {
         Optional<Contenido> contenidoOpt = contenidoRepository.findById(contenidoId);
         if (contenidoOpt.isEmpty()) {
-            throw new RecursoNoEncontradoException("Contenido no encontrado");
+            throw new RecursoNoEncontradoException(NOT_FOUND);
         }
 
         return valoracionRepository.findByVisualizadorIdAndContenidoId(visualizadorId, contenidoId);
@@ -151,7 +154,7 @@ public class ValoracionService {
             // Si ya existe la asociación, validar usuario y estado de la valoración
             Optional<Usuario> usuarioOpt = usuarioRepository.findById(visualizadorId);
             if (usuarioOpt.isEmpty()) {
-                throw new IllegalStateException("Usuario no encontrado");
+                throw new IllegalStateException(U_NOT_FOUND);
             }
 
             Usuario usuario = usuarioOpt.get();
@@ -181,13 +184,13 @@ public class ValoracionService {
         // Si no existe la asociación, comprobamos primero que el contenido exista
         Optional<Contenido> contenidoOpt = contenidoRepository.findById(contenidoId);
         if (contenidoOpt.isEmpty()) {
-            throw new RecursoNoEncontradoException("Contenido no encontrado");
+            throw new RecursoNoEncontradoException(NOT_FOUND);
         }
 
         // Verificar usuario y tipo para poder informar de ausencia de asociación
         Optional<Usuario> usuarioOpt = usuarioRepository.findById(visualizadorId);
         if (usuarioOpt.isEmpty()) {
-            throw new IllegalStateException("Usuario no encontrado");
+            throw new IllegalStateException(U_NOT_FOUND);
         }
 
         Usuario usuario = usuarioOpt.get();

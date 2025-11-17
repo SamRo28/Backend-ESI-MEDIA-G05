@@ -1,6 +1,5 @@
 package iso25.g05.esi_media.service;
 
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
@@ -60,7 +59,7 @@ public class UserService {
 
     @Autowired
     private GestorDeContenidoRepository gestorDeContenidoRepository;
-    
+
     @Autowired
     private ContraseniaComunRepository contraseniaComunRepository;
 
@@ -75,9 +74,11 @@ public class UserService {
     private final GoogleAuthenticator gAuth = new GoogleAuthenticator();
 
     private String EMAIL = "email";
-    
+
+    private String CONTR = "contrasenia";
+
     public Usuario login(Map<String, String> loginData, String ipAddress) {
-        
+
         IpLoginAttempt attempt = ipLoginAttemptRepository.findById(ipAddress)
                 .orElse(new IpLoginAttempt(ipAddress));
 
@@ -91,16 +92,16 @@ public class UserService {
             }
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, message);
         }
-        
+
         String email = loginData.get(EMAIL);
         String password = loginData.get("password");
 
         Optional<Usuario> existingUser = this.usuarioRepository.findByEmail(email);
 
         if (existingUser.isPresent() && existingUser.get().getContrasenia() != null
-                && encoder.matches(password,existingUser.get().getContrasenia().getContraseniaActual())) {
-            
-            attempt.resetAllOnSuccess(); 
+                && encoder.matches(password, existingUser.get().getContrasenia().getContraseniaActual())) {
+
+            attempt.resetAllOnSuccess();
             ipLoginAttemptRepository.save(attempt);
             if (!existingUser.get().isTwoFactorAutenticationEnabled()) {
                 generateAndSaveToken(existingUser.get());
@@ -109,12 +110,11 @@ public class UserService {
                 return existingUser.get();
             }
         }
-        
 
         attempt.incrementFailedAttempts();
-        boolean justBlocked = attempt.checkAndApplyProgressiveBlock(); 
+        boolean justBlocked = attempt.checkAndApplyProgressiveBlock();
         ipLoginAttemptRepository.save(attempt);
-        
+
         if (justBlocked) {
             // El bloqueo se acaba de activar, lanzamos una excepción específica
             String message;
@@ -126,7 +126,7 @@ public class UserService {
             }
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, message);
         }
-        
+
         return null;
     }
 
@@ -155,7 +155,7 @@ public class UserService {
             Usuario user = existingCode.get().getunnamedUsuario();
 
             if (!user.isThreeFactorAutenticationEnabled()) {
-               user.setThreeFactorAutenticationEnabled(true);
+                user.setThreeFactorAutenticationEnabled(true);
             }
 
             return generateAndSaveToken(user);
@@ -175,13 +175,13 @@ public class UserService {
             boolean valid = gAuth.authorize(secret, code);
             usuarioRepository.save(user);
 
-            if(valid){
+            if (valid) {
                 if (existingUser.get().isThreeFactorAutenticationEnabled()) {
                     return "";
                 }
                 return generateAndSaveToken(existingUser.get()).getToken();
-        }
-            
+            }
+
         }
         return null;
     }
@@ -196,50 +196,37 @@ public class UserService {
         }
     }
 
-
-
-    public Usuario updateUser(String id, String tipo, Map<String,Object> u) throws IOException{
+    public Usuario updateUser(String id, String tipo, Map<String, Object> u) throws IOException {
         ObjectMapper mapper = new ObjectMapper();
 
-        // Si viene campo "contrasenia" desde el perfil, gestionarlo con la lógica ya existente
+        // Si viene campo CONTR desde el perfil, gestionarlo con la lógica ya existente
         String nuevaContraseniaPlano = null;
-        if (u != null && u.containsKey("contrasenia")) {
-            Object raw = u.get("contrasenia");
+        if (u != null && u.containsKey(CONTR)) {
+            Object raw = u.get(CONTR);
             if (raw instanceof String s && !s.isBlank()) {
                 nuevaContraseniaPlano = s;
             }
             // Eliminamos el campo para que Jackson no intente mapearlo directamente sobre el modelo
-            u.remove("contrasenia");
+            u.remove(CONTR);
         }
 
-        // Convertir el Map (ya sin "contrasenia") en JsonNode para el merge
+        // Convertir el Map (ya sin CONTR) en JsonNode para el merge
         JsonNode updateNode = mapper.valueToTree(u);
 
-        if(tipo.equals("Administrador")){
+        if (tipo.equals("Administrador")) {
             Optional<Administrador> adminOpt = administradorRepository.findById(id);
-            if(adminOpt.isPresent()){
+            if (adminOpt.isPresent()) {
                 Administrador admin = adminOpt.get();
                 mapper.readerForUpdating(admin).readValue(updateNode);
                 return administradorRepository.save(admin);
             }
-        } else if(tipo.equals("Visualizador")){
-            Optional<Visualizador> visualizadorOpt = visualizadorRepository.findById(id);
-            if(visualizadorOpt.isPresent()){
-                Visualizador visualizador = visualizadorOpt.get();
+        } else if (tipo.equals("Visualizador")) {
 
-                // Si se solicitó cambio de contraseña, delegar en la lógica existente
-                if (nuevaContraseniaPlano != null) {
-                    cambiarContrasenia(visualizador.getEmail(), nuevaContraseniaPlano);
-                }
+            return editVisualizador(id, nuevaContraseniaPlano, updateNode, mapper);
 
-                mapper.readerForUpdating(visualizador).readValue(updateNode);
-                Visualizador visualizadorGuardado = visualizadorRepository.save(visualizador);
-                logService.registrarAccion("Actualización de perfil de visualizador", visualizadorGuardado.getEmail());
-                return visualizadorGuardado;
-            }
         } else {
             Optional<GestordeContenido> gestorOpt = gestorDeContenidoRepository.findById(id);
-            if(gestorOpt.isPresent()){
+            if (gestorOpt.isPresent()) {
                 GestordeContenido gestor = gestorOpt.get();
                 mapper.readerForUpdating(gestor).readValue(updateNode);
                 return gestorDeContenidoRepository.save(gestor);
@@ -248,8 +235,26 @@ public class UserService {
         return null;
     }
 
-    public Contrasenia hashearContrasenia(Contrasenia c){
-        
+    public Usuario editVisualizador(String id, String nuevaContraseniaPlano, JsonNode updateNode, ObjectMapper mapper) throws IOException {
+        Optional<Visualizador> visualizadorOpt = visualizadorRepository.findById(id);
+        if (visualizadorOpt.isPresent()) {
+            Visualizador visualizador = visualizadorOpt.get();
+
+            // Si se solicitó cambio de contraseña, delegar en la lógica existente
+            if (nuevaContraseniaPlano != null) {
+                cambiarContrasenia(visualizador.getEmail(), nuevaContraseniaPlano);
+            }
+
+            mapper.readerForUpdating(visualizador).readValue(updateNode);
+            Visualizador visualizadorGuardado = visualizadorRepository.save(visualizador);
+            logService.registrarAccion("Actualización de perfil de visualizador", visualizadorGuardado.getEmail());
+            return visualizadorGuardado;
+        }
+        return null;
+    }
+
+    public Contrasenia hashearContrasenia(Contrasenia c) {
+
         c.setContraseniaActual(encoder.encode(c.getContraseniaActual()));
 
         return c;
@@ -258,9 +263,10 @@ public class UserService {
     private String md5Hex(String input) {
         return encoder.encode(input);
     }
-    
+
     /**
      * Valida que el email no existe en el sistema
+     *
      * @param email Email a validar
      * @throws RuntimeException si el email ya está registrado o es inválido
      */
@@ -268,14 +274,15 @@ public class UserService {
         if (email == null || email.trim().isEmpty()) {
             throw new RuntimeException("El email es obligatorio");
         }
-        
+
         if (usuarioRepository.existsByEmail(email)) {
             throw new RuntimeException("El email ya está registrado en el sistema");
         }
     }
-    
+
     /**
      * Crea y valida una contraseña
+     *
      * @param contraseniaTextoPlano La contraseña en texto plano
      * @return La contraseña hasheada y guardada
      * @throws RuntimeException si la contraseña es común o inválida
@@ -284,20 +291,20 @@ public class UserService {
         if (contraseniaTextoPlano == null || contraseniaTextoPlano.trim().isEmpty()) {
             throw new RuntimeException("La contraseña es obligatoria");
         }
-        
+
         // Calcular fecha de expiración (1 año desde ahora)
         java.util.Calendar cal = java.util.Calendar.getInstance();
         cal.add(java.util.Calendar.YEAR, 1);
         java.util.Date fechaExpiracion = cal.getTime();
-        
+
         // Crear objeto contraseña
         Contrasenia contrasenia = new Contrasenia(
-            null,
-            fechaExpiracion,
-            contraseniaTextoPlano,
-            new java.util.ArrayList<>()
+                null,
+                fechaExpiracion,
+                contraseniaTextoPlano,
+                new java.util.ArrayList<>()
         );
-        
+
         // Validar que no sea una contraseña común
         if (contraseniaComunRepository.existsById(contrasenia.getContraseniaActual())) {
             throw new RuntimeException("La contraseña proporcionada está en la lista de contraseñas comunes");
@@ -306,27 +313,25 @@ public class UserService {
         // Hashear la contraseña
         contrasenia = hashearContrasenia(contrasenia);
         contrasenia.getContraseniasUsadas().add(contrasenia.getContraseniaActual());
-        
-        
-        
+
         // Guardar la contraseña en la base de datos
         contrasenia = contraseniaRepository.save(contrasenia);
-        
+
         return contrasenia;
     }
 
     //  ----------------------------------MÉTODOS DE CAMBIAR CONTRASEÑA------------------------------------------
-    public boolean cambiarContrasenia(String email, String contraseniaNueva){
+    public boolean cambiarContrasenia(String email, String contraseniaNueva) {
         Optional<Usuario> userOpt = usuarioRepository.findByEmail(email);
 
-        if(userOpt.isPresent()){
+        if (userOpt.isPresent()) {
             Usuario user = userOpt.get();
 
             // 1) Comprobar que no sea una contraseña común
             if (contraseniaComunRepository.existsById(contraseniaNueva)) {
                 // Lanzamos PeticionInvalida para que llegue como 400 con mensaje claro
                 throw new PeticionInvalidaException(
-                    "La nueva contrasena no cumple las politicas de seguridad definidas"
+                        "La nueva contrasena no cumple las politicas de seguridad definidas"
                 );
             }
 
@@ -349,39 +354,38 @@ public class UserService {
         return false;
     }
 
-    public Contrasenia comprobarContraseniasAntiguas(Contrasenia c, String contraseniaNueva){
-    List<String> listaActual = c.getContraseniasUsadas();
-    if (listaActual == null) {
-        listaActual = new ArrayList<>();
-    }
-    List<String> listaNueva = new ArrayList<>();
-
-    // Comprobar que la nueva contrasena (texto plano) no coincide con ninguna anterior (hasheada)
-    for (String usadaHash : listaActual) {
-        if (encoder.matches(contraseniaNueva, usadaHash)) {
-            // Lanzar PeticionInvalida para que el cliente reciba un 400 con mensaje claro
-            throw new PeticionInvalidaException("La nueva contrasena no puede ser igual a ninguna de las 5 ultimas");
+    public Contrasenia comprobarContraseniasAntiguas(Contrasenia c, String contraseniaNueva) {
+        List<String> listaActual = c.getContraseniasUsadas();
+        if (listaActual == null) {
+            listaActual = new ArrayList<>();
         }
-    }
+        List<String> listaNueva = new ArrayList<>();
 
-    // Mantener como mucho las ultimas 4 contrasenas anteriores
-    if (listaActual.size() == 5) {
-        for (int i = 1; i < 5; i++) {
-            listaNueva.add(listaActual.get(i));
+        // Comprobar que la nueva contrasena (texto plano) no coincide con ninguna anterior (hasheada)
+        for (String usadaHash : listaActual) {
+            if (encoder.matches(contraseniaNueva, usadaHash)) {
+                // Lanzar PeticionInvalida para que el cliente reciba un 400 con mensaje claro
+                throw new PeticionInvalidaException("La nueva contrasena no puede ser igual a ninguna de las 5 ultimas");
+            }
         }
-    } else {
-        listaNueva.addAll(listaActual);
+
+        // Mantener como mucho las ultimas 4 contrasenas anteriores
+        if (listaActual.size() == 5) {
+            for (int i = 1; i < 5; i++) {
+                listaNueva.add(listaActual.get(i));
+            }
+        } else {
+            listaNueva.addAll(listaActual);
+        }
+
+        // Hashear la nueva contrasena y guardarla como actual y en el historial
+        String nuevaHasheada = encoder.encode(contraseniaNueva);
+        listaNueva.add(nuevaHasheada);
+        c.setContraseniasUsadas(listaNueva);
+        c.setContraseniaActual(nuevaHasheada);
+
+        return c;
     }
-
-    // Hashear la nueva contrasena y guardarla como actual y en el historial
-    String nuevaHasheada = encoder.encode(contraseniaNueva);
-    listaNueva.add(nuevaHasheada);
-    c.setContraseniasUsadas(listaNueva);
-    c.setContraseniaActual(nuevaHasheada);
-
-    return c;
-}
-
 
     public Usuario login(Map<String, String> loginData) {
         // Llamada simple sin lógica de IP
@@ -401,5 +405,5 @@ public class UserService {
         }
         return null;
     }
-    
+
 }
