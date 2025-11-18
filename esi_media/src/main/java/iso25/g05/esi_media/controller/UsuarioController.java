@@ -18,8 +18,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -29,8 +29,8 @@ import iso25.g05.esi_media.model.Token;
 import iso25.g05.esi_media.model.Usuario;
 import iso25.g05.esi_media.model.Visualizador;
 import iso25.g05.esi_media.repository.UsuarioRepository;
-import iso25.g05.esi_media.service.UserService;
 import iso25.g05.esi_media.service.LogService;
+import iso25.g05.esi_media.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 
 /**
@@ -72,8 +72,12 @@ public class UsuarioController {
         String ipAddress = getClientIp(request);
         try {
             Usuario loggedInUser = userService.login(loginData, ipAddress);
+            
             if (loggedInUser == null){
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Credenciales inválidas");
+            }
+            else if(loggedInUser.isBloqueado()){
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Usuario bloqueado, hable con su administrador");
             }
         
             Map<String, Object> res =  Map.of(
@@ -323,59 +327,6 @@ public class UsuarioController {
         }
     }
     
-    
-    /**
-     * Actualizar perfil del usuario (nombre, apellidos, foto)
-     */
-    /*@PutMapping("/{id}/profile")
-    @CrossOrigin(origins = "*")
-    public ResponseEntity<?> updateProfile(@PathVariable String id, @RequestBody Map<String, String> updates) {
-        try {
-            Optional<Usuario> optionalUsuario = usuarioRepository.findById(id);
-            if (!optionalUsuario.isPresent()) {
-                return ResponseEntity.notFound().build();
-            }
-            Usuario usuario = optionalUsuario.get();
-            logger.info("🔍 Usuario antes de actualizar perfil - sesionstoken count: {}", (usuario.sesionstoken != null ? usuario.sesionstoken.size() : "null"));
-            
-            // Actualizar campos si están presentes
-           
-            if (updates.containsKey(NOMBRE)) {
-                usuario.setNombre(updates.get(NOMBRE));
-            }
-            
-            if (updates.containsKey(APELLIDOS)) {
-                usuario.setApellidos(updates.get(APELLIDOS));
-            }
-            if (updates.containsKey("foto")) {
-                usuario.setFoto(updates.get("foto"));
-            }
-            
-            logger.info("💾 Guardando usuario - sesionstoken count: {}", (usuario.sesionstoken != null ? usuario.sesionstoken.size() : "null"));
-            // Guardar en MongoDB
-            Usuario updatedUsuario = usuarioRepository.save(usuario);
-            
-            logger.info("✅ Usuario guardado - sesionstoken count: {}", (updatedUsuario.sesionstoken != null ? updatedUsuario.sesionstoken.size() : "null"));
-            // Construir respuesta con _class incluido (igual que en login)
-            Map<String, Object> response = new HashMap<>();
-            response.put("_id", updatedUsuario.getId());
-            response.put(NOMBRE, updatedUsuario.getNombre());
-            response.put(APELLIDOS, updatedUsuario.getApellidos());
-            response.put(EMAIL, updatedUsuario.getEmail());
-        
-            response.put("foto", updatedUsuario.getFoto());
-            response.put(BLOQUEADO, updatedUsuario.isBloqueado());
-            response.put("_class", updatedUsuario.getClass().getName());
-            if (updatedUsuario instanceof Administrador administrador) {
-                response.put(DEPARTAMENTO, administrador.getDepartamento());
-            }
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error al actualizar perfil: " + e.getMessage());
-        }
-    }*/
-
     @PutMapping("/{id}/profile")
     @CrossOrigin(origins = "*")
     public ResponseEntity<?> updateProfile(@PathVariable String id, @RequestBody Map<String, Object> updates) {
