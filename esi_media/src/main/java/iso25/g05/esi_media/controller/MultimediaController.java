@@ -41,10 +41,10 @@ import iso25.g05.esi_media.service.MultimediaService;
 @CrossOrigin(origins = "*")
 public class MultimediaController {
 
+    private static final String MSG = "mensaje";
+
     @Autowired
     private MultimediaService multimediaService;
-
-    private String MSG = "mensaje";
 
     /**
      * GET /multimedia
@@ -68,17 +68,17 @@ public class MultimediaController {
 
         if (authHeader == null || authHeader.isBlank()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of(MSG, "No autenticado"));
+                .body(Map.of(MSG, "No autenticado"));
         }
         try {
             Page<ContenidoResumenDTO> pagina = multimediaService.listarContenidos(pageable, authHeader, tipo, query);
             return ResponseEntity.ok(pagina);
         } catch (Exception e) {
             // Fallback genérico para evitar 500 sin mensaje claro
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of(
-                            MSG, "Error interno del servidor",
-                            "detalle", e.getMessage() != null ? e.getMessage() : ""));
+                        MSG, "Error interno del servidor",
+                        "detalle", e.getMessage() != null ? e.getMessage() : ""));
         }
     }
 
@@ -116,14 +116,14 @@ public class MultimediaController {
             @RequestHeader(value = "Authorization", required = false) String authHeader) {
         if (authHeader == null || authHeader.isBlank()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of(MSG, "No autenticado"));
+                .body(Map.of(MSG, "No autenticado"));
         }
 
         try {
             int total = multimediaService.registrarReproduccion(id, authHeader);
             return ResponseEntity.ok(Map.of("nvisualizaciones", total));
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of(MSG, "Error al registrar reproducción", "detalle", e.getMessage() != null ? e.getMessage() : ""));
         }
     }

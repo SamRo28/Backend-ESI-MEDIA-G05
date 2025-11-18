@@ -10,6 +10,6 @@ import iso25.g05.esi_media.model.Token;
 
 @Repository
 public interface TokenRepository extends MongoRepository<Token, String> {
-    @Query("{'_token': ?0}")
+    @Query("{'token': ?0}")
     Optional<Token> findByToken(String token);
 }

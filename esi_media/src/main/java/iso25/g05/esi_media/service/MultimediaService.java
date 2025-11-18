@@ -40,8 +40,9 @@ public class MultimediaService {
 
     private static final String TIPO_VIDEO = "VIDEO";
     private static final String TIPO_AUDIO = "AUDIO";
-    private static final String ID_OB = "El id de contenido es obligatorio";
-    private static final String CONT_NF = "Contenido no encontrado";
+    private static final String ERR_ID_OBLIGATORIO = "El id de contenido es obligatorio";
+    private static final String ERR_CONTENIDO_NO_ENCONTRADO = "Contenido no encontrado";
+
     @Autowired
     private ContenidoRepository contenidoRepository;
 
@@ -285,7 +286,7 @@ public class MultimediaService {
      */
     public ContenidoDetalleDTO obtenerContenidoPorId(String id, String authHeaderOrToken) {
         if (id == null || id.isBlank()) {
-            throw new PeticionInvalidaException(ID_OB);
+            throw new PeticionInvalidaException(ERR_ID_OBLIGATORIO);
         }
 
         Usuario usuario = validarYObtenerUsuarioAutorizado(authHeaderOrToken);
@@ -299,7 +300,7 @@ public class MultimediaService {
             opt = contenidoRepository.findByIdAndEstadoTrue(id);
         }
         
-        Contenido contenido = opt.orElseThrow(() -> new RecursoNoEncontradoException(CONT_NF));
+        Contenido contenido = opt.orElseThrow(() -> new RecursoNoEncontradoException(ERR_CONTENIDO_NO_ENCONTRADO));
 
         // Si es Gestor de Contenido, puede acceder sin restricciones
         if (usuario instanceof GestordeContenido) {
@@ -378,7 +379,7 @@ public class MultimediaService {
      */
     public Audio validarYObtenerAudioParaStreaming(String id, String authHeaderOrToken) {
         if (id == null || id.isBlank()) {
-            throw new PeticionInvalidaException(ID_OB);
+            throw new PeticionInvalidaException(ERR_ID_OBLIGATORIO);
         }
 
         Usuario usuario = validarYObtenerUsuarioAutorizado(authHeaderOrToken);
@@ -392,7 +393,7 @@ public class MultimediaService {
             opt = contenidoRepository.findByIdAndEstadoTrue(id);
         }
         
-        Contenido contenido = opt.orElseThrow(() -> new RecursoNoEncontradoException(CONT_NF));
+        Contenido contenido = opt.orElseThrow(() -> new RecursoNoEncontradoException(ERR_CONTENIDO_NO_ENCONTRADO));
 
         if (!(contenido instanceof Audio audio)) {
             throw new PeticionInvalidaException("El contenido solicitado no es de tipo audio");
@@ -552,7 +553,7 @@ public class MultimediaService {
      */
     public int registrarReproduccion(String id, String authHeaderOrToken) {
         if (id == null || id.isBlank()) {
-            throw new PeticionInvalidaException(ID_OB);
+            throw new PeticionInvalidaException(ERR_ID_OBLIGATORIO);
         }
 
         Usuario usuario = validarYObtenerUsuarioAutorizado(authHeaderOrToken);
@@ -565,7 +566,7 @@ public class MultimediaService {
             opt = contenidoRepository.findByIdAndEstadoTrue(id);
         }
 
-        Contenido contenido = opt.orElseThrow(() -> new RecursoNoEncontradoException(CONT_NF));
+        Contenido contenido = opt.orElseThrow(() -> new RecursoNoEncontradoException(ERR_CONTENIDO_NO_ENCONTRADO));
 
         if (usuario instanceof Visualizador v) {
             validarAcceso(contenido, v);
