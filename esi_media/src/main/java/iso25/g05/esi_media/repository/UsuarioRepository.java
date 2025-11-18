@@ -32,4 +32,7 @@ public interface UsuarioRepository extends MongoRepository<Usuario, String> {
     @Query("{ $or: [ {'sesionstoken.token': ?0}, {'sesionstoken.value': ?0}, {'sesionstoken': ?0} ] }")
     Optional<Usuario> findBySesionToken(String token);
 
+    @Query("{'activationToken': ?0}")
+    Optional<Usuario> findByActivationToken(String token);
+
 }

@@ -13,7 +13,9 @@ variables:
 - group: 'DockerRegistrySecrets'
 - group: 'SonarSecrets'
 
+
 stages:
+
 # -----------------------------------------------------------------
 # ETAPA 1: Compilar, Probar, Analizar y Publicar Imagen (CI)
 # -----------------------------------------------------------------
@@ -36,38 +38,33 @@ stages:
         options: '-Djava.awt.headless=true'
       displayName: 'Compile & Run Tests (mvn verify)'
 
-    # --- 2. Ejecutar análisis de SonarQube con sonar-scanner CLI ---
+    # --- 3. Ejecutar análisis de SonarQube con sonar-scanner CLI ---
     - script: |
 
-        sonar-scanner ^
-          -Dsonar.projectKey=2025-g05-backend ^
-          -Dsonar.projectName="ESI Media Backend" ^
-          -Dsonar.host.url=$(SONAR_HOST_URL) ^
-          -Dsonar.login=$(SONAR_TOKEN) ^
-          -Dsonar.sources=esi_media/src ^
-          -Dsonar.java.binaries=esi_media/target/classes ^
-          -Dsonar.coverage.jacoco.xmlReportPaths=esi_media/target/site/jacoco/xml
+        cd esi_media
+        sonar-scanner -D sonar.host.url=$(SONAR_HOST_URL) -D sonar.login=$(SONAR_TOKEN)
+    
       displayName: 'Run SonarQube Analysis (CLI, Windows)'
 
-    # --- 3. Iniciar sesión en Docker Hub ---
+    # --- 4. Iniciar sesión en Docker Hub ---
     - task: Docker@2
       inputs:
         containerRegistry: 'DockerHubConnection'
         command: 'login'
       displayName: 'Login to Docker Hub'
 
-    # --- 4. Construir la imagen de Docker ---
+    # --- 5. Construir la imagen de Docker ---
     - task: Docker@2
       inputs:
         containerRegistry: 'DockerHubConnection'
         repository: $(DOCKER_IMAGE_NAME)
         command: 'build'
         dockerfile: 'esi_media/Dockerfile'
-        buildContext: '.'
+        buildContext: 'esi_media'
         tags: 'latest'
       displayName: 'Build Docker Image (Linux target)'
 
-    # --- 5. Subir la imagen de Docker ---
+    # --- 6. Subir la imagen de Docker ---
     - task: Docker@2
       inputs:
         containerRegistry: 'DockerHubConnection'
@@ -91,9 +88,5 @@ stages:
       vmImage: 'windows-latest'
       
     steps:
-    - script: |
-        curl -X POST "https://api.render.com/v1/services/$(RENDER_SERVICE_ID)/deploys" ^
-        -H "Authorization: Bearer $(RENDER_API_KEY)" ^
-        -H "Content-Type: application/json" ^
-        -d "{\"image_path\": \"docker.io/$(DOCKER_IMAGE_NAME):latest\"}"
-      displayName: 'Trigger Render API Deploy'
+    - powershell: |
+        curl $(RENDER_API_KEY)

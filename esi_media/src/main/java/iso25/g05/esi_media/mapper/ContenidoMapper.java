@@ -24,7 +24,8 @@ public final class ContenidoMapper {
             c.gettitulo(),
             tipo,
             c.getcaratula(),
-            c.isvip()
+            c.isvip(),
+            (c instanceof Video) ? ((Video) c).getresolucion() : null
         );
     }
 
@@ -36,7 +37,7 @@ public final class ContenidoMapper {
      */
     public static ContenidoDetalleDTO aDetalle(Contenido c, String referenciaReproduccion) {
         String tipo = tipoDe(c);
-        return new ContenidoDetalleDTO(
+        ContenidoDetalleDTO dto = new ContenidoDetalleDTO(
             c.getId(),
             c.gettitulo(),
             c.getdescripcion(),
@@ -48,8 +49,11 @@ public final class ContenidoMapper {
             c.getedadvisualizacion(),
             c.getnvisualizaciones(),
             c.gettags(),
-            referenciaReproduccion
+            referenciaReproduccion,
+            (c instanceof Video) ? ((Video) c).getresolucion() : null
         );
+        dto.setEstado(c.isestado());
+        return dto;
     }
 
     /**

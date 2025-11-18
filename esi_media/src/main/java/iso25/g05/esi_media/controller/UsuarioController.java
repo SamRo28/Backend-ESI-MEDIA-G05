@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -29,6 +30,7 @@ import iso25.g05.esi_media.model.Token;
 import iso25.g05.esi_media.model.Usuario;
 import iso25.g05.esi_media.model.Visualizador;
 import iso25.g05.esi_media.repository.UsuarioRepository;
+import iso25.g05.esi_media.service.LogService;
 import iso25.g05.esi_media.service.UserService;
 import iso25.g05.esi_media.service.LogService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -72,8 +74,12 @@ public class UsuarioController {
         String ipAddress = getClientIp(request);
         try {
             Usuario loggedInUser = userService.login(loginData, ipAddress);
+            
             if (loggedInUser == null){
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Credenciales inválidas");
+            }
+            else if(loggedInUser.isBloqueado()){
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Usuario bloqueado, hable con su administrador");
             }
         
             Map<String, Object> res =  Map.of(
@@ -100,7 +106,12 @@ public class UsuarioController {
             @RequestParam(value = "auth", required = false) String authQueryParam) {
         try {
             Usuario authUser = validarTokenYObtenerUsuario(authHeader, authQueryParam);
+<<<<<<< HEAD
             if (authUser == null || authUser.getId() == null || !authUser.getId().equals(id)) {
+=======
+            // Solo comprobamos que haya usuario autenticado
+            if (authUser == null || authUser.getId() == null) {
+>>>>>>> origin/main
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(MSG, "No autorizado"));
             }
             if (!(authUser instanceof Visualizador visualizador)) {
@@ -123,7 +134,12 @@ public class UsuarioController {
             @RequestBody Map<String, Object> body) {
         try {
             Usuario authUser = validarTokenYObtenerUsuario(authHeader, authQueryParam);
+<<<<<<< HEAD
             if (authUser == null || authUser.getId() == null || !authUser.getId().equals(id)) {
+=======
+            // Solo comprobamos que haya usuario autenticado
+            if (authUser == null || authUser.getId() == null) {
+>>>>>>> origin/main
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(MSG, "No autorizado"));
             }
             if (!(authUser instanceof Visualizador visualizador)) {
@@ -131,7 +147,11 @@ public class UsuarioController {
             }
             Object v = body != null ? body.get("vip") : null;
             if (!(v instanceof Boolean)) {
+<<<<<<< HEAD
                 return ResponseEntity.badRequest().body(Map.of(MSG, "Solicitud inválida"));
+=======
+                return ResponseEntity.badRequest().body(Map.of(MSG, "Solicitud invalida"));
+>>>>>>> origin/main
             }
             boolean nuevoVip = (Boolean) v;
             boolean anteriorVip = visualizador.isVip();
@@ -140,7 +160,12 @@ public class UsuarioController {
                 visualizador.setFechacambiosuscripcion(new java.util.Date());
                 usuarioRepository.save(visualizador);
                 // Log de auditoría
+<<<<<<< HEAD
                 try { logService.registrarAccion("Cambio de suscripción a " + (nuevoVip ? "VIP" : "Estándar"), authUser.getEmail()); } catch (Exception ignore) {}
+=======
+                try { logService.registrarAccion("Cambio de suscripcion a " + (nuevoVip ? "VIP" : "Estandar"),
+                        authUser.getEmail()); } catch (Exception ignore) {}
+>>>>>>> origin/main
             }
             Map<String, Object> resp = new HashMap<>();
             resp.put("vip", visualizador.isVip());
@@ -320,59 +345,6 @@ public class UsuarioController {
         }
     }
     
-    
-    /**
-     * Actualizar perfil del usuario (nombre, apellidos, foto)
-     */
-    /*@PutMapping("/{id}/profile")
-    @CrossOrigin(origins = "*")
-    public ResponseEntity<?> updateProfile(@PathVariable String id, @RequestBody Map<String, String> updates) {
-        try {
-            Optional<Usuario> optionalUsuario = usuarioRepository.findById(id);
-            if (!optionalUsuario.isPresent()) {
-                return ResponseEntity.notFound().build();
-            }
-            Usuario usuario = optionalUsuario.get();
-            logger.info("🔍 Usuario antes de actualizar perfil - sesionstoken count: {}", (usuario.sesionstoken != null ? usuario.sesionstoken.size() : "null"));
-            
-            // Actualizar campos si están presentes
-           
-            if (updates.containsKey(NOMBRE)) {
-                usuario.setNombre(updates.get(NOMBRE));
-            }
-            
-            if (updates.containsKey(APELLIDOS)) {
-                usuario.setApellidos(updates.get(APELLIDOS));
-            }
-            if (updates.containsKey("foto")) {
-                usuario.setFoto(updates.get("foto"));
-            }
-            
-            logger.info("💾 Guardando usuario - sesionstoken count: {}", (usuario.sesionstoken != null ? usuario.sesionstoken.size() : "null"));
-            // Guardar en MongoDB
-            Usuario updatedUsuario = usuarioRepository.save(usuario);
-            
-            logger.info("✅ Usuario guardado - sesionstoken count: {}", (updatedUsuario.sesionstoken != null ? updatedUsuario.sesionstoken.size() : "null"));
-            // Construir respuesta con _class incluido (igual que en login)
-            Map<String, Object> response = new HashMap<>();
-            response.put("_id", updatedUsuario.getId());
-            response.put(NOMBRE, updatedUsuario.getNombre());
-            response.put(APELLIDOS, updatedUsuario.getApellidos());
-            response.put(EMAIL, updatedUsuario.getEmail());
-        
-            response.put("foto", updatedUsuario.getFoto());
-            response.put(BLOQUEADO, updatedUsuario.isBloqueado());
-            response.put("_class", updatedUsuario.getClass().getName());
-            if (updatedUsuario instanceof Administrador administrador) {
-                response.put(DEPARTAMENTO, administrador.getDepartamento());
-            }
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error al actualizar perfil: " + e.getMessage());
-        }
-    }*/
-
     @PutMapping("/{id}/profile")
     @CrossOrigin(origins = "*")
     public ResponseEntity<?> updateProfile(@PathVariable String id, @RequestBody Map<String, Object> updates) {
