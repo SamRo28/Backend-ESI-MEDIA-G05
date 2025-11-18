@@ -95,6 +95,19 @@ public class UsuarioController {
         
     }
 
+    @PostMapping("/logout")
+     public ResponseEntity<?> login(@RequestBody Map<String, String> loginData){
+        String token = loginData.get("token");
+
+        if (userService.logout(token)){
+            
+                return ResponseEntity.status(HttpStatus.OK).body("Se ha cerrado sesión correctamente");
+        }
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Credenciales inválidas");
+
+     }
+
     // ==================== SUSCRIPCION (VIP/ESTANDAR) ====================
 
     @GetMapping("/{id}/subscription")
