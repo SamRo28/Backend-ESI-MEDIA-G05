@@ -15,6 +15,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import iso25.g05.esi_media.dto.EmailApiRequestDTO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import iso25.g05.esi_media.model.Codigorecuperacion;
 import iso25.g05.esi_media.model.Usuario;
 import iso25.g05.esi_media.repository.CodigoRecuperacionRepository;
@@ -22,6 +24,7 @@ import iso25.g05.esi_media.repository.UsuarioRepository;
 
 @Service
 public class EmailService {
+    private static final Logger log = LoggerFactory.getLogger(EmailService.class);
 
     // Eliminamos JavaMailSender
     // @Autowired
@@ -61,12 +64,22 @@ public class EmailService {
 
     public String sendActivationEmail(Usuario user) {
         try {
+            if (!isEmailConfigured()) {
+                log.warn("[EmailService] Configuración de email incompleta (apiKey/remitente vacío). Se omite envío de activación para {}", user.getEmail());
+                return null; // No enviamos, pero permitimos flujo (el usuario no recibirá correo)
+            }
             String token = generateConfirmationToken();
             user.setActivationToken(token);
             user.setHasActivated(false);
             userRepository.save(user);
 
-            String link = backendUrl + "/api/visualizador/activar-web?token=" + token;
+            // Cambiamos el enlace de activación para que apunte al frontend.
+            // Motivo: los escáneres automáticos de correo (Gmail, Outlook, antivirus)
+            // realizan peticiones GET al enlace original (/activar-web) y consumen el token
+            // antes del primer clic humano. Al dirigir al usuario a la SPA, la activación
+            // real se hará mediante una llamada explícita (POST /api/visualizador/activar)
+            // desde el código del frontend tras cargar la página /confirmar-activacion.
+            String link = frontendUrl + "/confirmar-activacion?token=" + token;
             String html = loadEmailTemplate("email-templates/verify-email.html");
             html = html.replace("{{CONFIRM_LINK}}", link)
                        .replace("{{USER_NAME}}", user.getNombre() != null ? user.getNombre() : "");
@@ -82,6 +95,10 @@ public class EmailService {
 
     public Codigorecuperacion send3FAemail(String email, Usuario user) {
         try {
+            if (!isEmailConfigured()) {
+                log.warn("[EmailService] Configuración de email incompleta. Se omite envío 3FA para {}", email);
+                return null;
+            }
             Codigorecuperacion codigoRecuperacion = new Codigorecuperacion(user);
             codigoRecuperacionRepository.save(codigoRecuperacion);
             
@@ -100,6 +117,10 @@ public class EmailService {
 
     public void sendPasswordResetEmail(String email, String token) {
         try {
+            if (!isEmailConfigured()) {
+                log.warn("[EmailService] Configuración de email incompleta. Se omite envío reset password para {}", email);
+                return;
+            }
             String resetLink = frontendUrl + "/reset-password?token=" + token;
 
             String html = loadEmailTemplate("email-templates/password-reset.html");
@@ -116,6 +137,10 @@ public class EmailService {
 
     public void sendPasswordChangedEmail(String email) {
         try {
+            if (!isEmailConfigured()) {
+                log.warn("[EmailService] Configuración de email incompleta. Se omite envío confirmación cambio password para {}", email);
+                return;
+            }
             String html = loadEmailTemplate("email-templates/password-changed.html");
             html = html.replace("{{BRAND}}", "ESIMedia");
 
@@ -142,6 +167,10 @@ public class EmailService {
      * Método privado para realizar la petición POST a la API de correo externa.
      */
     private void sendHttpEmail(String to, String subject, String htmlBody) {
+        if (!isEmailConfigured()) {
+            log.debug("[EmailService] sendHttpEmail llamado sin configuración válida. Abortado.");
+            return;
+        }
         // 1. Crear el cuerpo de la petición (DTO)
         EmailApiRequestDTO requestBody = new EmailApiRequestDTO(
             senderName, 
@@ -164,9 +193,15 @@ public class EmailService {
         // Nota: Esto es síncrono. Si la API tarda, el usuario espera. 
         // Considera usar @Async si necesitas que sea no bloqueante, aunque tu app ya tiene @EnableAsync.
         ResponseEntity<String> response = restTemplate.postForEntity(apiUrl, requestEntity, String.class);
-
         if (!response.getStatusCode().is2xxSuccessful()) {
+            log.error("[EmailService] Fallo envío email status={} body={}", response.getStatusCode(), response.getBody());
             throw new RuntimeException("Fallo al enviar email vía API. Status: " + response.getStatusCode());
+        } else {
+            log.debug("[EmailService] Email enviado OK status={} to={} subject={}", response.getStatusCode(), to, subject);
         }
+    }
+
+    private boolean isEmailConfigured() {
+        return apiKey != null && !apiKey.isBlank() && senderAddress != null && !senderAddress.isBlank();
     }
 }
