@@ -5,11 +5,11 @@ import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -27,21 +27,21 @@ public class FavoritosController {
     private VisualizadorService visualizadorService;
 
     @GetMapping
-    public ResponseEntity<List<ContenidoResumenDTO>> listarFavoritos(@RequestHeader("Authorization") String authHeader) {
-        return ResponseEntity.ok(visualizadorService.obtenerFavoritos(authHeader));
+    public ResponseEntity<List<ContenidoResumenDTO>> listarFavoritos(@CookieValue(value = "SESSION_TOKEN", required = false) String token) {
+        return ResponseEntity.ok(visualizadorService.obtenerFavoritos(token));
     }
 
     @PostMapping("/{contenidoId}")
-    public ResponseEntity<Map<String, String>> agregarFavorito(@RequestHeader("Authorization") String authHeader,
+    public ResponseEntity<Map<String, String>> agregarFavorito(@CookieValue(value = "SESSION_TOKEN", required = false) String token,
             @PathVariable String contenidoId) {
-        visualizadorService.agregarFavorito(authHeader, contenidoId);
+        visualizadorService.agregarFavorito(token, contenidoId);
         return ResponseEntity.ok(Map.of("mensaje", "Contenido añadido a favoritos"));
     }
 
     @DeleteMapping("/{contenidoId}")
-    public ResponseEntity<Map<String, String>> eliminarFavorito(@RequestHeader("Authorization") String authHeader,
+    public ResponseEntity<Map<String, String>> eliminarFavorito(@CookieValue(value = "SESSION_TOKEN", required = false) String token,
             @PathVariable String contenidoId) {
-        visualizadorService.eliminarFavorito(authHeader, contenidoId);
+        visualizadorService.eliminarFavorito(token, contenidoId);
         return ResponseEntity.ok(Map.of("mensaje", "Contenido eliminado de favoritos"));
     }
 }
