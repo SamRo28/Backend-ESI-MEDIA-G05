@@ -33,6 +33,7 @@ import iso25.g05.esi_media.repository.ContraseniaComunRepository;
 import iso25.g05.esi_media.repository.ContraseniaRepository;
 import iso25.g05.esi_media.repository.GestorDeContenidoRepository;
 import iso25.g05.esi_media.repository.IpLoginAttemptRepository;
+import iso25.g05.esi_media.repository.TokenRepository;
 import iso25.g05.esi_media.repository.UsuarioRepository;
 import iso25.g05.esi_media.repository.VisualizadorRepository;
 
@@ -41,6 +42,9 @@ public class UserService {
 
     @Autowired
     private AdministradorRepository administradorRepository;
+
+    @Autowired
+    private TokenRepository tokenRepository;
 
     @Autowired
     private UsuarioRepository usuarioRepository;
@@ -208,6 +212,21 @@ public class UserService {
 
         }
         return null;
+    }
+
+    public boolean logout(String token){
+        boolean res = false;
+
+        Optional<Usuario> optU = usuarioRepository.findBySesionToken(token);
+
+        if(optU.isPresent()){
+            Usuario u = optU.get();
+            u.setSesionstoken(null);
+            usuarioRepository.save(u);
+            res = true;
+        }
+
+        return res;
     }
 
     /**
