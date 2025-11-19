@@ -72,7 +72,7 @@ public class EmailService {
             // antes del primer clic humano. Al dirigir al usuario a la SPA, la activación
             // real se hará mediante una llamada explícita (POST /api/visualizador/activar)
             // desde el código del frontend tras cargar la página /confirmar-activacion.
-            String link = frontendUrl + "/confirmar-activacion?token=" + token;
+            String link = backendUrl + "/api/visualizador/activar-web?token=" + token;
             String html = loadEmailTemplate("email-templates/verify-email.html");
             html = html.replace("{{CONFIRM_LINK}}", link)
                        .replace("{{USER_NAME}}", user.getNombre() != null ? user.getNombre() : "");
