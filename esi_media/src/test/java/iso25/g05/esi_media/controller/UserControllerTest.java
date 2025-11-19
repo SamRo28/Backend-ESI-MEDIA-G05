@@ -13,11 +13,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.web.server.ResponseStatusException;
 
 import iso25.g05.esi_media.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 @ExtendWith(MockitoExtension.class)
 class UserControllerTest {
@@ -27,6 +26,9 @@ class UserControllerTest {
 
     @Mock
     private HttpServletRequest request;
+
+    @Mock
+    private HttpServletResponse response;
 
     @InjectMocks
     private UsuarioController userController;
@@ -40,9 +42,9 @@ class UserControllerTest {
         when(request.getHeader("X-FORWARDED-FOR")).thenReturn(null);
         when(request.getRemoteAddr()).thenReturn("127.0.0.1");
 
-        ResponseEntity<?> response = userController.login(loginData, request);
+        ResponseEntity<?> result = userController.login(loginData, request, response);
         
-        assertNotNull(response);
+        assertNotNull(result);
     }
 
     @Test
