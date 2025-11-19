@@ -5,7 +5,6 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -18,7 +17,6 @@ import iso25.g05.esi_media.service.VisualizadorService;
  */
 @RestController
 @RequestMapping("/api/perfil")
-@CrossOrigin(origins = "*")
 public class PerfilController {
 
     @Autowired
