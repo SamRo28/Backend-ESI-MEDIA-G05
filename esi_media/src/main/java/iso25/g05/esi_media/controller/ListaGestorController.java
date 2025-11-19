@@ -70,7 +70,7 @@ public class ListaGestorController extends BaseListaController {
         if (token == null || token.isBlank()) {
             logger.warn("Intento de crear lista de gestor sin token de autorización");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(Map.of("success", false, "mensaje", "Token de autorización requerido"));
+                .body(Map.of(SUCCESS, false, MENSAJE, TOKEN_REQUERIDO));
         }
         
         try {
@@ -101,7 +101,7 @@ public class ListaGestorController extends BaseListaController {
         if (token == null || token.isBlank()) {
             logger.warn("Intento de obtener listas propias de gestor sin token de autorización");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(Map.of("success", false, "mensaje", "Token de autorización requerido"));
+                .body(Map.of(SUCCESS, false, MENSAJE, TOKEN_REQUERIDO));
         }
         
         try {
@@ -133,7 +133,7 @@ public class ListaGestorController extends BaseListaController {
         if (token == null || token.isBlank()) {
             logger.warn("Intento de obtener todas las listas sin token de autorización");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(Map.of("success", false, "mensaje", "Token de autorización requerido"));
+                .body(Map.of(SUCCESS, false, MENSAJE, TOKEN_REQUERIDO));
         }
         
         try {
