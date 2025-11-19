@@ -48,6 +48,10 @@ public class UsuarioController {
     private static final String APELLIDOS = "apellidos";
     private static final String EMAIL = "email";
     private static final String BLOQUEADO = "bloqueado";
+    
+    // Constantes para cookies y headers
+    private static final String COOKIE_FORMAT = "SESSION_TOKEN=%s; Path=/; HttpOnly; Secure; SameSite=Lax";
+    private static final String SET_COOKIE_HEADER = "Set-Cookie";
 
     
 
@@ -226,10 +230,10 @@ public class UsuarioController {
         if (token != null) {
             String tokenValue = token.getToken();
             String cookieValue = String.format(
-                "SESSION_TOKEN=%s; Path=/; HttpOnly; Secure; SameSite=Lax", 
+                COOKIE_FORMAT, 
                 tokenValue
             );
-            response.addHeader("Set-Cookie", cookieValue);
+            response.addHeader(SET_COOKIE_HEADER, cookieValue);
             
             return ResponseEntity.ok().build(); 
         }
@@ -298,10 +302,10 @@ public class UsuarioController {
         if (!tokenValue.isEmpty()) { 
             
             String cookieValue = String.format(
-                "SESSION_TOKEN=%s; Path=/; HttpOnly; Secure; SameSite=Lax", 
+                COOKIE_FORMAT, 
                 tokenValue
             );
-            response.addHeader("Set-Cookie", cookieValue);
+            response.addHeader(SET_COOKIE_HEADER, cookieValue);
         }
         
         return ResponseEntity.ok().build();
@@ -501,11 +505,11 @@ public ResponseEntity<?> login(@RequestBody Map<String, String> loginData,
             String tokenValue = loggedInUser.getSesionstoken().getToken();
 
             String cookieValue = String.format(
-                "SESSION_TOKEN=%s; Path=/; HttpOnly; Secure; SameSite=Lax", 
+                COOKIE_FORMAT, 
                 tokenValue
             );
 
-            response.addHeader("Set-Cookie", cookieValue); 
+            response.addHeader(SET_COOKIE_HEADER, cookieValue); 
         }
 
         res =  Map.of(
