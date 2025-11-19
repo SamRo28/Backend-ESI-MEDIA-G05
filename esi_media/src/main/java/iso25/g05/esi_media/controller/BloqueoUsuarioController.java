@@ -62,8 +62,18 @@ public class BloqueoUsuarioController {
                     "Solo administradores pueden bloquear usuarios"
                 );
             }
+
+            
             
             Administrador admin = (Administrador) adminOpt.get();
+
+            // Evitar que un administrador se bloquee a sí mismo 
+            if (admin.getId().equals(usuarioId)) {
+                return crearRespuestaError(
+                    HttpStatus.BAD_REQUEST,
+                    "Un administrador no puede bloquearse a sí mismo"
+                );
+            }
             
             // Buscar el usuario a bloquear
             Optional<Usuario> usuarioOpt = usuarioRepository.findById(usuarioId);

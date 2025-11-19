@@ -1,210 +1,40 @@
-
 package iso25.g05.esi_media.controller;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import iso25.g05.esi_media.dto.PerfilDTO;
-import iso25.g05.esi_media.model.Administrador;
-import iso25.g05.esi_media.model.GestordeContenido;
-import iso25.g05.esi_media.model.Usuario;
-import iso25.g05.esi_media.model.Visualizador;
-import iso25.g05.esi_media.repository.UsuarioRepository;
-import iso25.g05.esi_media.service.LogService;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.time.LocalDate;
-import java.time.Period;
-import java.time.ZoneId;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import iso25.g05.esi_media.service.VisualizadorService;
 
 /**
- * Controlador para la gestión de perfiles de usuario
- * Implementa la historia de usuario: "Acceder a cualquier perfil"
- * 
- * Permite a los administradores consultar los perfiles de cualquier usuario
- * del sistema en modo solo lectura, con auditoría de las consultas.
+ * Controlador REST para la gestión del perfil del usuario.
  */
 @RestController
-@RequestMapping("/perfiles")
+@RequestMapping("/api/perfil")
 @CrossOrigin(origins = "*")
 public class PerfilController {
-    private static final Logger logger = LoggerFactory.getLogger(PerfilController.class);
-    
-    private final UsuarioRepository usuarioRepository;
-    private final LogService logService;
-    
-    public PerfilController(UsuarioRepository usuarioRepository, LogService logService) {
-        this.usuarioRepository = usuarioRepository;
-        this.logService = logService;
-    }
-    
+
+    @Autowired
+    private VisualizadorService visualizadorService;
+
     /**
-     * Obtiene el perfil de un usuario por su ID
-     * Solo accesible por administradores
-     * Registra la consulta para trazabilidad
-     * 
-     * @param usuarioId ID del usuario a consultar
-     * @param adminId ID del administrador que realiza la consulta (header)
-     * @return PerfilDTO con la información del usuario según su tipo
+     * DELETE /api/perfil/me
+     * Permite a un usuario autenticado eliminar su propia cuenta.
+     *
+     * @param authHeader cabecera Authorization con el token de sesión.
+     * @return Respuesta de éxito o error.
      */
-    @GetMapping("/{usuarioId}")
-    public ResponseEntity<Object> obtenerPerfil(
-            @PathVariable String usuarioId,
-            @RequestHeader(value = "Admin-ID", required = false) String adminId) {
-        
-        try {
-            // Validar que se proporcione el ID del administrador
-            if (adminId == null || adminId.isEmpty()) {
-                logger.warn("Intento de acceso sin Admin-ID");
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(crearRespuestaError("No autorizado. Se requiere identificación de administrador."));
-            }
-            
-            // Verificar que el administrador existe
-            Optional<Usuario> adminOpt = usuarioRepository.findById(adminId);
-            if (adminOpt.isEmpty() || !(adminOpt.get() instanceof Administrador)) {
-                logService.registrarAccesoNoAutorizado(adminId, "Perfil usuario: " + usuarioId);
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(crearRespuestaError("Acceso denegado. Solo administradores pueden consultar perfiles."));
-            }
-            
-            Administrador admin = (Administrador) adminOpt.get();
-            
-            // Buscar el usuario solicitado
-            Optional<Usuario> usuarioOpt = usuarioRepository.findById(usuarioId);
-            if (usuarioOpt.isEmpty()) {
-                logService.registrarErrorConsulta(adminId, usuarioId, "Usuario no encontrado");
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(crearRespuestaError("Usuario no encontrado"));
-            }
-            
-            Usuario usuario = usuarioOpt.get();
-            
-            // Crear el DTO según el tipo de usuario
-            PerfilDTO perfil = crearPerfilDTO(usuario);
-            
-            // Registrar la consulta para auditoría
-            logService.registrarConsultaPerfil(
-                adminId, 
-                admin.getEmail(), 
-                usuarioId, 
-                usuario.getEmail(),
-                perfil.getRol()
-            );
-            
-            return ResponseEntity.ok(perfil);
-            
-        } catch (Exception e) {
-            logService.registrarErrorConsulta(adminId, usuarioId, e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(crearRespuestaError("Error al obtener el perfil: " + e.getMessage()));
-        }
+    @DeleteMapping("/me")
+    public ResponseEntity<?> eliminarMiCuenta(@RequestHeader("Authorization") String authHeader) {
+        visualizadorService.eliminarMiCuenta(authHeader);
+        return ResponseEntity.ok(Map.of("mensaje", "Cuenta eliminada correctamente"));
     }
-    
-    /**
-     * Crea un PerfilDTO según el tipo de usuario
-     * @param usuario Usuario del cual crear el perfil
-     * @return PerfilDTO con la información correspondiente
-     */
-    private PerfilDTO crearPerfilDTO(Usuario usuario) {
-        String id = usuario.getId();
-        String nombre = usuario.getNombre();
-        String apellidos = usuario.getApellidos();
-        String email = usuario.getEmail();
-        Object foto = usuario.getFoto();
-        boolean bloqueado = usuario.isBloqueado();
-        Date fechaRegistro = usuario.getFechaRegistro();
-        
-        // No hay System.out.println en este método, solo lógica de creación de DTO
-        if (usuario instanceof Administrador admin) {
-            return new PerfilDTO.Builder()
-                .id(id)
-                .nombre(nombre)
-                .apellidos(apellidos)
-                .email(email)
-                .foto(foto)
-                .bloqueado(bloqueado)
-                .rol("Administrador")
-                .departamento(admin.getDepartamento())
-                .fechaRegistro(fechaRegistro)
-                .build();
-        } else if (usuario instanceof GestordeContenido gestor) {
-            return new PerfilDTO.Builder()
-                .id(id)
-                .nombre(nombre)
-                .apellidos(apellidos)
-                .email(email)
-                .foto(foto)
-                .bloqueado(bloqueado)
-                .rol("Gestor")
-                .alias(gestor.getalias())
-                .descripcion(gestor.getdescripcion())
-                .especialidad(gestor.getcampoespecializacion())
-                .tipoContenido(gestor.gettipocontenidovideooaudio())
-                .fechaRegistro(fechaRegistro)
-                .build();
-        } else if (usuario instanceof Visualizador visualizador) {
-            Integer edad = calcularEdad(visualizador.getFechaNac());
-            return new PerfilDTO.Builder()
-                .id(id)
-                .nombre(nombre)
-                .apellidos(apellidos)
-                .email(email)
-                .foto(foto)
-                .bloqueado(bloqueado)
-                .rol("Visualizador")
-                .alias(visualizador.getAlias())
-                .fechaNacimiento(visualizador.getFechaNac())
-                .vip(visualizador.isVip())
-                .edad(edad)
-                .fechaRegistro(fechaRegistro)
-                .build();
-        } else {
-            // Usuario genérico (por si acaso)
-            return new PerfilDTO.Builder()
-                .id(id)
-                .nombre(nombre)
-                .apellidos(apellidos)
-                .email(email)
-                .foto(foto)
-                .bloqueado(bloqueado)
-                .rol("Usuario")
-                .fechaRegistro(fechaRegistro)
-                .build();
-        }
-    }
-    
-    /**
-     * Calcula la edad a partir de una fecha de nacimiento
-     * @param fechaNacimiento Fecha de nacimiento
-     * @return Edad en años, o null si la fecha es null
-     */
-    private Integer calcularEdad(Date fechaNacimiento) {
-        if (fechaNacimiento == null) {
-            return null;
-        }
-        
-        LocalDate fechaNac = fechaNacimiento.toInstant()
-            .atZone(ZoneId.systemDefault())
-            .toLocalDate();
-        LocalDate ahora = LocalDate.now();
-        
-        return Period.between(fechaNac, ahora).getYears();
-    }
-    
-    /**
-     * Crea un mapa con un mensaje de error
-     * @param mensaje Mensaje de error
-     * @return Map con el error
-     */
-    private Map<String, String> crearRespuestaError(String mensaje) {
-        Map<String, String> error = new HashMap<>();
-        error.put("error", mensaje);
-        return error;
-    }
+
 }
