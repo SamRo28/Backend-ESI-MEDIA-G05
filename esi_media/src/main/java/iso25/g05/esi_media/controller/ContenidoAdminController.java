@@ -66,46 +66,22 @@ public class ContenidoAdminController {
 
         List<Map<String, Object>> resultado = new ArrayList<>();
 
-        // Videos (colecciÃƒÂ³n 'contenidos')
+        // Procesamos solo la colección 'contenidos' que contiene todo (Audio y Video)
         try {
             for (Contenido c : contenidoRepository.findAll()) {
                 Map<String, Object> item = new HashMap<>();
                 item.put("id", c.getId());
                 item.put(TITULO, c.gettitulo());
-                item.put("tipo", VIDEO);
+                
+                // Determinamos el tipo basándose en las propiedades específicas del objeto
+                String tipo = determinarTipoContenido(c);
+                item.put("tipo", tipo);
+                
                 item.put(GN, resolverGestorNombre(c.getgestorId()));
                 resultado.add(item);
             }
         } catch (Exception e) {
-            System.err.println("[ContenidoAdminController] Error listando videos: " + e.getMessage());
-        }
-
-        // Videos (colecciÃƒÂ³n 'videos')
-        try {
-            for (Video v : videoRepository.findAll()) {
-                Map<String, Object> item = new HashMap<>();
-                item.put("id", v.getId());
-                item.put(TITULO, v.gettitulo());
-                item.put("tipo", VIDEO);
-                item.put(GN, resolverGestorNombre(v.getgestorId()));
-                resultado.add(item);
-            }
-        } catch (Exception e) {
-            System.err.println("[ContenidoAdminController] Error listando videos (colecciÃƒÂ³n videos): " + e.getMessage());
-        }
-
-        // Audios (colecciÃƒÂ³n 'audios')
-        try {
-            for (Audio a : audioRepository.findAll()) {
-                Map<String, Object> item = new HashMap<>();
-                item.put("id", a.getId());
-                item.put(TITULO, a.gettitulo());
-                item.put("tipo", AUDIO);
-                item.put(GN, resolverGestorNombre(a.getgestorId()));
-                resultado.add(item);
-            }
-        } catch (Exception e) {
-            System.err.println("[ContenidoAdminController] Error listando audios: " + e.getMessage());
+            System.err.println("[ContenidoAdminController] Error listando contenidos: " + e.getMessage());
         }
 
                 System.out.println("[ContenidoAdminController] Total contenidos a devolver: " + resultado.size());
@@ -256,6 +232,36 @@ public class ContenidoAdminController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of(ERROR, "Error interno del servidor"));
+        }
+    }
+
+    /**
+     * Determina el tipo de contenido basándose en sus propiedades específicas
+     */
+    private String determinarTipoContenido(Contenido c) {
+        // Si es una instancia de Video, tiene url y resolucion
+        if (c instanceof Video) {
+            return VIDEO;
+        }
+        // Si es una instancia de Audio, tiene fichero y mimeType
+        if (c instanceof Audio) {
+            return AUDIO;
+        }
+        
+        // Como fallback, podemos usar reflexión para detectar propiedades específicas
+        try {
+            // Intentamos acceder al método geturl() (específico de Video)
+            c.getClass().getMethod("geturl");
+            return VIDEO;
+        } catch (NoSuchMethodException e1) {
+            try {
+                // Intentamos acceder al método getfichero() (específico de Audio)
+                c.getClass().getMethod("getfichero");
+                return AUDIO;
+            } catch (NoSuchMethodException e2) {
+                // Por defecto, si no podemos determinar, asumimos que es Video
+                return VIDEO;
+            }
         }
     }
 

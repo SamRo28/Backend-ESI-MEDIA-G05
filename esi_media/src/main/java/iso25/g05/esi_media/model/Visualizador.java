@@ -7,6 +7,8 @@ import java.util.List;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import iso25.g05.esi_media.model.Contenido;
+
 /**
  * Clase Visualizador que extiende Usuario.
  * 
@@ -91,5 +93,13 @@ public class Visualizador extends Usuario {
 
     public void setFechacambiosuscripcion(java.util.Date d) {
         this.fechacambiosuscripcion = d;
+    }
+
+    public List<Contenido> getContenidofav() {
+        return contenidofav;
+    }
+
+    public void setContenidofav(List<Contenido> contenidofav) {
+        this.contenidofav = contenidofav != null ? contenidofav : new ArrayList<>();
     }
 }
