@@ -139,11 +139,14 @@ public class EmailService {
     }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     public void sendPasswordResetEmail(String email, String token) {
         try {
             MimeMessage mimeMessage = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
 =======
+=======
+>>>>>>> 865f13f3f7ee21ce4debcd9f5becff516705f916
     /**
      * Método privado para realizar la petición POST a la API de correo externa.
      */
@@ -156,7 +159,10 @@ public class EmailService {
             subject, 
             htmlBody
         );
+<<<<<<< HEAD
 >>>>>>> origin/main
+=======
+>>>>>>> 865f13f3f7ee21ce4debcd9f5becff516705f916
 
         // 2. Configurar cabeceras (api-key y Content-Type)
         HttpHeaders headers = new HttpHeaders();
@@ -172,6 +178,7 @@ public class EmailService {
         // Considera usar @Async si necesitas que sea no bloqueante, aunque tu app ya tiene @EnableAsync.
         ResponseEntity<String> response = restTemplate.postForEntity(apiUrl, requestEntity, String.class);
 
+<<<<<<< HEAD
 <<<<<<< HEAD
             helper.setText(html, true);
             mailSender.send(mimeMessage);
@@ -199,6 +206,10 @@ public class EmailService {
         if (!response.getStatusCode().is2xxSuccessful()) {
             throw new RuntimeException("Fallo al enviar email vía API. Status: " + response.getStatusCode());
 >>>>>>> origin/main
+=======
+        if (!response.getStatusCode().is2xxSuccessful()) {
+            throw new RuntimeException("Fallo al enviar email vía API. Status: " + response.getStatusCode());
+>>>>>>> 865f13f3f7ee21ce4debcd9f5becff516705f916
         }
     }
 }
