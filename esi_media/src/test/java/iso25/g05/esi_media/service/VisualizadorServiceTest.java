@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -32,13 +33,20 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import com.warrenstrange.googleauth.GoogleAuthenticatorQRGenerator;
 
+import iso25.g05.esi_media.dto.ContenidoResumenDTO;
 import iso25.g05.esi_media.dto.VisualizadorRegistroDTO;
+import iso25.g05.esi_media.exception.PeticionInvalidaException;
+import iso25.g05.esi_media.exception.RecursoNoEncontradoException;
 import iso25.g05.esi_media.model.Contrasenia;
+import iso25.g05.esi_media.model.Contenido;
 import iso25.g05.esi_media.model.Usuario;
+import iso25.g05.esi_media.model.Video;
 import iso25.g05.esi_media.model.Visualizador;
+import iso25.g05.esi_media.repository.ContenidoRepository;
 import iso25.g05.esi_media.repository.ContraseniaRepository;
 import iso25.g05.esi_media.repository.UsuarioRepository;
 import iso25.g05.esi_media.repository.VisualizadorRepository;
+import iso25.g05.esi_media.service.LogService;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 
@@ -68,6 +76,12 @@ class VisualizadorServiceTest {
     
     @Mock
     private iso25.g05.esi_media.repository.ContraseniaComunRepository contraseniaComunRepository;
+
+    @Mock
+    private ContenidoRepository contenidoRepository;
+
+    @Mock
+    private LogService logService;
     
     @InjectMocks
     private VisualizadorService visualizadorService;
@@ -80,6 +94,8 @@ class VisualizadorServiceTest {
         // Inyectar manualmente los campos @Autowired que no están en el constructor
         ReflectionTestUtils.setField(visualizadorService, "userService", userService);
         ReflectionTestUtils.setField(visualizadorService, "contraseniaComunRepository", contraseniaComunRepository);
+        ReflectionTestUtils.setField(visualizadorService, "contenidoRepository", contenidoRepository);
+        ReflectionTestUtils.setField(visualizadorService, "logService", logService);
     }
     
     /**
@@ -473,5 +489,90 @@ class VisualizadorServiceTest {
         assertEquals(2, resultado.size(), "Debe haber 2 visualizadores");
         assertEquals("Juan", resultado.get(0).getNombre(), "El primer visualizador debe ser Juan");
         assertEquals("María", resultado.get(1).getNombre(), "El segundo visualizador debe ser María");
+    }
+
+    @Test
+    @DisplayName("Obtiene favoritos visibles y filtra los inactivos")
+    void obtenerFavoritos_filtraContenidosInvisibles() {
+        Video normal = crearVideo("video-1", true);
+        Video oculto = crearVideo("video-2", false);
+        Visualizador visualizador = crearVisualizadorAutenticado();
+        visualizador.setContenidofav(new ArrayList<>(List.of(normal, oculto)));
+
+        prepararToken("token-header", visualizador);
+
+        List<ContenidoResumenDTO> favoritos = visualizadorService.obtenerFavoritos("token-header");
+
+        assertEquals(1, favoritos.size(), "Solo debe incluir el contenido visible");
+        assertEquals("video-1", favoritos.get(0).getId());
+    }
+
+    @Test
+    @DisplayName("Agrega un favorito nuevo y no duplica guardados")
+    void agregarFavorito_registraAccionYSoloUnaVez() {
+        Visualizador visualizador = crearVisualizadorAutenticado();
+        prepararToken("token-header", visualizador);
+        Video contenido = crearVideo("c1", true);
+        when(contenidoRepository.findByIdAndEstadoTrue("c1")).thenReturn(Optional.of(contenido));
+
+        visualizadorService.agregarFavorito("token-header", "c1");
+        visualizadorService.agregarFavorito("token-header", "c1");
+
+        assertEquals(1, visualizador.getContenidofav().size(), "No debe duplicar el contenido favorito");
+        verify(usuarioRepository, times(1)).save(visualizador);
+        verify(logService, times(1)).registrarAccion("Favorito añadido: " + contenido.gettitulo(), visualizador.getEmail());
+    }
+
+    @Test
+    @DisplayName("Elimina un favorito existente y registra la acción")
+    void eliminarFavorito_eliminaContenidoExistente() {
+        Visualizador visualizador = crearVisualizadorAutenticado();
+        Video contenido = crearVideo("c2", true);
+        visualizador.setContenidofav(new ArrayList<>(List.of(contenido)));
+        prepararToken("token-header", visualizador);
+
+        visualizadorService.eliminarFavorito("token-header", "c2");
+
+        assertTrue(visualizador.getContenidofav().isEmpty(), "El favorito debe ser removido");
+        verify(usuarioRepository, times(1)).save(visualizador);
+        verify(logService, times(1)).registrarAccion("Favorito eliminado: c2", visualizador.getEmail());
+    }
+
+    @Test
+    @DisplayName("Agregar favorito lanza 404 si no existe el contenido")
+    void agregarFavorito_conContenidoInexistente_lanza404() {
+        Visualizador visualizador = crearVisualizadorAutenticado();
+        prepararToken("token-header", visualizador);
+        when(contenidoRepository.findByIdAndEstadoTrue("missing")).thenReturn(Optional.empty());
+
+        assertThrows(RecursoNoEncontradoException.class, () -> visualizadorService.agregarFavorito("token-header", "missing"));
+    }
+
+    @Test
+    @DisplayName("Agregar favorito lanza 400 si falta el ID")
+    void agregarFavorito_idVacio_lanza400() {
+        assertThrows(PeticionInvalidaException.class, () -> visualizadorService.agregarFavorito("token-header", ""));
+    }
+
+    private void prepararToken(String header, Visualizador visualizador) {
+        String token = "session-token";
+        when(userService.extraerToken(header)).thenReturn(token);
+        when(usuarioRepository.findBySesionToken(token)).thenReturn(Optional.of(visualizador));
+    }
+
+    private Visualizador crearVisualizadorAutenticado() {
+        Visualizador visualizador = new Visualizador();
+        visualizador.setId("visu-1");
+        visualizador.setEmail("user@esi.es");
+        visualizador.setContenidofav(new ArrayList<>());
+        return visualizador;
+    }
+
+    private Video crearVideo(String id, boolean estado) {
+        Video video = new Video();
+        video.setId(id);
+        video.setestado(estado);
+        video.settitulo("Video " + id);
+        return video;
     }
 }
