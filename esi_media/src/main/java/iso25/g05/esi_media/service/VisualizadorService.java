@@ -240,16 +240,11 @@ public class VisualizadorService {
     }
 
     private Token userServicePublicToken(Usuario u){
-        // Wrapper por si el método cambia de visibilidad
-        return userServiceGenerateToken(u);
-    }
-
-    private Token userServiceGenerateToken(Usuario u){
+        // Llamada directa al método público (eliminamos reflexión para fiabilidad)
         try {
-            java.lang.reflect.Method m = UserService.class.getDeclaredMethod("generateAndSaveToken", Usuario.class);
-            m.setAccessible(true);
-            return (Token) m.invoke(userService, u);
-        } catch (Exception e) {
+            return userService.generateAndSaveToken(u);
+        } catch (Exception ex) {
+            logger.error("Error generando token de sesión: {}", ex.getMessage());
             return null;
         }
     }
