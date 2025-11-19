@@ -66,6 +66,12 @@ public class EmailService {
             user.setHasActivated(false);
             userRepository.save(user);
 
+            // Cambiamos el enlace de activación para que apunte al frontend.
+            // Motivo: los escáneres automáticos de correo (Gmail, Outlook, antivirus)
+            // realizan peticiones GET al enlace original (/activar-web) y consumen el token
+            // antes del primer clic humano. Al dirigir al usuario a la SPA, la activación
+            // real se hará mediante una llamada explícita (POST /api/visualizador/activar)
+            // desde el código del frontend tras cargar la página /confirmar-activacion.
             String link = backendUrl + "/api/visualizador/activar-web?token=" + token;
             String html = loadEmailTemplate("email-templates/verify-email.html");
             html = html.replace("{{CONFIRM_LINK}}", link)
@@ -164,7 +170,6 @@ public class EmailService {
         // Nota: Esto es síncrono. Si la API tarda, el usuario espera. 
         // Considera usar @Async si necesitas que sea no bloqueante, aunque tu app ya tiene @EnableAsync.
         ResponseEntity<String> response = restTemplate.postForEntity(apiUrl, requestEntity, String.class);
-
         if (!response.getStatusCode().is2xxSuccessful()) {
             throw new RuntimeException("Fallo al enviar email vía API. Status: " + response.getStatusCode());
         }

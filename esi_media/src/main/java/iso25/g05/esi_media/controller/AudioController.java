@@ -1,16 +1,24 @@
 package iso25.g05.esi_media.controller;
 
-import iso25.g05.esi_media.dto.AudioUploadDTO;
-import iso25.g05.esi_media.model.Audio;
-import iso25.g05.esi_media.service.AudioService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import jakarta.validation.Valid;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CookieValue;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import iso25.g05.esi_media.dto.AudioUploadDTO;
+import iso25.g05.esi_media.model.Audio;
+import iso25.g05.esi_media.service.AudioService;
+import jakarta.validation.Valid;
 
 /**
  * Controlador REST para gestión de contenido de audio por gestores
@@ -18,7 +26,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/gestor/audio")
-@CrossOrigin(origins = "*") // Configuración básica de CORS
+
 public class AudioController {
     private static final String SUCCESS_KEY = "success";
     private static final String MESSAGE_KEY = "message";
@@ -40,12 +48,18 @@ public class AudioController {
 @PostMapping("/subir")
 public ResponseEntity<Map<String, Object>> subirAudio(
         @Valid @ModelAttribute AudioUploadDTO audioDTO,
-        @RequestHeader("Authorization") String authHeader) {
+        @CookieValue(value = "SESSION_TOKEN", required = false) String token) {
     
     Map<String, Object> response = new HashMap<>();
     
+    if (token == null || token.isBlank()) {
+        response.put(SUCCESS_KEY, false);
+        response.put(MESSAGE_KEY, "No autenticado");
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+    }
+    
     try {
-        Audio audioGuardado = audioService.subirAudioConToken(audioDTO, authHeader);
+        Audio audioGuardado = audioService.subirAudioConToken(audioDTO, token);
 
         response.put(SUCCESS_KEY, true);
         response.put(MESSAGE_KEY, "Audio subido exitosamente");

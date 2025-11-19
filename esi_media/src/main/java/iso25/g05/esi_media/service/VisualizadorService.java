@@ -7,6 +7,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,13 +18,22 @@ import com.warrenstrange.googleauth.GoogleAuthenticator;
 import com.warrenstrange.googleauth.GoogleAuthenticatorKey;
 import com.warrenstrange.googleauth.GoogleAuthenticatorQRGenerator;
 
+import iso25.g05.esi_media.dto.ContenidoResumenDTO;
 import iso25.g05.esi_media.dto.VisualizadorRegistroDTO;
+import iso25.g05.esi_media.exception.AccesoNoAutorizadoException;
+import iso25.g05.esi_media.exception.PeticionInvalidaException;
+import iso25.g05.esi_media.exception.RecursoNoEncontradoException;
+import iso25.g05.esi_media.mapper.ContenidoMapper;
 import iso25.g05.esi_media.model.Contrasenia;
+import iso25.g05.esi_media.model.Contenido;
 import iso25.g05.esi_media.model.Token;
 import iso25.g05.esi_media.model.Usuario;
 import iso25.g05.esi_media.model.Visualizador;
+import iso25.g05.esi_media.repository.ContenidoRepository;
+import iso25.g05.esi_media.repository.ValoracionRepository;
 import iso25.g05.esi_media.repository.ContraseniaComunRepository;
 import iso25.g05.esi_media.repository.ContraseniaRepository;
+import iso25.g05.esi_media.repository.ListaRepository;
 import iso25.g05.esi_media.repository.UsuarioRepository;
 import iso25.g05.esi_media.repository.VisualizadorRepository;
 import jakarta.validation.ConstraintViolation;
@@ -50,6 +60,18 @@ public class VisualizadorService {
 
     @Autowired
     private ContraseniaComunRepository contraseniaComunRepository;
+
+    @Autowired
+    private ValoracionRepository valoracionRepository;
+
+    @Autowired
+    private ListaRepository listaRepository;
+
+    @Autowired
+    private ContenidoRepository contenidoRepository;
+
+    @Autowired
+    private LogService logService;
 
     /**
      * Repositorio general para operaciones de usuario (unicidad de email, etc.)
@@ -240,16 +262,11 @@ public class VisualizadorService {
     }
 
     private Token userServicePublicToken(Usuario u){
-        // Wrapper por si el método cambia de visibilidad
-        return userServiceGenerateToken(u);
-    }
-
-    private Token userServiceGenerateToken(Usuario u){
+        // Llamada directa al método público (eliminamos reflexión para fiabilidad)
         try {
-            java.lang.reflect.Method m = UserService.class.getDeclaredMethod("generateAndSaveToken", Usuario.class);
-            m.setAccessible(true);
-            return (Token) m.invoke(userService, u);
-        } catch (Exception e) {
+            return userService.generateAndSaveToken(u);
+        } catch (Exception ex) {
+            logger.error("Error generando token de sesión: {}", ex.getMessage());
             return null;
         }
     }
@@ -523,4 +540,98 @@ public class VisualizadorService {
         return res;
     }
 
+    /**
+     * Elimina la cuenta del visualizador autenticado.
+     *
+     * @param authHeaderOrToken El token de autenticación del usuario.
+     * @throws iso25.g05.esi_media.exception.AccesoNoAutorizadoException si el token es inválido o el usuario no es un visualizador.
+     */
+    public void eliminarMiCuenta(String authHeaderOrToken) {
+        Visualizador visualizador = obtenerVisualizadorAutenticado(authHeaderOrToken);
+
+        if (!visualizador.isTwoFactorAutenticationEnabled()) {
+            throw new AccesoNoAutorizadoException("No autorizado para eliminar la cuenta");
+        }
+
+        listaRepository.deleteByCreadorIdAndVisibleFalse(visualizador.getId());
+        valoracionRepository.deleteByVisualizadorId(visualizador.getId());
+        if (visualizador.getContrasenia() != null) {
+            contraseniaRepository.deleteById(visualizador.getContrasenia().getId());
+        }
+        usuarioRepository.deleteById(visualizador.getId());
+    }
+
+    public List<ContenidoResumenDTO> obtenerFavoritos(String authHeaderOrToken) {
+        Visualizador visualizador = obtenerVisualizadorAutenticado(authHeaderOrToken);
+        if (visualizador.getContenidofav() == null || visualizador.getContenidofav().isEmpty()) {
+            return List.of();
+        }
+
+        return visualizador.getContenidofav().stream()
+                .filter(Contenido::isestado)
+                .map(ContenidoMapper::aResumen)
+                .collect(Collectors.toList());
+    }
+
+    public void agregarFavorito(String authHeaderOrToken, String contenidoId) {
+        if (contenidoId == null || contenidoId.isBlank()) {
+            throw new PeticionInvalidaException("ID de contenido requerido");
+        }
+        Visualizador visualizador = obtenerVisualizadorAutenticado(authHeaderOrToken);
+        Contenido contenido = contenidoRepository.findByIdAndEstadoTrue(contenidoId)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Contenido no encontrado"));
+
+        List<Contenido> favoritos = visualizador.getContenidofav();
+        if (favoritos == null) {
+            favoritos = new ArrayList<>();
+            visualizador.setContenidofav(favoritos);
+        }
+
+        boolean yaFavorito = favoritos.stream().anyMatch(f -> f.getId().equals(contenidoId));
+        if (yaFavorito) {
+            return;
+        }
+
+        favoritos.add(contenido);
+        usuarioRepository.save(visualizador);
+        try {
+            logService.registrarAccion("Favorito añadido: " + contenido.gettitulo(), visualizador.getEmail());
+        } catch (Exception ignore) {
+        }
+    }
+
+    public void eliminarFavorito(String authHeaderOrToken, String contenidoId) {
+        if (contenidoId == null || contenidoId.isBlank()) {
+            throw new PeticionInvalidaException("ID de contenido requerido");
+        }
+        Visualizador visualizador = obtenerVisualizadorAutenticado(authHeaderOrToken);
+        List<Contenido> favoritos = visualizador.getContenidofav();
+        if (favoritos == null || favoritos.isEmpty()) {
+            return;
+        }
+
+        boolean eliminado = favoritos.removeIf(f -> f.getId().equals(contenidoId));
+        if (eliminado) {
+            usuarioRepository.save(visualizador);
+            try {
+                logService.registrarAccion("Favorito eliminado: " + contenidoId, visualizador.getEmail());
+            } catch (Exception ignore) {
+            }
+        }
+    }
+
+    private Visualizador obtenerVisualizadorAutenticado(String authHeaderOrToken) {
+        String token = userService.extraerToken(authHeaderOrToken);
+        if (token == null || token.isBlank()) {
+            throw new PeticionInvalidaException("Token de autorización requerido");
+        }
+        Usuario usuario = usuarioRepository.findBySesionToken(token)
+                .orElseThrow(() -> new AccesoNoAutorizadoException("Token no válido"));
+
+        if (!(usuario instanceof Visualizador visualizador)) {
+            throw new AccesoNoAutorizadoException("Solo los visualizadores pueden realizar esta operación");
+        }
+
+        return visualizador;
+    }
 }

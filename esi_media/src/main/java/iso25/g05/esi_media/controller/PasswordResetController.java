@@ -27,7 +27,7 @@ import iso25.g05.esi_media.service.UserService;
 
 @RestController
 @RequestMapping("/users/password-reset")
-@CrossOrigin(origins = "*")
+
 public class PasswordResetController {
     private static final Logger log = LoggerFactory.getLogger(PasswordResetController.class);
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");

@@ -32,6 +32,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import jakarta.servlet.http.Cookie;
 import iso25.g05.esi_media.dto.ContenidoDetalleDTO;
 import iso25.g05.esi_media.dto.ContenidoResumenDTO;
 import iso25.g05.esi_media.exception.AccesoNoAutorizadoException;
@@ -71,7 +72,8 @@ class MultimediaControllerWebMvcTest {
                 .thenReturn(page);
 
         // Verificar que el endpoint responde correctamente
-        mockMvc.perform(get("/multimedia?page=0&size=2").header("Authorization", "Bearer abc"))
+        mockMvc.perform(get("/multimedia?page=0&size=2")
+                        .cookie(new jakarta.servlet.http.Cookie("SESSION_TOKEN", "test-token")))
                 .andExpect(status().isOk())
                 // .andExpect(content().contentType(MediaType.APPLICATION_JSON)) // El controller no especifica produces
                 .andExpect(jsonPath("$.content", hasSize(2)))
@@ -98,7 +100,8 @@ class MultimediaControllerWebMvcTest {
         when(multimediaService.obtenerContenidoPorId(eq("c1"), anyString()))
                 .thenReturn(detalle);
 
-        mockMvc.perform(get("/multimedia/c1").header("Authorization", "token"))
+        mockMvc.perform(get("/multimedia/c1")
+                        .cookie(new jakarta.servlet.http.Cookie("SESSION_TOKEN", "test-token")))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("application/json"))
                 .andExpect(jsonPath("$.id", is("c1")))
@@ -119,7 +122,8 @@ class MultimediaControllerWebMvcTest {
         when(multimediaService.validarYObtenerAudioParaStreaming(eq("a1"), anyString()))
                 .thenReturn(audio);
 
-        mockMvc.perform(get("/multimedia/audio/a1").header("Authorization", "Bearer xyz"))
+        mockMvc.perform(get("/multimedia/audio/a1")
+                        .cookie(new jakarta.servlet.http.Cookie("SESSION_TOKEN", "test-token")))
                 .andExpect(status().isOk())
                 .andExpect(header().string(HttpHeaders.CONTENT_TYPE, "audio/mpeg"))
                 .andExpect(header().string(HttpHeaders.CONTENT_LENGTH, String.valueOf(bytes.length)))
@@ -135,7 +139,8 @@ class MultimediaControllerWebMvcTest {
         when(multimediaService.validarYObtenerAudioParaStreaming(eq("a2"), anyString()))
                 .thenReturn(audio);
 
-        mockMvc.perform(get("/multimedia/audio/a2").header("Authorization", "tkn"))
+        mockMvc.perform(get("/multimedia/audio/a2")
+                        .cookie(new jakarta.servlet.http.Cookie("SESSION_TOKEN", "test-token")))
                 .andExpect(status().isNotFound());
     }
 
@@ -145,7 +150,8 @@ class MultimediaControllerWebMvcTest {
         when(multimediaService.validarYObtenerAudioParaStreaming(eq("bad"), anyString()))
                 .thenThrow(new PeticionInvalidaException("El contenido solicitado no es de tipo audio"));
 
-        mockMvc.perform(get("/multimedia/audio/bad").header("Authorization", "tok"))
+        mockMvc.perform(get("/multimedia/audio/bad")
+                        .cookie(new jakarta.servlet.http.Cookie("SESSION_TOKEN", "test-token")))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.status", is(400)))
@@ -160,7 +166,8 @@ class MultimediaControllerWebMvcTest {
         when(multimediaService.obtenerContenidoPorId(eq("vip"), anyString()))
                 .thenThrow(new AccesoNoAutorizadoException("Contenido disponible solo para usuarios VIP"));
 
-        mockMvc.perform(get("/multimedia/vip").header("Authorization", "tok"))
+        mockMvc.perform(get("/multimedia/vip")
+                        .cookie(new jakarta.servlet.http.Cookie("SESSION_TOKEN", "test-token")))
                 .andExpect(status().isForbidden())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.status", is(403)))
@@ -175,7 +182,8 @@ class MultimediaControllerWebMvcTest {
         when(multimediaService.obtenerContenidoPorId(eq("x"), anyString()))
                 .thenThrow(new RecursoNoEncontradoException("Contenido no encontrado"));
 
-        mockMvc.perform(get("/multimedia/x").header("Authorization", "t"))
+        mockMvc.perform(get("/multimedia/x")
+                        .cookie(new jakarta.servlet.http.Cookie("SESSION_TOKEN", "test-token")))
                 .andExpect(status().isNotFound())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.status", is(404)))

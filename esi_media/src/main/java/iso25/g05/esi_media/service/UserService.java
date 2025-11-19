@@ -33,6 +33,7 @@ import iso25.g05.esi_media.repository.ContraseniaComunRepository;
 import iso25.g05.esi_media.repository.ContraseniaRepository;
 import iso25.g05.esi_media.repository.GestorDeContenidoRepository;
 import iso25.g05.esi_media.repository.IpLoginAttemptRepository;
+import iso25.g05.esi_media.repository.TokenRepository;
 import iso25.g05.esi_media.repository.UsuarioRepository;
 import iso25.g05.esi_media.repository.VisualizadorRepository;
 
@@ -41,6 +42,9 @@ public class UserService {
 
     @Autowired
     private AdministradorRepository administradorRepository;
+
+    @Autowired
+    private TokenRepository tokenRepository;
 
     @Autowired
     private UsuarioRepository usuarioRepository;
@@ -76,6 +80,30 @@ public class UserService {
     private String EMAIL = "email";
 
     private String CONTR = "contrasenia";
+
+    /**
+     * Extrae el token del header Authorization o devuelve el valor en bruto si ya lo es.
+     *
+     * Acepta formatos:
+     * - "Bearer xyz"
+     * - "xyz"
+     *
+     * @param headerOrToken cabecera Authorization o token en crudo
+     * @return token limpio o null si la entrada es null/solo espacios
+     */
+    public String extraerToken(String headerOrToken) {
+        if (headerOrToken == null) {
+            return null;
+        }
+        String v = headerOrToken.trim();
+        if (v.isEmpty()) {
+            return null;
+        }
+        if (v.toLowerCase().startsWith("bearer ")) {
+            return v.substring(7).trim();
+        }
+        return v;
+    }
 
     public Usuario login(Map<String, String> loginData, String ipAddress) {
 
@@ -130,7 +158,8 @@ public class UserService {
         return null;
     }
 
-    private Token generateAndSaveToken(Usuario user) {
+    // Hacemos público el método para evitar uso de reflexión desde otros servicios.
+    public Token generateAndSaveToken(Usuario user) {
         Token token = new Token();
         user.setSesionstoken(token);
         this.usuarioRepository.save(user);
@@ -184,6 +213,21 @@ public class UserService {
 
         }
         return null;
+    }
+
+    public boolean logout(String token){
+        boolean res = false;
+
+        Optional<Usuario> optU = usuarioRepository.findBySesionToken(token);
+
+        if(optU.isPresent()){
+            Usuario u = optU.get();
+            u.setSesionstoken(null);
+            usuarioRepository.save(u);
+            res = true;
+        }
+
+        return res;
     }
 
     /**

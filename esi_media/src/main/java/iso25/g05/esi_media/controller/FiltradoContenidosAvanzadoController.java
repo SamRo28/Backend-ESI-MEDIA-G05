@@ -20,7 +20,7 @@ import org.slf4j.LoggerFactory;
  */
 @RestController
 @RequestMapping("/api/filtradoContenidosAvanzado")
-@CrossOrigin(origins = "*")
+
 public class FiltradoContenidosAvanzadoController {
     
     private final FiltradoContenidosAvanzadoService filtradoService;
@@ -53,7 +53,7 @@ public class FiltradoContenidosAvanzadoController {
     @GetMapping("/top-contents")
     public ResponseEntity<List<ContenidoDTO>> topContents(
             @RequestParam(defaultValue = "all") String contentType,
-            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+            @CookieValue(value = "SESSION_TOKEN", required = false) String token) {
 
         final int FIXED_LIMIT = 5; // TOP 5 obligatorio
 
@@ -98,7 +98,7 @@ public class FiltradoContenidosAvanzadoController {
     @GetMapping("/top-tags")
     public ResponseEntity<List<TagStatDTO>> topTags(
             @RequestParam(defaultValue = "all") String contentType,
-            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+            @CookieValue(value = "SESSION_TOKEN", required = false) String token) {
 
         final int FIXED_LIMIT = 5; // TOP 5 obligatorio
 
@@ -131,7 +131,7 @@ public class FiltradoContenidosAvanzadoController {
     @GetMapping("/top-rated-contents")
     public ResponseEntity<List<ContenidoDTO>> topRatedContents(
             @RequestParam(defaultValue = "all") String contentType,
-            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+            @CookieValue(value = "SESSION_TOKEN", required = false) String token) {
 
         final int FIXED_LIMIT = 5; // TOP 5 obligatorio
 

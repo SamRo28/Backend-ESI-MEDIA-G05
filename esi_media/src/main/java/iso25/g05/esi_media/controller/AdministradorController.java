@@ -15,7 +15,7 @@ import iso25.g05.esi_media.service.AdministradorService;
 
 @RestController
 @RequestMapping("/administradores")
-@CrossOrigin(origins = "*")
+
 public class AdministradorController {
     
     @Autowired
