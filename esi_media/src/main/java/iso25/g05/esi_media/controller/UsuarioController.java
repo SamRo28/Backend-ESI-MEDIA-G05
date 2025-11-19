@@ -70,7 +70,7 @@ public class UsuarioController {
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> loginData, 
                                     HttpServletRequest request) { // <-- AÑADIR HttpServletRequest
-        
+        Map<String, Object> res = null;
         String ipAddress = getClientIp(request);
         try {
             Usuario loggedInUser = userService.login(loginData, ipAddress);
@@ -81,12 +81,23 @@ public class UsuarioController {
             else if(loggedInUser.isBloqueado()){
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Usuario bloqueado, hable con su administrador");
             }
-        
-            Map<String, Object> res =  Map.of(
+            
+            // Verificar que el token no sea null antes de devolverlo
+            if (loggedInUser.getSesionstoken() == null ) {
+                 res =  Map.of(
+                "tipo", loggedInUser.getClass().getSimpleName(),
+                "usuario", loggedInUser
+                );
+            }
+            else{
+                 res =  Map.of(
                 "tipo", loggedInUser.getClass().getSimpleName(),
                 "usuario", loggedInUser,
                 "token",  loggedInUser.getSesionstoken().getToken()
                 );
+            }
+        
+            
             return ResponseEntity.status(HttpStatus.OK).body(res);
         } catch (ResponseStatusException e) {
 

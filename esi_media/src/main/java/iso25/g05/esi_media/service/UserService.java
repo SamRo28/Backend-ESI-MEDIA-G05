@@ -158,7 +158,8 @@ public class UserService {
         return null;
     }
 
-    private Token generateAndSaveToken(Usuario user) {
+    // Hacemos público el método para evitar uso de reflexión desde otros servicios.
+    public Token generateAndSaveToken(Usuario user) {
         Token token = new Token();
         user.setSesionstoken(token);
         this.usuarioRepository.save(user);
