@@ -17,7 +17,6 @@ import iso25.g05.esi_media.service.VisualizadorService;
  * Controlador REST para la gestión del perfil del usuario.
  */
 @RestController
-@RequestMapping("/perfiles")
 @RequestMapping("/api/perfil")
 @CrossOrigin(origins = "*")
 public class PerfilController {
