@@ -52,5 +52,13 @@ public interface ListaRepository extends MongoRepository<Lista, String> {
      * @return Lista de listas visibles de los gestores especificados
      */
     List<Lista> findByCreadorIdInAndVisibleIsTrue(List<String> creadorIds);
-    
+
+    /**
+     * Elimina todas las listas NO visibles creadas por un usuario.
+     * Se usa al eliminar la cuenta de un visualizador para borrar sus listas privadas.
+     *
+     * @param creadorId ID del creador/usuario
+     */
+    void deleteByCreadorIdAndVisibleFalse(String creadorId);
+
 }

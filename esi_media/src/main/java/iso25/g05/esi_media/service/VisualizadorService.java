@@ -22,8 +22,10 @@ import iso25.g05.esi_media.model.Contrasenia;
 import iso25.g05.esi_media.model.Token;
 import iso25.g05.esi_media.model.Usuario;
 import iso25.g05.esi_media.model.Visualizador;
+import iso25.g05.esi_media.repository.ValoracionRepository;
 import iso25.g05.esi_media.repository.ContraseniaComunRepository;
 import iso25.g05.esi_media.repository.ContraseniaRepository;
+import iso25.g05.esi_media.repository.ListaRepository;
 import iso25.g05.esi_media.repository.UsuarioRepository;
 import iso25.g05.esi_media.repository.VisualizadorRepository;
 import jakarta.validation.ConstraintViolation;
@@ -50,6 +52,12 @@ public class VisualizadorService {
 
     @Autowired
     private ContraseniaComunRepository contraseniaComunRepository;
+
+    @Autowired
+    private ValoracionRepository valoracionRepository;
+
+    @Autowired
+    private ListaRepository listaRepository;
 
     /**
      * Repositorio general para operaciones de usuario (unicidad de email, etc.)
@@ -523,4 +531,42 @@ public class VisualizadorService {
         return res;
     }
 
+    /**
+     * Elimina la cuenta del visualizador autenticado.
+     *
+     * @param authHeaderOrToken El token de autenticación del usuario.
+     * @throws iso25.g05.esi_media.exception.AccesoNoAutorizadoException si el token es inválido o el usuario no es un visualizador.
+     */
+    public void eliminarMiCuenta(String authHeaderOrToken) {
+        String token = userService.extraerToken(authHeaderOrToken);
+        if (token == null || token.isBlank()) {
+            throw new iso25.g05.esi_media.exception.PeticionInvalidaException("Token de autorización requerido");
+        }
+
+        Usuario usuario = usuarioRepository.findBySesionToken(token)
+                .orElseThrow(() -> new iso25.g05.esi_media.exception.AccesoNoAutorizadoException("Token no válido"));
+
+        if (!(usuario instanceof Visualizador)) {
+            throw new iso25.g05.esi_media.exception.AccesoNoAutorizadoException("Solo los visualizadores pueden eliminar su propia cuenta");
+        }
+
+        // NUEVO: exigir 2FA activado
+        if (!usuario.isTwoFactorAutenticationEnabled()) {
+            throw new iso25.g05.esi_media.exception.AccesoNoAutorizadoException("No autorizado para eliminar la cuenta");
+        }
+
+        // Eliminar datos asociados
+        // 1. Listas privadas creadas por el usuario
+        listaRepository.deleteByCreadorIdAndVisibleFalse(usuario.getId());
+
+        // 2. Valoraciones
+        valoracionRepository.deleteByVisualizadorId(usuario.getId());
+
+        // 3. Contraseña
+        if (usuario.getContrasenia() != null) {
+            contraseniaRepository.deleteById(usuario.getContrasenia().getId());
+        }
+        // 4. El propio usuario
+        usuarioRepository.deleteById(usuario.getId());
+    }
 }
