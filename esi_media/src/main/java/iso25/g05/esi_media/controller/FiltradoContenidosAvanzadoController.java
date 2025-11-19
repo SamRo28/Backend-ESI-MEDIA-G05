@@ -25,6 +25,9 @@ public class FiltradoContenidosAvanzadoController {
     
     private final FiltradoContenidosAvanzadoService filtradoService;
     private static final Logger logger = LoggerFactory.getLogger(FiltradoContenidosAvanzadoController.class);
+    private static final String TYPE_VIDEO = "video";
+    private static final String TYPE_AUDIO = "audio";
+    private static final String TYPE_ALL = "all";
     
     public FiltradoContenidosAvanzadoController(FiltradoContenidosAvanzadoService filtradoService) {
         this.filtradoService = filtradoService;
@@ -56,20 +59,12 @@ public class FiltradoContenidosAvanzadoController {
 
         try {
                 // Validar contentType in situ (sin utilidades externas)
-                if (contentType == null || !(contentType.equals("video") || contentType.equals("audio") || contentType.equals("all"))) {
-                    contentType = "all"; // Valor por defecto si no es válido
+                if (contentType == null || !(contentType.equals(TYPE_VIDEO) || contentType.equals(TYPE_AUDIO) || contentType.equals(TYPE_ALL))) {
+                    contentType = TYPE_ALL; // Valor por defecto si no es válido
                 }
 
-            // Extraemos únicamente el token si se proporciona.
-            /* TODO: No intentamos decodificar ni extraer el userId aquí. La extracción
-               del identificador del usuario (userId) debe realizarse en la capa de autenticación
-               (filtro o servicio de seguridad). Pasamos `null` como userId para mantener un
-               comportamiento conservador (no mostrar +18) hasta que la capa de auth entregue
-               un userId validado.*/ 
-            String token = null;
-            if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                token = authHeader.substring(7);
-            }
+            // TODO: Todavía No extraemos ni decodificamos el userId aquí; debe hacerlo la capa de auth.
+            // Pasamos `null` como userId para mantener comportamiento conservador (no mostrar +18 NUNCA).
             String userId = null;
 
             // Llamar al servicio con límite fijo
@@ -109,16 +104,14 @@ public class FiltradoContenidosAvanzadoController {
 
         try {
                 // Validar contentType in situ (sin utilidades externas)
-                if (contentType == null || !(contentType.equals("video") || contentType.equals("audio") || contentType.equals("all"))) {
-                    contentType = "all"; // Valor por defecto si no es válido
+
+                if (contentType == null || !(contentType.equals(TYPE_VIDEO) || contentType.equals(TYPE_AUDIO) || contentType.equals(TYPE_ALL))) {
+                    contentType = TYPE_ALL; // Valor por defecto si no es válido
                 }
 
-                // Extraemos el token si viene, pero NO extraemos ni decodificamos userId aquí.
-                // No extraemos ni usamos el token aquí; userId debe venir validado desde la capa de auth
+                // TODO: Todavía No extraemos ni decodificamos el userId aquí; debe hacerlo la capa de auth.
+                // Pasamos `null` como userId para mantener comportamiento conservador (no mostrar +18 NUNCA).
                 String userId = null;
-                if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                    userId = authHeader.substring(7);
-                }
 
             // Llamar al servicio con límite fijo
             List<TagStatDTO> topTags = filtradoService.getTopTags(FIXED_LIMIT, contentType, userId);
@@ -127,6 +120,36 @@ public class FiltradoContenidosAvanzadoController {
 
         } catch (Exception e) {
             logger.error("Error en top-tags: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+
+    /**
+     * Endpoint para obtener los TOP N contenidos mejor valorados (promedio)
+     * Comportamiento y parámetros iguales a `/top-contents`.
+     */
+    @GetMapping("/top-rated-contents")
+    public ResponseEntity<List<ContenidoDTO>> topRatedContents(
+            @RequestParam(defaultValue = "all") String contentType,
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+
+        final int FIXED_LIMIT = 5; // TOP 5 obligatorio
+
+        try {
+            if (contentType == null || !(contentType.equals(TYPE_VIDEO) || contentType.equals(TYPE_AUDIO) || contentType.equals(TYPE_ALL))) {
+                contentType = TYPE_ALL;
+            }
+
+            // TODO: Todavía No extraemos ni decodificamos el userId aquí; debe hacerlo la capa de auth.
+            // Pasamos `null` como userId para mantener comportamiento conservador (no mostrar +18 NUNCA).
+            String userId = null;
+
+            List<ContenidoDTO> topContents = filtradoService.getTopRatedContents(FIXED_LIMIT, contentType, userId);
+
+            return ResponseEntity.ok(topContents);
+
+        } catch (Exception e) {
+            logger.error("Error en top-rated-contents: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
