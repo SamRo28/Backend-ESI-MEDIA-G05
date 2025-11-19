@@ -106,12 +106,8 @@ public class UsuarioController {
             @RequestParam(value = "auth", required = false) String authQueryParam) {
         try {
             Usuario authUser = validarTokenYObtenerUsuario(authHeader, authQueryParam);
-<<<<<<< HEAD
-            if (authUser == null || authUser.getId() == null || !authUser.getId().equals(id)) {
-=======
             // Solo comprobamos que haya usuario autenticado
             if (authUser == null || authUser.getId() == null) {
->>>>>>> origin/main
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(MSG, "No autorizado"));
             }
             if (!(authUser instanceof Visualizador visualizador)) {
@@ -134,12 +130,8 @@ public class UsuarioController {
             @RequestBody Map<String, Object> body) {
         try {
             Usuario authUser = validarTokenYObtenerUsuario(authHeader, authQueryParam);
-<<<<<<< HEAD
-            if (authUser == null || authUser.getId() == null || !authUser.getId().equals(id)) {
-=======
             // Solo comprobamos que haya usuario autenticado
             if (authUser == null || authUser.getId() == null) {
->>>>>>> origin/main
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(MSG, "No autorizado"));
             }
             if (!(authUser instanceof Visualizador visualizador)) {
@@ -147,11 +139,7 @@ public class UsuarioController {
             }
             Object v = body != null ? body.get("vip") : null;
             if (!(v instanceof Boolean)) {
-<<<<<<< HEAD
-                return ResponseEntity.badRequest().body(Map.of(MSG, "Solicitud inválida"));
-=======
                 return ResponseEntity.badRequest().body(Map.of(MSG, "Solicitud invalida"));
->>>>>>> origin/main
             }
             boolean nuevoVip = (Boolean) v;
             boolean anteriorVip = visualizador.isVip();
@@ -160,12 +148,8 @@ public class UsuarioController {
                 visualizador.setFechacambiosuscripcion(new java.util.Date());
                 usuarioRepository.save(visualizador);
                 // Log de auditoría
-<<<<<<< HEAD
-                try { logService.registrarAccion("Cambio de suscripción a " + (nuevoVip ? "VIP" : "Estándar"), authUser.getEmail()); } catch (Exception ignore) {}
-=======
                 try { logService.registrarAccion("Cambio de suscripcion a " + (nuevoVip ? "VIP" : "Estandar"),
                         authUser.getEmail()); } catch (Exception ignore) {}
->>>>>>> origin/main
             }
             Map<String, Object> resp = new HashMap<>();
             resp.put("vip", visualizador.isVip());
