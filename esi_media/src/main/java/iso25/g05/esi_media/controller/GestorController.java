@@ -16,7 +16,7 @@ import iso25.g05.esi_media.service.GestorService;
 
 @RestController
 @RequestMapping("/gestores")
-@CrossOrigin(origins = "*")
+
 public class GestorController {
     
     private static final Logger logger = LoggerFactory.getLogger(GestorController.class);

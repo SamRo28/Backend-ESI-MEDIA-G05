@@ -7,12 +7,12 @@ import org.bson.types.ObjectId;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.CookieValue;
 
 import java.util.*;
 
 @RestController
 @RequestMapping("/contenidos")
-@CrossOrigin(origins = "*")
 public class ContenidoAdminController {
 
     private final UsuarioRepository usuarioRepository;
@@ -170,10 +170,10 @@ public class ContenidoAdminController {
     public ResponseEntity<?> buscarContenidos(
             @RequestParam String query,
             @RequestParam(defaultValue = "10") int limit,
-            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+            @CookieValue(value = "SESSION_TOKEN", required = false) String token) {
         
         // Validar que el token esté presente (básico)
-        if (authHeader == null || authHeader.trim().isEmpty()) {
+        if (token == null || token.isBlank()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of(ERROR, "Token de autorización requerido"));
         }

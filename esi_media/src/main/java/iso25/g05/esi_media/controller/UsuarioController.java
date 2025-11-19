@@ -10,16 +10,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -32,6 +30,7 @@ import iso25.g05.esi_media.repository.UsuarioRepository;
 import iso25.g05.esi_media.service.LogService;
 import iso25.g05.esi_media.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 /**
  * Controlador unificado para gestión de usuarios
@@ -39,7 +38,6 @@ import jakarta.servlet.http.HttpServletRequest;
  */
 @RestController
 @RequestMapping("/users")
-@CrossOrigin(origins = "*")
 public class UsuarioController {
     private static final Logger logger = LoggerFactory.getLogger(UsuarioController.class);
     private static final String MSG = "mensaje";
@@ -65,7 +63,7 @@ public class UsuarioController {
     /**
      * Login de usuario con email y contraseña
      */
-    @PostMapping("/login")
+    /*@PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> loginData, 
                                     HttpServletRequest request) { // <-- AÑADIR HttpServletRequest
         Map<String, Object> res = null;
@@ -104,11 +102,11 @@ public class UsuarioController {
          
         
         
-    }
+    }*/
 
     @PostMapping("/logout")
-     public ResponseEntity<?> login(@RequestBody Map<String, String> loginData){
-        String token = loginData.get("token");
+     public ResponseEntity<?> login(@RequestBody Map<String, String> loginData, @CookieValue(value = "SESSION_TOKEN", required = false) String token){
+       
 
         if (userService.logout(token)){
             
@@ -124,12 +122,13 @@ public class UsuarioController {
     @GetMapping("/{id}/subscription")
     public ResponseEntity<?> getSubscription(
             @PathVariable String id,
-            @RequestHeader(value = "Authorization", required = false) String authHeader,
-            @RequestParam(value = "auth", required = false) String authQueryParam) {
+            @CookieValue(value = "SESSION_TOKEN", required = false) String token) {
         try {
-            Usuario authUser = validarTokenYObtenerUsuario(authHeader, authQueryParam);
-            // Solo comprobamos que haya usuario autenticado
-            if (authUser == null || authUser.getId() == null) {
+            if (token == null || token.isBlank()) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(MSG, "No autenticado"));
+            }
+            Usuario authUser = usuarioRepository.findBySesionToken(token).orElse(null);
+            if (authUser == null) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(MSG, "No autorizado"));
             }
             if (!(authUser instanceof Visualizador visualizador)) {
@@ -147,13 +146,14 @@ public class UsuarioController {
     @PutMapping("/{id}/subscription")
     public ResponseEntity<?> updateSubscription(
             @PathVariable String id,
-            @RequestHeader(value = "Authorization", required = false) String authHeader,
-            @RequestParam(value = "auth", required = false) String authQueryParam,
+            @CookieValue(value = "SESSION_TOKEN", required = false) String token,
             @RequestBody Map<String, Object> body) {
         try {
-            Usuario authUser = validarTokenYObtenerUsuario(authHeader, authQueryParam);
-            // Solo comprobamos que haya usuario autenticado
-            if (authUser == null || authUser.getId() == null) {
+            if (token == null || token.isBlank()) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(MSG, "No autenticado"));
+            }
+            Usuario authUser = usuarioRepository.findBySesionToken(token).orElse(null);
+            if (authUser == null) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(MSG, "No autorizado"));
             }
             if (!(authUser instanceof Visualizador visualizador)) {
@@ -183,20 +183,6 @@ public class UsuarioController {
     }
 
     // ==================== Helpers ====================
-    private Usuario validarTokenYObtenerUsuario(String authHeader, String authQueryParam) {
-        String tokenValue = extraerToken((authHeader != null && !authHeader.isBlank()) ? authHeader : authQueryParam);
-        if (tokenValue == null || tokenValue.isBlank()) return null;
-        return usuarioRepository.findBySesionToken(tokenValue).orElse(null);
-    }
-
-    private String extraerToken(String headerOrToken) {
-        if (headerOrToken == null) return null;
-        String v = headerOrToken.trim();
-        if (v.toLowerCase().startsWith("bearer ")) {
-            return v.substring(7).trim();
-        }
-        return v;
-    }
 
 
     /**
@@ -214,10 +200,38 @@ public class UsuarioController {
     /**
      * Login con autenticación de 3 factores
      */
+
+    /*
+    ---------------------------------------------------------------------------
     @PostMapping("/verify3AuthCode")
     public Token confirm3Auth(@RequestBody Map<String, String> loginData) {
         return userService.confirmLogin3Auth(loginData);
         
+    }
+
+    */
+
+    /**
+     * Login con autenticación de 3 factores
+     */
+    @PostMapping("/verify3AuthCode")
+    public ResponseEntity<?> confirm3Auth(@RequestBody Map<String, String> loginData, 
+                                        HttpServletResponse response) { // 👈 **NUEVO PARÁMETRO**
+        
+        Token token = userService.confirmLogin3Auth(loginData);
+        
+        if (token != null) {
+            String tokenValue = token.getToken();
+            String cookieValue = String.format(
+                "SESSION_TOKEN=%s; Path=/; HttpOnly; Secure; SameSite=Lax", 
+                tokenValue
+            );
+            response.addHeader("Set-Cookie", cookieValue);
+            
+            return ResponseEntity.ok().build(); 
+        }
+        
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
     }
     
     // ==================== ENDPOINTS DE USUARIOS (/api/usuarios) ====================
@@ -226,7 +240,7 @@ public class UsuarioController {
      * Obtener todos los usuarios - Endpoint compatible con frontend
      */
     @PostMapping("/listar")
-    public ResponseEntity<?> listarUsuarios(@RequestHeader(value = "Authorization", required = false) String token) {
+    public ResponseEntity<?> listarUsuarios(@CookieValue(value = "SESSION_TOKEN", required = false) String token) {
         try {
             // Verificar que el token esté presente
             if (token == null || token.trim().isEmpty()) {
@@ -257,7 +271,7 @@ public class UsuarioController {
         }
     }
 
-    @PostMapping("/verify2FACode")
+    /*@PostMapping("/verify2FACode")
     public ResponseEntity<?> confirm2faCode(@RequestBody Map<String, String> data) {
 
         String token = userService.confirm2faCode(data);
@@ -266,7 +280,32 @@ public class UsuarioController {
         }
         return ResponseEntity.ok(token);
     }
-    
+    */
+
+    @PostMapping("/verify2FACode")
+    public ResponseEntity<?> confirm2faCode(@RequestBody Map<String, String> data,
+                                            HttpServletResponse response) { 
+
+        String tokenValue = userService.confirm2faCode(data);
+        
+        if (tokenValue == null){
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build(); // Código 2FA inválido
+        }
+        
+        if (!tokenValue.isEmpty()) { 
+            
+            String cookieValue = String.format(
+                "SESSION_TOKEN=%s; Path=/; HttpOnly; Secure; SameSite=Lax", 
+                tokenValue
+            );
+            response.addHeader("Set-Cookie", cookieValue);
+        }
+        
+        return ResponseEntity.ok().build();
+    }
+
+
+
     /**
      * Formatear usuario al formato esperado por el frontend
      */
@@ -352,7 +391,6 @@ public class UsuarioController {
     }
     
     @PutMapping("/{id}/profile")
-    @CrossOrigin(origins = "*")
     public ResponseEntity<?> updateProfile(@PathVariable String id, @RequestBody Map<String, Object> updates) {
         String tipo = (String) updates.get("tipo");
         Map<String, Object> userUpdates = (Map<String, Object>) updates.get("userData");
@@ -437,6 +475,47 @@ public class UsuarioController {
         }
         return remoteAddr;
     }
+
+    @PostMapping("/login")
+public ResponseEntity<?> login(@RequestBody Map<String, String> loginData, 
+                                HttpServletRequest request, // Ya existe
+                                HttpServletResponse response) {
+    
+    Map<String, Object> res; // Se inicializa aquí para que esté disponible en todo el método
+    String ipAddress = getClientIp(request);
+    
+    try {
+        Usuario loggedInUser = userService.login(loginData, ipAddress);
+        
+        if (loggedInUser == null){
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Credenciales inválidas");
+        }
+        else if(loggedInUser.isBloqueado()){
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Usuario bloqueado, hable con su administrador");
+        }
+
+        if (loggedInUser.getSesionstoken() != null ) {
+            String tokenValue = loggedInUser.getSesionstoken().getToken();
+
+            String cookieValue = String.format(
+                "SESSION_TOKEN=%s; Path=/; HttpOnly; Secure; SameSite=Lax", 
+                tokenValue
+            );
+
+            response.addHeader("Set-Cookie", cookieValue); 
+        }
+
+        res =  Map.of(
+            "tipo", loggedInUser.getClass().getSimpleName(),
+            "usuario", loggedInUser
+        );
+        
+        return ResponseEntity.status(HttpStatus.OK).body(res);
+    } catch (ResponseStatusException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+    }
+}
+
 }
     
 

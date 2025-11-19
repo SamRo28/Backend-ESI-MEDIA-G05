@@ -31,7 +31,6 @@ import java.util.Optional;
  */
 @RestController
 @RequestMapping("/perfiles")
-@CrossOrigin(origins = "*")
 public class PerfilController {
     private static final Logger logger = LoggerFactory.getLogger(PerfilController.class);
     

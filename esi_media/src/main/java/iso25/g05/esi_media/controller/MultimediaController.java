@@ -9,11 +9,11 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -38,7 +38,6 @@ import iso25.g05.esi_media.service.MultimediaService;
  */
 @RestController
 @RequestMapping("/multimedia")
-@CrossOrigin(origins = "*")
 public class MultimediaController {
 
     private static final String MSG = "mensaje";
@@ -62,16 +61,16 @@ public class MultimediaController {
     @GetMapping
     public ResponseEntity<?> listarContenidos(
             Pageable pageable,
-            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @CookieValue(value = "SESSION_TOKEN", required = false) String token,
             @RequestParam(value = "tipo", required = false) String tipo,
             @RequestParam(value = "query", required = false) String query) {
 
-        if (authHeader == null || authHeader.isBlank()) {
+        if (token == null || token.isBlank()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(Map.of(MSG, "No autenticado"));
         }
         try {
-            Page<ContenidoResumenDTO> pagina = multimediaService.listarContenidos(pageable, authHeader, tipo, query);
+            Page<ContenidoResumenDTO> pagina = multimediaService.listarContenidos(pageable, token, tipo, query);
             return ResponseEntity.ok(pagina);
         } catch (Exception e) {
             // Fallback genérico para evitar 500 sin mensaje claro
@@ -98,9 +97,12 @@ public class MultimediaController {
     @GetMapping("/{id}")
     public ResponseEntity<ContenidoDetalleDTO> obtenerDetalle(
             @PathVariable String id,
-            @RequestHeader("Authorization") String authHeader) {
+            @CookieValue(value = "SESSION_TOKEN", required = false) String token) {
 
-        ContenidoDetalleDTO detalle = multimediaService.obtenerContenidoPorId(id, authHeader);
+        if (token == null || token.isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        ContenidoDetalleDTO detalle = multimediaService.obtenerContenidoPorId(id, token);
         return ResponseEntity.ok(detalle);
     }
 
@@ -113,14 +115,14 @@ public class MultimediaController {
     @PostMapping("/{id}/reproducir")
     public ResponseEntity<?> registrarReproduccion(
             @PathVariable String id,
-            @RequestHeader(value = "Authorization", required = false) String authHeader) {
-        if (authHeader == null || authHeader.isBlank()) {
+            @CookieValue(value = "SESSION_TOKEN", required = false) String token) {
+        if (token == null || token.isBlank()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(Map.of(MSG, "No autenticado"));
         }
 
         try {
-            int total = multimediaService.registrarReproduccion(id, authHeader);
+            int total = multimediaService.registrarReproduccion(id, token);
             return ResponseEntity.ok(Map.of("nvisualizaciones", total));
         } catch (Exception e) {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -159,18 +161,18 @@ public class MultimediaController {
     @GetMapping("/audio/{id}")
     public ResponseEntity<byte[]> streamAudio(
         @PathVariable String id,
-        @RequestHeader(value = "Authorization", required = false) String authHeader,
-        @RequestParam(value = "auth", required = false) String authQueryParam) {
+        @CookieValue(value = "SESSION_TOKEN", required = false) String token) {
 
         /*
          * Paso 1: Validaciones previas de acceso y tipo de contenido
          * - Usamos el servicio para: comprobar que el id existe y corresponde a un contenido visible,
-         *   validar el token (soporta "Bearer <token>" o el token en claro) y asegurar que el usuario es un Visualizador.
+         *   validar el token y asegurar que el usuario es un Visualizador.
          * - También valida reglas de negocio: edad mínima del contenido y condición VIP del usuario cuando aplique.
          * - Si algo falla, el servicio lanzará excepciones (400/403/404) y este método responderá en consecuencia.
          */
-    // Permitir token vía cabecera o query (?auth=TOKEN) para habilitar reproducción directa desde etiquetas <audio>
-    String token = (authHeader != null && !authHeader.isBlank()) ? authHeader : authQueryParam;
+    if (token == null || token.isBlank()) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
+    }
     Audio audio = multimediaService.validarYObtenerAudioParaStreaming(id, token);
 
         /*

@@ -21,7 +21,7 @@ import java.util.Optional;
  */
 @RestController
 @RequestMapping("/usuarios")
-@CrossOrigin(origins = "*")
+
 public class BloqueoUsuarioController {
     
     private final UsuarioRepository usuarioRepository;

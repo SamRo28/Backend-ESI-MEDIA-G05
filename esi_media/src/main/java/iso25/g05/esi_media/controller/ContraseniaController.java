@@ -22,7 +22,7 @@ import java.util.Optional;
  */
 @RestController
 @RequestMapping("/contrasenias")
-@CrossOrigin(origins = "*")
+
 public class ContraseniaController {
 
     private static final Logger logger = LoggerFactory.getLogger(ContraseniaController.class);

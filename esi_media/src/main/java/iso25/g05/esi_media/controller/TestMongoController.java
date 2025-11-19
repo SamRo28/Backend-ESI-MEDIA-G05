@@ -26,11 +26,6 @@ import java.util.Optional;
  */
 @RestController
 @RequestMapping("/api/test")
-@CrossOrigin(
-    origins = {"http://localhost:4200", "http://localhost:3000"},
-    allowedHeaders = {"Content-Type", "Authorization"},
-    methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE}
-)
 public class TestMongoController {
     
     private final VisualizadorService visualizadorService;
