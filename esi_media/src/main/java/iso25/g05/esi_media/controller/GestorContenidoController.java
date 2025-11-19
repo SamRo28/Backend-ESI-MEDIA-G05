@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -32,7 +32,7 @@ import jakarta.validation.Valid;
  */
 @RestController
 @RequestMapping("/gestor/contenidos")
-@CrossOrigin(origins = "*")
+
 public class GestorContenidoController {
 
     @Autowired
@@ -41,36 +41,36 @@ public class GestorContenidoController {
     @GetMapping
     public Page<ContenidoResumenDTO> listar(
             Pageable pageable,
-            @RequestHeader("Authorization") String authHeader,
+            @CookieValue(value = "SESSION_TOKEN", required = false) String token,
             @RequestParam(value = "tipo", required = false) String tipo,
             @RequestParam(value = "query", required = false) String query) {
 
-        return gestorContenidoService.listar(authHeader, pageable, tipo, query);
+        return gestorContenidoService.listar(token, pageable, tipo, query);
     }
 
     @GetMapping("/{id}")
     public ContenidoDetalleDTO detalle(
             @PathVariable String id,
-            @RequestHeader("Authorization") String authHeader) {
+            @CookieValue(value = "SESSION_TOKEN", required = false) String token) {
 
-        return gestorContenidoService.detalle(id, authHeader);
+        return gestorContenidoService.detalle(id, token);
     }
 
     @PutMapping("/{id}")
     public ContenidoDetalleDTO actualizar(
             @PathVariable String id,
-            @RequestHeader("Authorization") String authHeader,
+            @CookieValue(value = "SESSION_TOKEN", required = false) String token,
             @Valid @RequestBody ContenidoUpdateDTO dto) {
 
-        return gestorContenidoService.actualizar(id, dto, authHeader);
+        return gestorContenidoService.actualizar(id, dto, token);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminar(
             @PathVariable String id,
-            @RequestHeader("Authorization") String authHeader) {
+            @CookieValue(value = "SESSION_TOKEN", required = false) String token) {
 
-        gestorContenidoService.eliminar(id, authHeader);
+        gestorContenidoService.eliminar(id, token);
         return ResponseEntity.noContent().build();
     }
 }

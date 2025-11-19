@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,7 +17,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -49,7 +49,7 @@ import iso25.g05.esi_media.service.ListaService;
  */
 @RestController
 @RequestMapping("/listas/usuario")
-@CrossOrigin(origins = "*")
+
 public class ListaUsuarioController extends BaseListaController {
     
     private static final Logger logger = LoggerFactory.getLogger(ListaUsuarioController.class);
@@ -64,13 +64,15 @@ public class ListaUsuarioController extends BaseListaController {
     @PostMapping
     public ResponseEntity<Map<String, Object>> crearLista(
             @RequestBody PlaylistDto listaDto,
-            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+            @CookieValue(value = "SESSION_TOKEN", required = false) String token) {
         
-        ResponseEntity<Map<String, Object>> validacion = validarToken(authHeader, "crear lista de usuario", logger);
-        if (validacion != null) return validacion;
+        if (token == null || token.isBlank()) {
+            logger.warn("Intento de crear lista de usuario sin token de autorización");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of("success", false, "mensaje", "Token de autorización requerido"));
+        }
         
         try {
-            String token = extraerToken(authHeader);
             PlaylistDto listaCreada = listaService.crearListaDesdeDto(listaDto, token);
             
             Map<String, Object> response = crearRespuestaExito("Lista creada correctamente y asociada al usuario.");
@@ -93,13 +95,15 @@ public class ListaUsuarioController extends BaseListaController {
      */
     @GetMapping("/mias")
     public ResponseEntity<Map<String, Object>> obtenerListasUsuario(
-            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+            @CookieValue(value = "SESSION_TOKEN", required = false) String token) {
         
-        ResponseEntity<Map<String, Object>> validacion = validarToken(authHeader, "obtener listas de usuario", logger);
-        if (validacion != null) return validacion;
+        if (token == null || token.isBlank()) {
+            logger.warn("Intento de obtener listas de usuario sin token de autorización");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of("success", false, "mensaje", "Token de autorización requerido"));
+        }
         
         try {
-            String token = extraerToken(authHeader);
             List<PlaylistDto> listas = listaService.findListasPropias(token);
             
             Map<String, Object> response = crearRespuestaExito("Listas obtenidas exitosamente");
@@ -124,19 +128,17 @@ public class ListaUsuarioController extends BaseListaController {
     @GetMapping("/{id}")
     public ResponseEntity<Map<String, Object>> obtenerListaPorId(
             @PathVariable String id,
-            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+            @CookieValue(value = "SESSION_TOKEN", required = false) String token) {
         
         Map<String, Object> response = new HashMap<>();
         
         try {
-            if (authHeader == null || authHeader.trim().isEmpty()) {
+            if (token == null || token.isBlank()) {
                 logger.warn("Intento de obtener lista {} sin token de autorización", id);
                 response.put(SUCCESS, false);
                 response.put(MENSAJE, TOKEN_REQUERIDO);
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
             }
-            
-            String token = extraerToken(authHeader);
             PlaylistDto lista = listaService.findListaById(id, token);
             
             response.put(SUCCESS, true);
@@ -164,19 +166,17 @@ public class ListaUsuarioController extends BaseListaController {
     @GetMapping("/{id}/contenidos")
     public ResponseEntity<Map<String, Object>> obtenerContenidosLista(
             @PathVariable String id,
-            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+            @CookieValue(value = "SESSION_TOKEN", required = false) String token) {
         
         Map<String, Object> response = new HashMap<>();
         
         try {
-            if (authHeader == null || authHeader.trim().isEmpty()) {
+            if (token == null || token.isBlank()) {
                 logger.warn("Intento de obtener contenidos de lista {} sin token de autorización", id);
                 response.put(SUCCESS, false);
                 response.put(MENSAJE, TOKEN_REQUERIDO);
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
             }
-            
-            String token = extraerToken(authHeader);
             List<iso25.g05.esi_media.dto.ContenidoResumenDTO> contenidos = listaService.findContenidosLista(id, token);
             
             response.put(SUCCESS, true);
@@ -206,19 +206,17 @@ public class ListaUsuarioController extends BaseListaController {
     public ResponseEntity<Map<String, Object>> editarLista(
             @PathVariable String id,
             @RequestBody PlaylistDto updatedListaDto,
-            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+            @CookieValue(value = "SESSION_TOKEN", required = false) String token) {
         
         Map<String, Object> response = new HashMap<>();
         
         try {
-            if (authHeader == null || authHeader.trim().isEmpty()) {
+            if (token == null || token.isBlank()) {
                 logger.warn("Intento de editar lista de usuario {} sin token de autorización", id);
                 response.put(SUCCESS, false);
                 response.put(MENSAJE, TOKEN_REQUERIDO);
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
             }
-            
-            String token = extraerToken(authHeader);
             
             // Usar el nuevo método que maneja DTOs completos incluyendo contenidosIds
             PlaylistDto listaEditada = listaService.updateListaDesdeDto(id, updatedListaDto, token);
@@ -248,19 +246,17 @@ public class ListaUsuarioController extends BaseListaController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Map<String, Object>> eliminarLista(
             @PathVariable String id,
-            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+            @CookieValue(value = "SESSION_TOKEN", required = false) String token) {
         
         Map<String, Object> response = new HashMap<>();
         
         try {
-            if (authHeader == null || authHeader.trim().isEmpty()) {
+            if (token == null || token.isBlank()) {
                 logger.warn("Intento de eliminar lista de usuario {} sin token de autorización", id);
                 response.put(SUCCESS, false);
                 response.put(MENSAJE, TOKEN_REQUERIDO);
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
             }
-            
-            String token = extraerToken(authHeader);
             listaService.deleteLista(id, token);
             
             response.put(SUCCESS, true);
@@ -288,19 +284,17 @@ public class ListaUsuarioController extends BaseListaController {
     public ResponseEntity<Map<String, Object>> agregarContenido(
             @PathVariable String id,
             @PathVariable String contenidoId,
-            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+            @CookieValue(value = "SESSION_TOKEN", required = false) String token) {
         
         Map<String, Object> response = new HashMap<>();
         
         try {
-            if (authHeader == null || authHeader.trim().isEmpty()) {
+            if (token == null || token.isBlank()) {
                 logger.warn("Intento de añadir contenido a lista de usuario {} sin token de autorización", id);
                 response.put(SUCCESS, false);
                 response.put(MENSAJE, TOKEN_REQUERIDO);
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
             }
-            
-            String token = extraerToken(authHeader);
             PlaylistDto listaActualizada = listaService.addContenido(id, contenidoId, token);
             
             response.put(SUCCESS, true);
@@ -330,19 +324,17 @@ public class ListaUsuarioController extends BaseListaController {
     public ResponseEntity<Map<String, Object>> eliminarContenido(
             @PathVariable String id,
             @PathVariable String contenidoId,
-            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+            @CookieValue(value = "SESSION_TOKEN", required = false) String token) {
         
         Map<String, Object> response = new HashMap<>();
         
         try {
-            if (authHeader == null || authHeader.trim().isEmpty()) {
+            if (token == null || token.isBlank()) {
                 logger.warn("Intento de eliminar contenido de lista de usuario {} sin token de autorización", id);
                 response.put(SUCCESS, false);
                 response.put(MENSAJE, TOKEN_REQUERIDO);
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
             }
-            
-            String token = extraerToken(authHeader);
             PlaylistDto listaActualizada = listaService.removeContenido(id, contenidoId, token);
             
             response.put(SUCCESS, true);
@@ -371,19 +363,17 @@ public class ListaUsuarioController extends BaseListaController {
      */
     @GetMapping("/publicas")
     public ResponseEntity<Map<String, Object>> obtenerListasPublicas(
-            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+            @CookieValue(value = "SESSION_TOKEN", required = false) String token) {
         
         Map<String, Object> response = new HashMap<>();
         
         try {
-            if (authHeader == null || authHeader.trim().isEmpty()) {
+            if (token == null || token.isBlank()) {
                 logger.warn("Intento de acceder a listas públicas sin token de autorización");
                 response.put(SUCCESS, false);
                 response.put(MENSAJE, TOKEN_REQUERIDO);
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
             }
-            
-            String token = extraerToken(authHeader);
             List<PlaylistDto> listas = listaService.findListasVisiblesGestores(token);
             
             response.put(SUCCESS, true);
@@ -413,19 +403,17 @@ public class ListaUsuarioController extends BaseListaController {
     @GetMapping("/publica/{id}")
     public ResponseEntity<Map<String, Object>> obtenerListaPublicaPorId(
             @PathVariable String id,
-            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+            @CookieValue(value = "SESSION_TOKEN", required = false) String token) {
         
         Map<String, Object> response = new HashMap<>();
         
         try {
-            if (authHeader == null || authHeader.trim().isEmpty()) {
+            if (token == null || token.isBlank()) {
                 logger.warn("Intento de obtener lista pública {} sin token de autorización", id);
                 response.put(SUCCESS, false);
                 response.put(MENSAJE, TOKEN_REQUERIDO);
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
             }
-            
-            String token = extraerToken(authHeader);
             PlaylistDto lista = listaService.findListaByIdConPermisos(id, token);
             
             response.put(SUCCESS, true);
@@ -457,19 +445,17 @@ public class ListaUsuarioController extends BaseListaController {
     @GetMapping("/publica/{id}/contenidos")
     public ResponseEntity<Map<String, Object>> obtenerContenidosListaPublica(
             @PathVariable String id,
-            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+            @CookieValue(value = "SESSION_TOKEN", required = false) String token) {
         
         Map<String, Object> response = new HashMap<>();
         
         try {
-            if (authHeader == null || authHeader.trim().isEmpty()) {
+            if (token == null || token.isBlank()) {
                 logger.warn("Intento de obtener contenidos de lista pública {} sin token de autorización", id);
                 response.put(SUCCESS, false);
                 response.put(MENSAJE, TOKEN_REQUERIDO);
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
             }
-            
-            String token = extraerToken(authHeader);
             
             // Primero validar acceso a la lista
             PlaylistDto lista = listaService.findListaByIdConPermisos(id, token);

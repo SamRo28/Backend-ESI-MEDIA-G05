@@ -35,13 +35,6 @@ import jakarta.validation.Valid;
  */
 @RestController
 @RequestMapping("/api/visualizador")
-// Configuración CORS segura para desarrollo local - CAMBIAR EN PRODUCCIÓN
-/*@CrossOrigin(
-    origins = {"http://localhost:4200", "http://localhost:3000"},
-    allowedHeaders = {"Content-Type", "Authorization"},
-    methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE}
-)*/
-@CrossOrigin(origins = "*") // Permitir todas las fuentes - SOLO PARA TESTING
 public class VisualizadorController {
     
     /**
