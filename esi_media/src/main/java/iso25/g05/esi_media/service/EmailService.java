@@ -172,6 +172,6 @@ public class EmailService {
         ResponseEntity<String> response = restTemplate.postForEntity(apiUrl, requestEntity, String.class);
         if (!response.getStatusCode().is2xxSuccessful()) {
             throw new RuntimeException("Fallo al enviar email vía API. Status: " + response.getStatusCode());
+        }
     }
-
 }
