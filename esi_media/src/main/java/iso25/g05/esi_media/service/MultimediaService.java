@@ -127,10 +127,15 @@ public class MultimediaService {
     /**
      * Obtiene contenidos sin filtro de tipo.
      */
-    private Page<Contenido> obtenerContenidosSinFiltroTipo(Visualizador visualizador, int edad, Pageable pageable) {
+   /* private Page<Contenido> obtenerContenidosSinFiltroTipo(Visualizador visualizador, int edad, Pageable pageable) {
         return visualizador.isVip()
             ? contenidoRepository.findByEstadoTrueAndEdadvisualizacionLessThanEqual(edad, pageable)
             : contenidoRepository.findByEstadoTrueAndVipFalseAndEdadvisualizacionLessThanEqual(edad, pageable);
+    }*/
+
+    private Page<Contenido> obtenerContenidosSinFiltroTipo(Visualizador visualizador, int edad, Pageable pageable) {
+        return contenidoRepository.findByEstadoTrueAndEdadvisualizacionLessThanEqual(edad, pageable);
+            
     }
     
     /**
