@@ -5,6 +5,7 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -30,8 +31,11 @@ public class PerfilController {
      * @return Respuesta de éxito o error.
      */
     @DeleteMapping("/me")
-    public ResponseEntity<?> eliminarMiCuenta(@RequestHeader("Authorization") String authHeader) {
-        visualizadorService.eliminarMiCuenta(authHeader);
+    public ResponseEntity<?> eliminarMiCuenta(
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @CookieValue(value = "SESSION_TOKEN", required = false) String token) {
+        String credencial = (authHeader != null && !authHeader.isBlank()) ? authHeader : token;
+        visualizadorService.eliminarMiCuenta(credencial);
         return ResponseEntity.ok(Map.of("mensaje", "Cuenta eliminada correctamente"));
     }
 
