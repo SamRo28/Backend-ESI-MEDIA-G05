@@ -163,42 +163,27 @@ public class VideoService {
      * @return ID del gestor autenticado
      * @throws IllegalArgumentException Si el token es inválido
      */
-    private String validarTokenYObtenerGestorId(String  tokenValue) {
+    public String validarTokenYObtenerGestorId(String  tokenValue) {
 
        
        
         if (tokenValue.isEmpty()) {
             throw new IllegalArgumentException("Token vacío");
         }
+
+        String token1 = tokenValue.replace("Bearer ", "").trim();
         
         // 2. Buscar token en la base de datos
-        Optional<Usuario> usuarioOpt = usuarioRepository.findBySesionToken(tokenValue);
+        Optional<Usuario> usuarioOpt = usuarioRepository.findBySesionToken(token1);
         if (usuarioOpt.isEmpty()) {
             throw new IllegalArgumentException("Token no válido");
         }
 
         Usuario usuario = usuarioOpt.get();
         
-        Optional<Token> tokenOpt = usuario.getSesionstoken().stream()
-            .filter(t -> {
-                try {
-                    String v = t.getToken();
-                    if (tokenValue.equals(v)) return true;
-                } catch (NoSuchMethodError | AbstractMethodError | Exception ignored) {
-                    // ignored
-                }
-                // Fallback: comparar con toString()
-                return tokenValue.equals(String.valueOf(t));
-            })
-            .findFirst();
+        Token token = usuario.getSesionstoken();
+            
 
-        if (tokenOpt.isEmpty()) {
-            throw new IllegalArgumentException("Token no válido");
-        }
-
-        Token token = tokenOpt.get();
-
-        // 3. Verificar que el token no ha expirado
         if (token.getFechaExpiracion().before(new Date())) {
             throw new IllegalArgumentException("Token expirado");
         }

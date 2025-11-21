@@ -1,32 +1,32 @@
 package iso25.g05.esi_media.controller;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
 import java.util.Calendar;
 import java.util.Date;
 
 import org.junit.jupiter.api.AfterEach;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import iso25.g05.esi_media.config.MongoTestConfig;
-
 import iso25.g05.esi_media.dto.VisualizadorRegistroDTO;
-import iso25.g05.esi_media.model.Visualizador;
 import iso25.g05.esi_media.repository.VisualizadorRepository;
 import iso25.g05.esi_media.service.VisualizadorService;
 
@@ -90,8 +90,8 @@ public class VisualizadorControllerIntegrationTest {
             "juan.perez@test.com",
             "juanito",
             fechaNac,
-            "MiPassword123!",
-            "MiPassword123!",
+            "S3cur3P@ssw0rd!Xz9",
+            "S3cur3P@ssw0rd!Xz9",
             false,
             "avatar.jpg"
         );

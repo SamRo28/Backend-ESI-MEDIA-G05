@@ -7,20 +7,33 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.warrenstrange.googleauth.GoogleAuthenticator;
 import com.warrenstrange.googleauth.GoogleAuthenticatorKey;
 import com.warrenstrange.googleauth.GoogleAuthenticatorQRGenerator;
 
+import iso25.g05.esi_media.dto.ContenidoResumenDTO;
 import iso25.g05.esi_media.dto.VisualizadorRegistroDTO;
+import iso25.g05.esi_media.exception.AccesoNoAutorizadoException;
+import iso25.g05.esi_media.exception.PeticionInvalidaException;
+import iso25.g05.esi_media.exception.RecursoNoEncontradoException;
+import iso25.g05.esi_media.mapper.ContenidoMapper;
 import iso25.g05.esi_media.model.Contrasenia;
+import iso25.g05.esi_media.model.Contenido;
+import iso25.g05.esi_media.model.Token;
 import iso25.g05.esi_media.model.Usuario;
 import iso25.g05.esi_media.model.Visualizador;
+import iso25.g05.esi_media.repository.ContenidoRepository;
+import iso25.g05.esi_media.repository.ValoracionRepository;
+import iso25.g05.esi_media.repository.ContraseniaComunRepository;
 import iso25.g05.esi_media.repository.ContraseniaRepository;
+import iso25.g05.esi_media.repository.ListaRepository;
 import iso25.g05.esi_media.repository.UsuarioRepository;
 import iso25.g05.esi_media.repository.VisualizadorRepository;
 import jakarta.validation.ConstraintViolation;
@@ -42,6 +55,24 @@ import jakarta.validation.Validator;
 @Service
 public class VisualizadorService {
     
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private ContraseniaComunRepository contraseniaComunRepository;
+
+    @Autowired
+    private ValoracionRepository valoracionRepository;
+
+    @Autowired
+    private ListaRepository listaRepository;
+
+    @Autowired
+    private ContenidoRepository contenidoRepository;
+
+    @Autowired
+    private LogService logService;
+
     /**
      * Repositorio general para operaciones de usuario (unicidad de email, etc.)
      */
@@ -139,9 +170,15 @@ public class VisualizadorService {
             // - Índices únicos (email)
             // - Campo discriminador "_class" para herencia
             Visualizador visualizadorGuardado = visualizadorRepository.save(nuevoVisualizador);
-            
-            // Devolver resultado exitoso con el usuario guardado (incluye ID generado)
-            return new RegistroResultado(visualizadorGuardado, "Visualizador registrado exitosamente en base de datos");
+
+            try {
+                // Enviar email de verificación y dejar marcado el token en el usuario
+                emailService.sendActivationEmail(visualizadorGuardado);
+            } catch (Exception ex) {
+                logger.error("No se pudo enviar el email de verificación: {}", ex.getMessage());
+            }
+            // Devolver mensaje orientado a verificación
+            return new RegistroResultado(visualizadorGuardado, "Registro correcto. Revisa tu correo para activar la cuenta.");
             
         } catch (org.springframework.dao.DuplicateKeyException e) {
             // Error específico: intento de guardar email duplicado (violación de índice único)
@@ -164,6 +201,73 @@ public class VisualizadorService {
             logger.error("Error interno al crear visualizador: {}", e.getMessage(), e);
             return new RegistroResultado("Error interno al crear visualizador: " + e.getMessage(), 
                                         "Registro fallido por error del sistema");
+        }
+    }
+
+    @Autowired
+    private EmailService emailService;
+
+    public String activarCuentaYEmitirToken(String token) {
+        Optional<Usuario> userOpt = usuarioRepository.findByActivationToken(token);
+        if (userOpt.isPresent()) {
+            Usuario u = userOpt.get();
+            u.setActivationToken(null);
+            u.setHasActivated(true);
+            // Generar token de sesión
+            Token t = userServicePublicToken(u);
+            usuarioRepository.save(u);
+            return t != null ? t.getToken() : null;
+        }
+        return null;
+    }
+
+    /**
+     * Activa la cuenta usando el token sin generar token de sesión.
+     * Devuelve true si se activó correctamente.
+     */
+    public boolean activarCuenta(String token) {
+        Optional<Usuario> userOpt = usuarioRepository.findByActivationToken(token);
+        if (userOpt.isPresent()) {
+            Usuario u = userOpt.get();
+            u.setActivationToken(null);
+            u.setHasActivated(true);
+            usuarioRepository.save(u);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Si el usuario con ese email ya ha activado su cuenta, genera y devuelve
+     * un token de sesión. Si no está activado, devuelve null.
+     */
+    public String tokenSiActivado(String email) {
+        if (email == null) return null;
+        Optional<Usuario> userOpt = usuarioRepository.findByEmail(email);
+        if (userOpt.isPresent()) {
+            Usuario u = userOpt.get();
+            if (Boolean.TRUE.equals(u.isHasActivated())) {
+                // Si ya tiene un token de sesión válido y no expirado, reutilizarlo
+                Token existing = u.getSesionstoken();
+                if (existing != null && !existing.isExpirado() && existing.getFechaExpiracion() != null
+                        && existing.getFechaExpiracion().after(new java.util.Date())) {
+                    return existing.getToken();
+                }
+                // Si no hay token válido, generar uno nuevo y devolverlo
+                Token t = userServicePublicToken(u);
+                return t != null ? t.getToken() : null;
+            }
+        }
+        return null;
+    }
+
+    private Token userServicePublicToken(Usuario u){
+        // Llamada directa al método público (eliminamos reflexión para fiabilidad)
+        try {
+            return userService.generateAndSaveToken(u);
+        } catch (Exception ex) {
+            logger.error("Error generando token de sesión: {}", ex.getMessage());
+            return null;
         }
     }
     
@@ -219,23 +323,11 @@ public class VisualizadorService {
         if (dto.getEmail() != null) {
             logger.debug("Validando email: {}", dto.getEmail());
 
-            // Primero, veamos todos los usuarios en la base de datos
-            List<Usuario> todosLosUsuarios = usuarioRepository.findAll();
-            logger.debug("Total usuarios en BD: {}", todosLosUsuarios.size());
-            for (Usuario u : todosLosUsuarios) {
-                logger.debug("Usuario en BD: {} - {}", u.getNombre(), u.getEmail());
-            }
-
             // Ahora probemos el exists
             boolean exists = usuarioRepository.existsByEmail(dto.getEmail());
             logger.debug("existsBy_email('{}'): {}", dto.getEmail(), exists);
 
-            // Y también el findBy
-            Optional<Usuario> usuario = usuarioRepository.findByEmail(dto.getEmail());
-            logger.debug("findBy_email encontrado: {}", usuario.isPresent());
-            if (usuario.isPresent()) {
-                logger.debug("Usuario encontrado: {} - {}", usuario.get().getNombre(), usuario.get().getEmail());
-            }
+
 
             // Verificar si hay algún problema con mayúsculas/minúsculas
             String emailLower = dto.getEmail().toLowerCase();
@@ -256,7 +348,7 @@ public class VisualizadorService {
      * PROPÓSITO: Tomar los datos "en crudo" del formulario y armar todos los objetos
      * necesarios para que el sistema funcione (Visualizador + Contrasenia)
      */
-    private Visualizador crearVisualizador(VisualizadorRegistroDTO dto) {
+    private Visualizador crearVisualizador(VisualizadorRegistroDTO dto) throws Exception {
         
         // PASO 1: Aplicar regla de negocio del alias
         // Si el usuario no escribió alias (o escribió espacios vacíos), usar su nombre
@@ -266,12 +358,21 @@ public class VisualizadorService {
         
         // TEMPORAL: Sin objeto Contrasenia para evitar relaciones circulares problemáticas
         // PASO 1: Crear contraseña con nuevo constructor sin referencia de usuario
-        Contrasenia contrasenia = new Contrasenia(
+        Contrasenia c = new Contrasenia(
             null, // ID será generado por MongoDB
             new Date(System.currentTimeMillis() + (365L * 24 * 60 * 60 * 1000)), // Expira en 1 año
             dto.getContrasenia(), // Contraseña actual
             new ArrayList<>() // Lista de contraseñas anteriores vacía
         );
+        
+        if(contraseniaComunRepository.existsById(c.getContraseniaActual())){
+            throw new Exception("La contraseña está en la lista de contraseñas comunes");
+        }
+
+        Contrasenia contrasenia = userService.hashearContrasenia(c);
+        contrasenia.getContraseniasUsadas().add(contrasenia.getContraseniaActual());
+
+        
         
         // PASO 2: GUARDAR contraseña en MongoDB para que obtenga ID
     logger.debug("Guardando contraseña en MongoDB...");
@@ -430,8 +531,7 @@ public class VisualizadorService {
 
             String otpAuthURL = GoogleAuthenticatorQRGenerator.getOtpAuthURL("MiApp", email, key);
             Usuario user = existingUser.get();
-            user.setSecretkey(secret);
-            user.setTwoFactorAutenticationEnabled(true); 
+            user.setSecretkey(secret); 
             usuarioRepository.save(user);
 
             res = otpAuthURL;
@@ -440,4 +540,98 @@ public class VisualizadorService {
         return res;
     }
 
+    /**
+     * Elimina la cuenta del visualizador autenticado.
+     *
+     * @param authHeaderOrToken El token de autenticación del usuario.
+     * @throws iso25.g05.esi_media.exception.AccesoNoAutorizadoException si el token es inválido o el usuario no es un visualizador.
+     */
+    public void eliminarMiCuenta(String authHeaderOrToken) {
+        Visualizador visualizador = obtenerVisualizadorAutenticado(authHeaderOrToken);
+
+        if (!visualizador.isTwoFactorAutenticationEnabled()) {
+            throw new AccesoNoAutorizadoException("No autorizado para eliminar la cuenta");
+        }
+
+        listaRepository.deleteByCreadorIdAndVisibleFalse(visualizador.getId());
+        valoracionRepository.deleteByVisualizadorId(visualizador.getId());
+        if (visualizador.getContrasenia() != null) {
+            contraseniaRepository.deleteById(visualizador.getContrasenia().getId());
+        }
+        usuarioRepository.deleteById(visualizador.getId());
+    }
+
+    public List<ContenidoResumenDTO> obtenerFavoritos(String authHeaderOrToken) {
+        Visualizador visualizador = obtenerVisualizadorAutenticado(authHeaderOrToken);
+        if (visualizador.getContenidofav() == null || visualizador.getContenidofav().isEmpty()) {
+            return List.of();
+        }
+
+        return visualizador.getContenidofav().stream()
+                .filter(Contenido::isestado)
+                .map(ContenidoMapper::aResumen)
+                .collect(Collectors.toList());
+    }
+
+    public void agregarFavorito(String authHeaderOrToken, String contenidoId) {
+        if (contenidoId == null || contenidoId.isBlank()) {
+            throw new PeticionInvalidaException("ID de contenido requerido");
+        }
+        Visualizador visualizador = obtenerVisualizadorAutenticado(authHeaderOrToken);
+        Contenido contenido = contenidoRepository.findByIdAndEstadoTrue(contenidoId)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Contenido no encontrado"));
+
+        List<Contenido> favoritos = visualizador.getContenidofav();
+        if (favoritos == null) {
+            favoritos = new ArrayList<>();
+            visualizador.setContenidofav(favoritos);
+        }
+
+        boolean yaFavorito = favoritos.stream().anyMatch(f -> f.getId().equals(contenidoId));
+        if (yaFavorito) {
+            return;
+        }
+
+        favoritos.add(contenido);
+        usuarioRepository.save(visualizador);
+        try {
+            logService.registrarAccion("Favorito añadido: " + contenido.gettitulo(), visualizador.getEmail());
+        } catch (Exception ignore) {
+        }
+    }
+
+    public void eliminarFavorito(String authHeaderOrToken, String contenidoId) {
+        if (contenidoId == null || contenidoId.isBlank()) {
+            throw new PeticionInvalidaException("ID de contenido requerido");
+        }
+        Visualizador visualizador = obtenerVisualizadorAutenticado(authHeaderOrToken);
+        List<Contenido> favoritos = visualizador.getContenidofav();
+        if (favoritos == null || favoritos.isEmpty()) {
+            return;
+        }
+
+        boolean eliminado = favoritos.removeIf(f -> f.getId().equals(contenidoId));
+        if (eliminado) {
+            usuarioRepository.save(visualizador);
+            try {
+                logService.registrarAccion("Favorito eliminado: " + contenidoId, visualizador.getEmail());
+            } catch (Exception ignore) {
+            }
+        }
+    }
+
+    private Visualizador obtenerVisualizadorAutenticado(String authHeaderOrToken) {
+        String token = userService.extraerToken(authHeaderOrToken);
+        if (token == null || token.isBlank()) {
+            throw new PeticionInvalidaException("Token de autorización requerido");
+        }
+        Usuario usuario = usuarioRepository.findBySesionToken(token)
+                .orElseThrow(() -> new AccesoNoAutorizadoException("Token no válido"));
+
+        if (!(usuario instanceof Visualizador visualizador)) {
+            throw new AccesoNoAutorizadoException("Solo los visualizadores pueden realizar esta operación");
+        }
+
+        return visualizador;
+    }
 }

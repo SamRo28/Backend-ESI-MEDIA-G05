@@ -36,11 +36,12 @@
 			<artifactId>spring-boot-starter</artifactId>
 		</dependency>
 
+		<dependency>
+        	<groupId>org.springframework.security</groupId>
+        	<artifactId>spring-security-crypto</artifactId>
+    	</dependency>
+
 	<!-- Spring Boot Web - NECESARIO para controladores REST -->
-	<dependency>
-		<groupId>org.springframework.boot</groupId>
-		<artifactId>spring-boot-starter-web</artifactId>
-	</dependency>
 
 	<!-- Spring Boot Validation - NECESARIO para @Valid y Jakarta Validation -->
 	<dependency>
@@ -63,10 +64,6 @@
 			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
 
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-validation</artifactId>
-		</dependency>
 
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -74,12 +71,6 @@
 			<scope>test</scope>
 		</dependency>
 
-
-
-		<dependency>
-    		<groupId>org.springframework.boot</groupId>
-    		<artifactId>spring-boot-starter-mail</artifactId>
-		</dependency>
 
 		<dependency>
 			<groupId>com.warrenstrange</groupId>
@@ -94,6 +85,18 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+			</plugin>
+
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<argLine>
+						@{argLine}
+						--add-opens java.base/java.time=ALL-UNNAMED
+						--add-opens java.base/java.lang=ALL-UNNAMED
+					</argLine>
+				</configuration>
 			</plugin>
 
 			<plugin>

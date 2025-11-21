@@ -10,14 +10,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
@@ -28,7 +27,10 @@ import iso25.g05.esi_media.model.Token;
 import iso25.g05.esi_media.model.Usuario;
 import iso25.g05.esi_media.model.Visualizador;
 import iso25.g05.esi_media.repository.UsuarioRepository;
+import iso25.g05.esi_media.service.LogService;
 import iso25.g05.esi_media.service.UserService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 /**
  * Controlador unificado para gestión de usuarios
@@ -36,7 +38,6 @@ import iso25.g05.esi_media.service.UserService;
  */
 @RestController
 @RequestMapping("/users")
-@CrossOrigin(origins = "*")
 public class UsuarioController {
     private static final Logger logger = LoggerFactory.getLogger(UsuarioController.class);
     private static final String MSG = "mensaje";
@@ -44,13 +45,21 @@ public class UsuarioController {
     private static final String APELLIDOS = "apellidos";
     private static final String EMAIL = "email";
     private static final String BLOQUEADO = "bloqueado";
-    private static final String DEPARTAMENTO = "departamento";
+    
+    // Constantes para cookies y headers
+    private static final String COOKIE_FORMAT = "SESSION_TOKEN=%s; Path=/; HttpOnly; Secure; SameSite=None";
+    private static final String SET_COOKIE_HEADER = "Set-Cookie";
+
+    
+
     private final UsuarioRepository usuarioRepository;
     private final UserService userService;
+    private final LogService logService;
 
-    public UsuarioController(UsuarioRepository usuarioRepository, UserService userService) {
+    public UsuarioController(UsuarioRepository usuarioRepository, UserService userService, LogService logService) {
         this.usuarioRepository = usuarioRepository;
         this.userService = userService;
+        this.logService = logService;
     }
     
     // ==================== ENDPOINTS DE LOGIN (/users) ====================
@@ -58,17 +67,126 @@ public class UsuarioController {
     /**
      * Login de usuario con email y contraseña
      */
-    @PostMapping("/login")
-    public Map<String,Object> login(@RequestBody Map<String, String> loginData) {
-        Usuario loggedInUser = userService.login(loginData);
-        if (loggedInUser == null)
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid credentials");
-        return Map.of(
-            "tipo", loggedInUser.getClass().getSimpleName(),
-            "usuario", loggedInUser
-        );
+    /*@PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody Map<String, String> loginData, 
+                                    HttpServletRequest request) { // <-- AÑADIR HttpServletRequest
+        Map<String, Object> res = null;
+        String ipAddress = getClientIp(request);
+        try {
+            Usuario loggedInUser = userService.login(loginData, ipAddress);
+            
+            if (loggedInUser == null){
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Credenciales inválidas");
+            }
+            else if(loggedInUser.isBloqueado()){
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Usuario bloqueado, hable con su administrador");
+            }
+            
+            // Verificar que el token no sea null antes de devolverlo
+            if (loggedInUser.getSesionstoken() == null ) {
+                 res =  Map.of(
+                "tipo", loggedInUser.getClass().getSimpleName(),
+                "usuario", loggedInUser
+                );
+            }
+            else{
+                 res =  Map.of(
+                "tipo", loggedInUser.getClass().getSimpleName(),
+                "usuario", loggedInUser,
+                "token",  loggedInUser.getSesionstoken().getToken()
+                );
+            }
+        
+            
+            return ResponseEntity.status(HttpStatus.OK).body(res);
+        } catch (ResponseStatusException e) {
+
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+        }
+         
+        
+        
+    }*/
+
+    @PostMapping("/logout")
+     public ResponseEntity<?> login(@RequestBody Map<String, String> loginData, @CookieValue(value = "SESSION_TOKEN", required = false) String token){
+       
+
+        if (userService.logout(token)){
+            
+                return ResponseEntity.status(HttpStatus.OK).body("Se ha cerrado sesión correctamente");
+        }
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Credenciales inválidas");
+
+     }
+
+    // ==================== SUSCRIPCION (VIP/ESTANDAR) ====================
+
+    @GetMapping("/{id}/subscription")
+    public ResponseEntity<?> getSubscription(
+            @PathVariable String id,
+            @CookieValue(value = "SESSION_TOKEN", required = false) String token) {
+        try {
+            if (token == null || token.isBlank()) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(MSG, "No autenticado"));
+            }
+            Usuario authUser = usuarioRepository.findBySesionToken(token).orElse(null);
+            if (authUser == null) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(MSG, "No autorizado"));
+            }
+            if (!(authUser instanceof Visualizador visualizador)) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(MSG, "Solo visualizadores"));
+            }
+            Map<String, Object> resp = new HashMap<>();
+            resp.put("vip", visualizador.isVip());
+            resp.put("fechaCambio", visualizador.getFechacambiosuscripcion());
+            return ResponseEntity.ok(resp);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(MSG, "No se pudo obtener suscripción"));
+        }
     }
 
+    @PutMapping("/{id}/subscription")
+    public ResponseEntity<?> updateSubscription(
+            @PathVariable String id,
+            @CookieValue(value = "SESSION_TOKEN", required = false) String token,
+            @RequestBody Map<String, Object> body) {
+        try {
+            if (token == null || token.isBlank()) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(MSG, "No autenticado"));
+            }
+            Usuario authUser = usuarioRepository.findBySesionToken(token).orElse(null);
+            if (authUser == null) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(MSG, "No autorizado"));
+            }
+            if (!(authUser instanceof Visualizador visualizador)) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(MSG, "Solo visualizadores"));
+            }
+            Object v = body != null ? body.get("vip") : null;
+            if (!(v instanceof Boolean)) {
+                return ResponseEntity.badRequest().body(Map.of(MSG, "Solicitud invalida"));
+            }
+            boolean nuevoVip = (Boolean) v;
+            boolean anteriorVip = visualizador.isVip();
+            if (nuevoVip != anteriorVip) {
+                visualizador.setVip(nuevoVip);
+                visualizador.setFechacambiosuscripcion(new java.util.Date());
+                usuarioRepository.save(visualizador);
+                // Log de auditoría
+                try { logService.registrarAccion("Cambio de suscripcion a " + (nuevoVip ? "VIP" : "Estandar"),
+                        authUser.getEmail()); } catch (Exception ignore) {}
+            }
+            Map<String, Object> resp = new HashMap<>();
+            resp.put("vip", visualizador.isVip());
+            resp.put("fechaCambio", visualizador.getFechacambiosuscripcion());
+            return ResponseEntity.ok(resp);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(MSG, "No se pudo actualizar la suscripción"));
+        }
+    }
+
+    // ==================== Helpers ====================
 
 
     /**
@@ -86,10 +204,38 @@ public class UsuarioController {
     /**
      * Login con autenticación de 3 factores
      */
+
+    /*
+    ---------------------------------------------------------------------------
     @PostMapping("/verify3AuthCode")
     public Token confirm3Auth(@RequestBody Map<String, String> loginData) {
         return userService.confirmLogin3Auth(loginData);
         
+    }
+
+    */
+
+    /**
+     * Login con autenticación de 3 factores
+     */
+    @PostMapping("/verify3AuthCode")
+    public ResponseEntity<?> confirm3Auth(@RequestBody Map<String, String> loginData, 
+                                        HttpServletResponse response) { // 👈 **NUEVO PARÁMETRO**
+        
+        Token token = userService.confirmLogin3Auth(loginData);
+        
+        if (token != null) {
+            String tokenValue = token.getToken();
+            String cookieValue = String.format(
+                COOKIE_FORMAT, 
+                tokenValue
+            );
+            response.addHeader(SET_COOKIE_HEADER, cookieValue);
+            
+            return ResponseEntity.ok().build(); 
+        }
+        
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
     }
     
     // ==================== ENDPOINTS DE USUARIOS (/api/usuarios) ====================
@@ -98,13 +244,13 @@ public class UsuarioController {
      * Obtener todos los usuarios - Endpoint compatible con frontend
      */
     @PostMapping("/listar")
-    public ResponseEntity<?> listarUsuarios(@RequestHeader(value = "Authorization", required = false) String token) {
+    public ResponseEntity<?> listarUsuarios(@CookieValue(value = "SESSION_TOKEN", required = false) String token) {
         try {
             // Verificar que el token esté presente
             if (token == null || token.trim().isEmpty()) {
                 logger.warn("Intento de acceso sin token al listar usuarios");
                 Map<String, String> error = new HashMap<>();
-                error.put("mensaje", "Token de autorización requerido");
+                error.put(MSG, "Token de autorización requerido");
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
             }
              
@@ -124,12 +270,12 @@ public class UsuarioController {
         } catch (Exception e) {
             logger.error("{}: {}", MSG, e.getMessage());
             Map<String, String> error = new HashMap<>();
-            error.put("mensaje", "Error interno del servidor");
+            error.put(MSG, "Error interno del servidor");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
 
-    @PostMapping("/verify2FACode")
+    /*@PostMapping("/verify2FACode")
     public ResponseEntity<?> confirm2faCode(@RequestBody Map<String, String> data) {
 
         String token = userService.confirm2faCode(data);
@@ -138,7 +284,32 @@ public class UsuarioController {
         }
         return ResponseEntity.ok(token);
     }
-    
+    */
+
+    @PostMapping("/verify2FACode")
+    public ResponseEntity<?> confirm2faCode(@RequestBody Map<String, String> data,
+                                            HttpServletResponse response) { 
+
+        String tokenValue = userService.confirm2faCode(data);
+        
+        if (tokenValue == null){
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build(); // Código 2FA inválido
+        }
+        
+        if (!tokenValue.isEmpty()) { 
+            
+            String cookieValue = String.format(
+                COOKIE_FORMAT, 
+                tokenValue
+            );
+            response.addHeader(SET_COOKIE_HEADER, cookieValue);
+        }
+        
+        return ResponseEntity.ok().build();
+    }
+
+
+
     /**
      * Formatear usuario al formato esperado por el frontend
      */
@@ -223,61 +394,7 @@ public class UsuarioController {
         }
     }
     
-    
-    /**
-     * Actualizar perfil del usuario (nombre, apellidos, foto)
-     */
-    /*@PutMapping("/{id}/profile")
-    @CrossOrigin(origins = "*")
-    public ResponseEntity<?> updateProfile(@PathVariable String id, @RequestBody Map<String, String> updates) {
-        try {
-            Optional<Usuario> optionalUsuario = usuarioRepository.findById(id);
-            if (!optionalUsuario.isPresent()) {
-                return ResponseEntity.notFound().build();
-            }
-            Usuario usuario = optionalUsuario.get();
-            logger.info("🔍 Usuario antes de actualizar perfil - sesionstoken count: {}", (usuario.sesionstoken != null ? usuario.sesionstoken.size() : "null"));
-            
-            // Actualizar campos si están presentes
-           
-            if (updates.containsKey(NOMBRE)) {
-                usuario.setNombre(updates.get(NOMBRE));
-            }
-            
-            if (updates.containsKey(APELLIDOS)) {
-                usuario.setApellidos(updates.get(APELLIDOS));
-            }
-            if (updates.containsKey("foto")) {
-                usuario.setFoto(updates.get("foto"));
-            }
-            
-            logger.info("💾 Guardando usuario - sesionstoken count: {}", (usuario.sesionstoken != null ? usuario.sesionstoken.size() : "null"));
-            // Guardar en MongoDB
-            Usuario updatedUsuario = usuarioRepository.save(usuario);
-            
-            logger.info("✅ Usuario guardado - sesionstoken count: {}", (updatedUsuario.sesionstoken != null ? updatedUsuario.sesionstoken.size() : "null"));
-            // Construir respuesta con _class incluido (igual que en login)
-            Map<String, Object> response = new HashMap<>();
-            response.put("_id", updatedUsuario.getId());
-            response.put(NOMBRE, updatedUsuario.getNombre());
-            response.put(APELLIDOS, updatedUsuario.getApellidos());
-            response.put(EMAIL, updatedUsuario.getEmail());
-        
-            response.put("foto", updatedUsuario.getFoto());
-            response.put(BLOQUEADO, updatedUsuario.isBloqueado());
-            response.put("_class", updatedUsuario.getClass().getName());
-            if (updatedUsuario instanceof Administrador administrador) {
-                response.put(DEPARTAMENTO, administrador.getDepartamento());
-            }
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error al actualizar perfil: " + e.getMessage());
-        }
-    }*/
-
     @PutMapping("/{id}/profile")
-    @CrossOrigin(origins = "*")
     public ResponseEntity<?> updateProfile(@PathVariable String id, @RequestBody Map<String, Object> updates) {
         String tipo = (String) updates.get("tipo");
         Map<String, Object> userUpdates = (Map<String, Object>) updates.get("userData");
@@ -333,7 +450,7 @@ public class UsuarioController {
                 }
                 
                 long duration = System.currentTimeMillis() - startTime;
-                response.put("mensaje", "Usuario eliminado correctamente");
+                response.put(MSG, "Usuario eliminado correctamente");
                 response.put("tiempoEjecucion", duration + "ms");
                 return ResponseEntity.ok(response);
             } else {
@@ -347,6 +464,62 @@ public class UsuarioController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
+
+
+    /**
+     * Método de ayuda para obtener la del cliente
+     */
+    private String getClientIp(HttpServletRequest request) {
+        String remoteAddr = "";
+        if (request != null) {
+            remoteAddr = request.getHeader("X-FORWARDED-FOR");
+            if (remoteAddr == null || "".equals(remoteAddr)) {
+                remoteAddr = request.getRemoteAddr();
+            }
+        }
+        return remoteAddr;
+    }
+
+    @PostMapping("/login")
+public ResponseEntity<?> login(@RequestBody Map<String, String> loginData, 
+                                HttpServletRequest request, // Ya existe
+                                HttpServletResponse response) {
+    
+    Map<String, Object> res; // Se inicializa aquí para que esté disponible en todo el método
+    String ipAddress = getClientIp(request);
+    
+    try {
+        Usuario loggedInUser = userService.login(loginData, ipAddress);
+        
+        if (loggedInUser == null){
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Credenciales inválidas");
+        }
+        else if(loggedInUser.isBloqueado()){
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Usuario bloqueado, hable con su administrador");
+        }
+
+        if (loggedInUser.getSesionstoken() != null ) {
+            String tokenValue = loggedInUser.getSesionstoken().getToken();
+
+            String cookieValue = String.format(
+                COOKIE_FORMAT, 
+                tokenValue
+            );
+
+            response.addHeader(SET_COOKIE_HEADER, cookieValue); 
+        }
+
+        res =  Map.of(
+            "tipo", loggedInUser.getClass().getSimpleName(),
+            "usuario", loggedInUser
+        );
+        
+        return ResponseEntity.status(HttpStatus.OK).body(res);
+    } catch (ResponseStatusException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+    }
+}
+
 }
     
 

@@ -4,7 +4,10 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
+import iso25.g05.esi_media.model.Contenido;
 
 /**
  * Clase Visualizador que extiende Usuario.
@@ -24,6 +27,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * NO necesita @Document porque Usuario ya lo tiene.
  * Spring Data MongoDB usará el discriminador _class para identificar el tipo.
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Visualizador extends Usuario {
 
     private String alias;
@@ -31,9 +35,13 @@ public class Visualizador extends Usuario {
     @JsonProperty("fechanac")
     private Date fechanac;
     private boolean vip;
+    private java.util.Date fechacambiosuscripcion;
+    @org.springframework.data.mongodb.core.mapping.DBRef
+    @JsonIgnoreProperties({"usuario"})
     public List<Lista> listasprivadas = new ArrayList<>();
+    
+    @org.springframework.data.mongodb.core.mapping.DBRef
     public List<Contenido> contenidofav = new ArrayList<>();
-
     // Constructor vacío requerido por MongoDB
     public Visualizador() {
         super();
@@ -77,5 +85,21 @@ public class Visualizador extends Usuario {
 
     public void setVip(boolean v) {
         vip = v;
+    }
+
+    public java.util.Date getFechacambiosuscripcion() {
+        return fechacambiosuscripcion;
+    }
+
+    public void setFechacambiosuscripcion(java.util.Date d) {
+        this.fechacambiosuscripcion = d;
+    }
+
+    public List<Contenido> getContenidofav() {
+        return contenidofav;
+    }
+
+    public void setContenidofav(List<Contenido> contenidofav) {
+        this.contenidofav = contenidofav != null ? contenidofav : new ArrayList<>();
     }
 }

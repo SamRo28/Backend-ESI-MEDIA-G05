@@ -24,24 +24,37 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
-/**
- * Tests para BloqueoUsuarioController siguiendo TDD
- * Historia de Usuario: Como administrador, quiero poder bloquear/desbloquear usuarios
- */
 @ExtendWith(MockitoExtension.class)
 public class BloqueoUsuarioControllerTest {
 
-    @Mock
-    private UsuarioRepository usuarioRepository;
-
+    /**
+     * Pruebas TDD (unitarias) para la Historia de Usuario: "Bloquear/Desbloquear usuarios" sobre el controlador.
+     *
+     * Criterios de Aceptación cubiertos en este test unitario:
+     * 1) Bloqueo exitoso: 200 y persistencia (bloqueado=true) + auditoría
+     * 2) Desbloqueo exitoso: 200 y persistencia (bloqueado=false) + auditoría
+     * 3) Requiere Admin-ID: 401 si falta
+     * 4) Admin-ID inválido o no administrador: 403
+     * 5) Usuario objetivo no encontrado: 404 (bloquear y desbloquear)
+     * 6) No se puede bloquear dos veces: 400
+     * 7) No se puede desbloquear dos veces: 400
+     * 8) Evitar autobloqueo (admin no puede bloquearse): 400
+     * 9) Se permite bloquear a otro Administrador (política definida): 200
+     * 10) Errores de persistencia (save lanza excepción): 500 con mensaje genérico
+     */
     @Mock
     private LogService logService;
+    @Mock
+    private UsuarioRepository usuarioRepository;
 
     @InjectMocks
     private BloqueoUsuarioController bloqueoController;
 
     private Administrador adminAutenticado;
     private Visualizador usuarioABloquear;
+
+
+    // Crear dos objetos Usuario para pruebas
 
     @BeforeEach
     void setUp() {
@@ -59,22 +72,23 @@ public class BloqueoUsuarioControllerTest {
         );
         usuarioABloquear.setId("user-id-456");
     }
+    
 
-    // ========== TESTS PARA BLOQUEAR USUARIO ==========
+    // Test exitoso de bloqueo de usuario
 
     @Test
     void testBloquearUsuario_Exitoso() {
-        // Given: Admin autenticado y usuario no bloqueado
+        // Arrange: Admin autenticado y usuario no bloqueado
         when(usuarioRepository.findById("admin-id-123")).thenReturn(Optional.of(adminAutenticado));
         when(usuarioRepository.findById("user-id-456")).thenReturn(Optional.of(usuarioABloquear));
         when(usuarioRepository.save(any(Usuario.class))).thenReturn(usuarioABloquear);
 
-        // When: Bloquear usuario
+        // Act: Bloquear usuario
         ResponseEntity<Map<String, String>> response = bloqueoController.bloquearUsuario(
             "user-id-456", "admin-id-123"
         );
 
-        // Then: Usuario bloqueado correctamente
+        // Assert: Usuario bloqueado correctamente
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
         assertEquals("Usuario bloqueado correctamente", response.getBody().get("mensaje"));
@@ -91,14 +105,16 @@ public class BloqueoUsuarioControllerTest {
         );
     }
 
+    // Test de bloqueo cuando el usuario ya está bloqueado
+
     @Test
     void testBloquearUsuario_SinAdminId() {
-        // When: Intentar bloquear sin Admin-ID
+        // Act: Intentar bloquear sin Admin-ID
         ResponseEntity<Map<String, String>> response = bloqueoController.bloquearUsuario(
             "user-id-456", null
         );
 
-        // Then: Error 401
+        // Assert: Error 401
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
         assertNotNull(response.getBody());
         assertTrue(response.getBody().get("error").contains("autenticación de administrador"));
@@ -108,52 +124,84 @@ public class BloqueoUsuarioControllerTest {
         verify(logService, never()).registrarBloqueoUsuario(any(), any(), any(), any());
     }
 
+    // Test de bloqueo cuando el admin no existe
+
     @Test
     void testBloquearUsuario_AdminNoExiste() {
-        // Given: Admin no existe
+        // Arrange: Admin no existe
         when(usuarioRepository.findById("admin-id-123")).thenReturn(Optional.empty());
 
-        // When: Intentar bloquear
+        // Act: Intentar bloquear
         ResponseEntity<Map<String, String>> response = bloqueoController.bloquearUsuario(
             "user-id-456", "admin-id-123"
         );
 
-        // Then: Error 403
+        // Assert: Error 403
         assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
         assertNotNull(response.getBody());
         assertTrue(response.getBody().get("error").contains("administrador"));
     }
 
+    // Test de bloqueo cuando el admin no es administrador
+
+    @Test
+    void testBloquearUsuario_AdminNoEsAdministrador() {
+        // Arrange: El id del "admin" corresponde a un usuario no administrador
+        Contrasenia contrNoAdmin = new Contrasenia(null, null, "noadmin123", null);
+        Visualizador noAdmin = new Visualizador(
+            "User", false, contrNoAdmin, "noadmin@test.com", null, "NoAdmin", "aliasNA", new Date(), false
+        );
+        noAdmin.setId("no-admin-id");
+
+        when(usuarioRepository.findById("no-admin-id")).thenReturn(Optional.of(noAdmin));
+
+        // Act
+        ResponseEntity<Map<String, String>> response = bloqueoController.bloquearUsuario(
+            "user-id-456", "no-admin-id"
+        );
+
+        // Assert: 403 Solo administradores
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertTrue(response.getBody().get("error").contains("Solo administradores"));
+        verify(usuarioRepository, never()).save(any());
+        verify(logService, never()).registrarBloqueoUsuario(any(), any(), any(), any());
+    }
+
+    // Test de bloqueo cuando el usuario no existe
+
     @Test
     void testBloquearUsuario_UsuarioNoExiste() {
-        // Given: Admin existe pero usuario no
+        // Arrange: Admin existe pero usuario no
         when(usuarioRepository.findById("admin-id-123")).thenReturn(Optional.of(adminAutenticado));
         when(usuarioRepository.findById("user-id-456")).thenReturn(Optional.empty());
 
-        // When: Intentar bloquear
+        // Act: Intentar bloquear
         ResponseEntity<Map<String, String>> response = bloqueoController.bloquearUsuario(
             "user-id-456", "admin-id-123"
         );
 
-        // Then: Error 404
+        // Assert: Error 404
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
         assertNotNull(response.getBody());
         assertTrue(response.getBody().get("error").contains("Usuario no encontrado"));
     }
 
+    // Test de bloqueo cuando el usuario ya está bloqueado
+
     @Test
     void testBloquearUsuario_YaBloqueado() {
-        // Given: Usuario ya está bloqueado
+        // Arrange: Usuario ya está bloqueado
         usuarioABloquear.setBloqueado(true);
         when(usuarioRepository.findById("admin-id-123")).thenReturn(Optional.of(adminAutenticado));
         when(usuarioRepository.findById("user-id-456")).thenReturn(Optional.of(usuarioABloquear));
 
-        // When: Intentar bloquear de nuevo
+        // Act: Intentar bloquear de nuevo
         ResponseEntity<Map<String, String>> response = bloqueoController.bloquearUsuario(
             "user-id-456", "admin-id-123"
         );
 
-        // Then: Error 400
+        // Assert: Error 400
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertNotNull(response.getBody());
         assertTrue(response.getBody().get("error").contains("ya está bloqueado"));
@@ -163,20 +211,22 @@ public class BloqueoUsuarioControllerTest {
 
     // ========== TESTS PARA DESBLOQUEAR USUARIO ==========
 
+    // Test exitoso de desbloqueo de usuario
+
     @Test
     void testDesbloquearUsuario_Exitoso() {
-        // Given: Admin autenticado y usuario bloqueado
+        // Arrange: Admin autenticado y usuario bloqueado
         usuarioABloquear.setBloqueado(true);
         when(usuarioRepository.findById("admin-id-123")).thenReturn(Optional.of(adminAutenticado));
         when(usuarioRepository.findById("user-id-456")).thenReturn(Optional.of(usuarioABloquear));
         when(usuarioRepository.save(any(Usuario.class))).thenReturn(usuarioABloquear);
 
-        // When: Desbloquear usuario
+        // Act: Desbloquear usuario
         ResponseEntity<Map<String, String>> response = bloqueoController.desbloquearUsuario(
             "user-id-456", "admin-id-123"
         );
 
-        // Then: Usuario desbloqueado correctamente
+        // Assert: Usuario desbloqueado correctamente
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
         assertEquals("Usuario desbloqueado correctamente", response.getBody().get("mensaje"));
@@ -193,19 +243,21 @@ public class BloqueoUsuarioControllerTest {
         );
     }
 
+    // Test de desbloqueo cuando el usuario no está bloqueado
+
     @Test
     void testDesbloquearUsuario_NoEstaBloqueado() {
-        // Given: Usuario NO está bloqueado
+        // Arrange: Usuario NO está bloqueado
         usuarioABloquear.setBloqueado(false);
         when(usuarioRepository.findById("admin-id-123")).thenReturn(Optional.of(adminAutenticado));
         when(usuarioRepository.findById("user-id-456")).thenReturn(Optional.of(usuarioABloquear));
 
-        // When: Intentar desbloquear
+        // Act: Intentar desbloquear
         ResponseEntity<Map<String, String>> response = bloqueoController.desbloquearUsuario(
             "user-id-456", "admin-id-123"
         );
 
-        // Then: Error 400
+        // Assert: Error 400
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertNotNull(response.getBody());
         assertTrue(response.getBody().get("error").contains("no está bloqueado"));
@@ -213,15 +265,100 @@ public class BloqueoUsuarioControllerTest {
         verify(usuarioRepository, never()).save(any());
     }
 
+    // Test de desbloqueo sin Admin-ID
+
     @Test
     void testDesbloquearUsuario_SinAdminId() {
-        // When: Intentar desbloquear sin Admin-ID
+        // Act: Intentar desbloquear sin Admin-ID
         ResponseEntity<Map<String, String>> response = bloqueoController.desbloquearUsuario(
             "user-id-456", null
         );
 
-        // Then: Error 401
+        // Assert: Error 401
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
         verify(usuarioRepository, never()).save(any());
     }
+
+    // Test de desbloqueo cuando el admin no existe
+
+    @Test
+    void testDesbloquearUsuario_AdminNoExiste() {
+        // Arrange: Admin no existe en BD
+        when(usuarioRepository.findById("admin-id-123")).thenReturn(Optional.empty());
+
+        // Act
+        ResponseEntity<Map<String, String>> response = bloqueoController.desbloquearUsuario(
+            "user-id-456", "admin-id-123"
+        );
+
+        // Assert: 403
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertTrue(response.getBody().get("error").contains("Solo administradores"));
+        verify(usuarioRepository, never()).save(any());
+        verify(logService, never()).registrarDesbloqueoUsuario(any(), any(), any(), any());
+    }
+
+    // Test de desbloqueo cuando el usuario no existe
+
+    @Test
+    void testDesbloquearUsuario_UsuarioNoExiste() {
+        // Arrange: Admin existe pero usuario objetivo no
+        usuarioABloquear.setBloqueado(true);
+        when(usuarioRepository.findById("admin-id-123")).thenReturn(Optional.of(adminAutenticado));
+        when(usuarioRepository.findById("user-id-456")).thenReturn(Optional.empty());
+
+        // Act
+        ResponseEntity<Map<String, String>> response = bloqueoController.desbloquearUsuario(
+            "user-id-456", "admin-id-123"
+        );
+
+        // Assert: 404 Usuario no encontrado
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertTrue(response.getBody().get("error").contains("Usuario no encontrado"));
+        verify(usuarioRepository, never()).save(any());
+    }
+
+    // Test de bloqueo cuando hay error de persistencia (simulado lanzando excepción)
+
+    @Test
+    void testBloquearUsuario_ErrorPersistenciaDevuelve500() {
+        // Arrange: Admin y usuario válidos pero save lanza excepción
+        when(usuarioRepository.findById("admin-id-123")).thenReturn(Optional.of(adminAutenticado));
+        when(usuarioRepository.findById("user-id-456")).thenReturn(Optional.of(usuarioABloquear));
+        when(usuarioRepository.save(any(Usuario.class))).thenThrow(new RuntimeException("Fallo BD"));
+
+        // Act
+        ResponseEntity<Map<String, String>> response = bloqueoController.bloquearUsuario(
+            "user-id-456", "admin-id-123"
+        );
+
+        // Assert: 500 y mensaje de error
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertTrue(response.getBody().get("error").contains("Error al bloquear usuario"));
+    }
+
+    // Test de desbloqueo cuando hay error de persistencia (simulado lanzando excepción)
+
+    @Test
+    void testDesbloquearUsuario_ErrorPersistenciaDevuelve500() {
+        // Arrange: Admin y usuario válidos, usuario bloqueado, pero save lanza excepción
+        usuarioABloquear.setBloqueado(true);
+        when(usuarioRepository.findById("admin-id-123")).thenReturn(Optional.of(adminAutenticado));
+        when(usuarioRepository.findById("user-id-456")).thenReturn(Optional.of(usuarioABloquear));
+        when(usuarioRepository.save(any(Usuario.class))).thenThrow(new RuntimeException("Fallo BD"));
+
+        // Act
+        ResponseEntity<Map<String, String>> response = bloqueoController.desbloquearUsuario(
+            "user-id-456", "admin-id-123"
+        );
+
+        // Assert: 500 y mensaje
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertTrue(response.getBody().get("error").contains("Error al desbloquear usuario"));
+    }
 }
+

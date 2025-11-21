@@ -5,7 +5,11 @@ import java.util.Date;
 import java.util.List;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 /**
  * Clase base para usuarios del sistema (Visualizador, Administrador, Gestor).
@@ -23,6 +27,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
  * - @JsonIgnore: Evita la serialización circular en JSON cuando hay relaciones bidireccionales
  */
 @Document(collection = "users") // Define que esta clase se guardará en la colección "users" de MongoDB
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Usuario {
     
     /**
@@ -34,34 +39,43 @@ public class Usuario {
 
     protected String nombre;
     protected String apellidos;
+
+    @Indexed(unique = true, sparse = true)
     protected String email;
+    
     protected Object foto;
     protected boolean bloqueado;
 
 
+    @JsonIgnore
     public List<Codigorecuperacion> codigosrecuperacion = new ArrayList<>();
     
-
-    public List<Token> sesionstoken = new ArrayList<>();
+    @JsonIgnore
+    public Token sesionstoken;
 
     @org.springframework.data.mongodb.core.mapping.DBRef
+    @JsonIgnore
     public Contrasenia contrasenia;
 
     protected Date fecharegistro;
 
+    @JsonIgnore
     private String secretkey;
     
     private boolean twoFactorAutenticationEnabled;
     private boolean threeFactorAutenticationEnabled;
 
+    // Activación por email
+    protected String activationToken;
+    protected boolean hasActivated;
+
     // Constructor vacío requerido por MongoDB
     public Usuario() {
         this.codigosrecuperacion = new ArrayList<>();
-        this.sesionstoken = new ArrayList<>();
         this.fecharegistro = new Date();
     }
 
-    public Usuario(String apellidos, boolean bloqueado, String email, Object foto, String nombre, Date fechaRegistro) {
+    public Usuario(String apellidos, boolean bloqueado, String email, Object foto, String nombre, Date fechaRegistro, Token token) {
         this.apellidos = apellidos;
         this.bloqueado = bloqueado;
         this.email = email;
@@ -70,13 +84,13 @@ public class Usuario {
         this.fecharegistro = fechaRegistro;
         // Inicializar listas
         this.codigosrecuperacion = new ArrayList<>();
-        this.sesionstoken = new ArrayList<>();
+        this.sesionstoken = token;
         // contrasenia se inicializa como null (será asignada por separado)
     }
 
      // Constructor sin fecha de registro (se asigna automáticamente)
-    public Usuario(String apellidos, boolean bloqueado, String email, Object foto, String nombre) {
-        this(apellidos, bloqueado, email, foto, nombre, new Date());
+    public Usuario(String apellidos, boolean bloqueado, String email, Object foto, String nombre, Token token) {
+        this(apellidos, bloqueado, email, foto, nombre, new Date(), token);
     }
 
     public Usuario(String apellidos, boolean bloqueado, Contrasenia contrasenia, String email, Object foto, String nombre, Date fecharegistro) {
@@ -181,11 +195,11 @@ public class Usuario {
         this.codigosrecuperacion = codigosrecuperacion;
     }
 
-    public List<Token> getSesionstoken() {
+    public Token getSesionstoken() {
         return sesionstoken;
     }
 
-    public void setSesionstoken(List<Token> sesionstoken) {
+    public void setSesionstoken(Token sesionstoken) {
         this.sesionstoken = sesionstoken;
     }
 
@@ -197,6 +211,21 @@ public class Usuario {
         this.secretkey = secretkey;
     }
 
+    public String getActivationToken() {
+        return activationToken;
+    }
+
+    public void setActivationToken(String activationToken) {
+        this.activationToken = activationToken;
+    }
+
+    public boolean isHasActivated() {
+        return hasActivated;
+    }
+
+    public void setHasActivated(boolean hasActivated) {
+        this.hasActivated = hasActivated;
+    }
 
 
 }

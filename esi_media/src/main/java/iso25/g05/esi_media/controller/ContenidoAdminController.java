@@ -7,12 +7,12 @@ import org.bson.types.ObjectId;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.CookieValue;
 
 import java.util.*;
 
 @RestController
 @RequestMapping("/contenidos")
-@CrossOrigin(origins = "*")
 public class ContenidoAdminController {
 
     private final UsuarioRepository usuarioRepository;
@@ -21,6 +21,15 @@ public class ContenidoAdminController {
     private final AudioRepository audioRepository;         // Audios (colecciÃƒÂ³n audios)
     private final GestorDeContenidoRepository gestorRepository;
     private final LogService logService;
+
+    private String ERROR = "error";
+    private String TITULO = "titulo";
+    private String VIDEO = "Video";
+    private String GN = "gestorNombre";
+    private String AUDIO = "Audio";
+    private String DESC = "descripcion";
+    private String DUR = "duracion";
+
 
     public ContenidoAdminController(UsuarioRepository usuarioRepository,
                                     ContenidoRepository contenidoRepository,
@@ -40,63 +49,39 @@ public class ContenidoAdminController {
     public ResponseEntity<?> listar(@RequestHeader(value = "Admin-ID", required = false) String adminId) {
         if (adminId == null || adminId.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "No autorizado. Se requiere Admin-ID"));
+                    .body(Map.of(ERROR, "No autorizado. Se requiere Admin-ID"));
         }
         // Validar formato de ID para evitar 500 si no es ObjectId
         if (!ObjectId.isValid(adminId)) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", "Admin-ID invÃƒÂ¡lido"));
+                    .body(Map.of(ERROR, "Admin-ID invÃƒÂ¡lido"));
         }
 
         Optional<Usuario> adminOpt = usuarioRepository.findById(adminId);
         if (adminOpt.isEmpty() || !(adminOpt.get() instanceof Administrador)) {
             logService.registrarAccesoNoAutorizado(adminId, "Listado contenidos");
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("error", "Acceso denegado. Solo administradores"));
+                    .body(Map.of(ERROR, "Acceso denegado. Solo administradores"));
         }
 
         List<Map<String, Object>> resultado = new ArrayList<>();
 
-        // Videos (colecciÃƒÂ³n 'contenidos')
+        // Procesamos solo la colección 'contenidos' que contiene todo (Audio y Video)
         try {
             for (Contenido c : contenidoRepository.findAll()) {
                 Map<String, Object> item = new HashMap<>();
                 item.put("id", c.getId());
-                item.put("titulo", c.gettitulo());
-                item.put("tipo", "Video");
-                item.put("gestorNombre", resolverGestorNombre(c.getgestorId()));
+                item.put(TITULO, c.gettitulo());
+                
+                // Determinamos el tipo basándose en las propiedades específicas del objeto
+                String tipo = determinarTipoContenido(c);
+                item.put("tipo", tipo);
+                
+                item.put(GN, resolverGestorNombre(c.getgestorId()));
                 resultado.add(item);
             }
         } catch (Exception e) {
-            System.err.println("[ContenidoAdminController] Error listando videos: " + e.getMessage());
-        }
-
-        // Videos (colecciÃƒÂ³n 'videos')
-        try {
-            for (Video v : videoRepository.findAll()) {
-                Map<String, Object> item = new HashMap<>();
-                item.put("id", v.getId());
-                item.put("titulo", v.gettitulo());
-                item.put("tipo", "Video");
-                item.put("gestorNombre", resolverGestorNombre(v.getgestorId()));
-                resultado.add(item);
-            }
-        } catch (Exception e) {
-            System.err.println("[ContenidoAdminController] Error listando videos (colecciÃƒÂ³n videos): " + e.getMessage());
-        }
-
-        // Audios (colecciÃƒÂ³n 'audios')
-        try {
-            for (Audio a : audioRepository.findAll()) {
-                Map<String, Object> item = new HashMap<>();
-                item.put("id", a.getId());
-                item.put("titulo", a.gettitulo());
-                item.put("tipo", "Audio");
-                item.put("gestorNombre", resolverGestorNombre(a.getgestorId()));
-                resultado.add(item);
-            }
-        } catch (Exception e) {
-            System.err.println("[ContenidoAdminController] Error listando audios: " + e.getMessage());
+            System.err.println("[ContenidoAdminController] Error listando contenidos: " + e.getMessage());
         }
 
                 System.out.println("[ContenidoAdminController] Total contenidos a devolver: " + resultado.size());
@@ -108,40 +93,40 @@ public class ContenidoAdminController {
                                      @RequestHeader(value = "Admin-ID", required = false) String adminId) {
         if (adminId == null || adminId.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "No autorizado. Se requiere Admin-ID"));
+                    .body(Map.of(ERROR, "No autorizado. Se requiere Admin-ID"));
         }
         Optional<Usuario> adminOpt = usuarioRepository.findById(adminId);
         if (adminOpt.isEmpty() || !(adminOpt.get() instanceof Administrador)) {
             logService.registrarAccesoNoAutorizado(adminId, "Detalle contenido: " + id);
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("error", "Acceso denegado. Solo administradores"));
+                    .body(Map.of(ERROR, "Acceso denegado. Solo administradores"));
         }
 
         // Buscar primero en videos (colecciÃƒÂ³n contenidos)
         Optional<Contenido> cOpt = contenidoRepository.findById(id);
         if (cOpt.isPresent()) {
             Contenido c = cOpt.get();
-            return ResponseEntity.ok(mapearDetalle(c, "Video"));
+            return ResponseEntity.ok(mapearDetalle(c, VIDEO));
         }
 
         // Luego en audios
         Optional<Audio> aOpt = audioRepository.findById(id);
         if (aOpt.isPresent()) {
             Audio a = aOpt.get();
-            return ResponseEntity.ok(mapearDetalle(a, "Audio"));
+            return ResponseEntity.ok(mapearDetalle(a, AUDIO));
         }
 
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(Map.of("error", "Contenido no encontrado"));
+                .body(Map.of(ERROR, "Contenido no encontrado"));
     }
 
     private Map<String, Object> mapearDetalle(Contenido c, String tipo) {
         Map<String, Object> d = new HashMap<>();
         d.put("id", c.getId());
-        d.put("titulo", c.gettitulo());
+        d.put(TITULO, c.gettitulo());
         d.put("tipo", tipo);
-        d.put("descripcion", c.getdescripcion());
-        d.put("duracion", c.getduracion());
+        d.put(DESC, c.getdescripcion());
+        d.put(DUR, c.getduracion());
         if (c instanceof Video v) {
             d.put("resolucion", v.getresolucion());
             d.put("url", v.geturl());
@@ -149,8 +134,135 @@ public class ContenidoAdminController {
         d.put("vip", c.isvip());
         d.put("edadMinima", c.getedadvisualizacion());
         d.put("gestorId", c.getgestorId());
-        d.put("gestorNombre", resolverGestorNombre(c.getgestorId()));
+        d.put(GN, resolverGestorNombre(c.getgestorId()));
         return d;
+    }
+
+    /**
+     * Busca contenidos por titulo para usuarios normales (para crear listas)
+     * No requiere Admin-ID, solo token de usuario válido
+     */
+    @GetMapping("/buscar")
+    public ResponseEntity<?> buscarContenidos(
+            @RequestParam String query,
+            @RequestParam(defaultValue = "10") int limit,
+            @CookieValue(value = "SESSION_TOKEN", required = false) String token) {
+        
+        // Validar que el token esté presente (básico)
+        if (token == null || token.isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of(ERROR, "Token de autorización requerido"));
+        }
+        
+        // Validar query
+        if (query == null || query.trim().length() < 2) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of(ERROR, "El query debe tener al menos 2 caracteres"));
+        }
+        
+        // Limitar resultados
+        if (limit <= 0 || limit > 50) limit = 10;
+        
+        List<Map<String, Object>> resultado = new ArrayList<>();
+        String queryLower = query.toLowerCase();
+        
+        try {
+            // Buscar en contenidos (videos base) usando query optimizada
+            List<Contenido> contenidos = contenidoRepository.findByTituloContainingIgnoreCase(query);
+            contenidos.stream()
+                .limit(limit)
+                .forEach(c -> {
+                    Map<String, Object> item = new HashMap<>();
+                    item.put("id", c.getId());
+                    item.put(TITULO, c.gettitulo());
+                    item.put("tipo", VIDEO);
+                    item.put(DESC, c.getdescripcion());
+                    item.put(DUR, c.getduracion());
+                    resultado.add(item);
+                });
+                
+            // Si necesitamos más resultados, buscar en videos específicos
+            if (resultado.size() < limit) {
+                int remaining = limit - resultado.size();
+                // Nota: VideoRepository y AudioRepository necesitarían métodos similares
+                // Por simplicidad, usamos findAll con filtro por ahora
+                videoRepository.findAll().stream()
+                    .filter(v -> v.gettitulo() != null && 
+                               v.gettitulo().toLowerCase().contains(queryLower))
+                    .limit(remaining)
+                    .forEach(v -> {
+                        Map<String, Object> item = new HashMap<>();
+                        item.put("id", v.getId());
+                        item.put(TITULO, v.gettitulo());
+                        item.put("tipo", VIDEO);
+                        item.put(DESC, v.getdescripcion());
+                        item.put(DUR, v.getduracion());
+                        item.put("resolucion", v.getresolucion());
+                        resultado.add(item);
+                    });
+            }
+            
+            // Si necesitamos más resultados, buscar en audios
+            if (resultado.size() < limit) {
+                int remaining = limit - resultado.size();
+                audioRepository.findAll().stream()
+                    .filter(a -> a.gettitulo() != null && 
+                               a.gettitulo().toLowerCase().contains(queryLower))
+                    .limit(remaining)
+                    .forEach(a -> {
+                        Map<String, Object> item = new HashMap<>();
+                        item.put("id", a.getId());
+                        item.put(TITULO, a.gettitulo());
+                        item.put("tipo", AUDIO);
+                        item.put(DESC, a.getdescripcion());
+                        item.put(DUR, a.getduracion());
+                        resultado.add(item);
+                    });
+            }
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("mensaje", "Búsqueda completada exitosamente");
+            response.put("contenidos", resultado);
+            response.put("total", resultado.size());
+            response.put("query", query);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of(ERROR, "Error interno del servidor"));
+        }
+    }
+
+    /**
+     * Determina el tipo de contenido basándose en sus propiedades específicas
+     */
+    private String determinarTipoContenido(Contenido c) {
+        // Si es una instancia de Video, tiene url y resolucion
+        if (c instanceof Video) {
+            return VIDEO;
+        }
+        // Si es una instancia de Audio, tiene fichero y mimeType
+        if (c instanceof Audio) {
+            return AUDIO;
+        }
+        
+        // Como fallback, podemos usar reflexión para detectar propiedades específicas
+        try {
+            // Intentamos acceder al método geturl() (específico de Video)
+            c.getClass().getMethod("geturl");
+            return VIDEO;
+        } catch (NoSuchMethodException e1) {
+            try {
+                // Intentamos acceder al método getfichero() (específico de Audio)
+                c.getClass().getMethod("getfichero");
+                return AUDIO;
+            } catch (NoSuchMethodException e2) {
+                // Por defecto, si no podemos determinar, asumimos que es Video
+                return VIDEO;
+            }
+        }
     }
 
     private String resolverGestorNombre(String gestorId) {

@@ -53,7 +53,7 @@ public class AudioUploadDTO {
     @NotNull(message = "El archivo de audio es obligatorio")
     private MultipartFile archivo;
     
-    private Object caratula;
+    private MultipartFile caratula;
     
     // Constructor por defecto
     public AudioUploadDTO() {}
@@ -131,11 +131,11 @@ public class AudioUploadDTO {
         this.visible = visible;
     }
     
-    public Object getCaratula() {
+    public MultipartFile getCaratula() {
         return caratula;
     }
     
-    public void setCaratula(Object caratula) {
+    public void setCaratula(MultipartFile caratula) {
         this.caratula = caratula;
     }
 }

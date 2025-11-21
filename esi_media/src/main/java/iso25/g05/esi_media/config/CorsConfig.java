@@ -1,63 +1,51 @@
 package iso25.g05.esi_media.config;
 
 
-/**
- * Configuración de CORS para permitir comunicación con el frontend Angular
- 
-@Configuration
-public class CorsConfig implements WebMvcConfigurer {
-    
-    @Override
-    public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/**")
-                .allowedOrigins("*") // Cuando esté en producción, especificar SOLO el dominio del frontend
-                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-                .allowedHeaders("*")
-                .maxAge(3600);
-      
-      COMENTADO PARA NO CAUSAR CONFLICTO TEMPORALMENTE*/
+import java.util.Arrays;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-
-import java.util.Arrays;
 
 @Configuration
 public class CorsConfig implements WebMvcConfigurer {
 
+    @Autowired
+    private LoggingInterceptor loggingInterceptor; // <-- 1. Inyecta el interceptor
+
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/api/**")
-                .allowedOriginPatterns("http://localhost:*")
+        // Configuración global para todos los endpoints
+        registry.addMapping("/**")
+                .allowedOrigins("http://localhost:4200", "https://esi-media-1c5d6.web.app")
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
-                .allowCredentials(false);
+                .allowCredentials(true);
+    }
 
-                
-        registry.addMapping("/gestor/**")
-                .allowedOriginPatterns("http://localhost:*")
-                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-                .allowedHeaders("*")
-                .allowCredentials(false);
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) { // <-- 2. AÑADE ESTE MÉTODO
+        registry.addInterceptor(loggingInterceptor)
+                .addPathPatterns("/**") // Aplica a todas las rutas
+                .excludePathPatterns("/error"); // Opcional: excluye las páginas de error de Spring
     }
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(Arrays.asList("http://localhost:*"));
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:4200", "https://esi-media-1c5d6.web.app"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
-        configuration.setAllowCredentials(false);
+        configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/api/**", configuration);
-        source.registerCorsConfiguration("/gestor/**", configuration);
+        source.registerCorsConfiguration("/**", configuration);
         return source;
-
     }
 }

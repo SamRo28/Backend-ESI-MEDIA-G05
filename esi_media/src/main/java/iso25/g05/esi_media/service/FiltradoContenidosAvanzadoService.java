@@ -1,0 +1,471 @@
+package iso25.g05.esi_media.service;
+
+import iso25.g05.esi_media.dto.ContenidoDTO;
+import iso25.g05.esi_media.dto.TagStatDTO;
+import iso25.g05.esi_media.model.Usuario;
+import iso25.g05.esi_media.model.Visualizador;
+import iso25.g05.esi_media.repository.UsuarioRepository;
+
+import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.aggregation.Aggregation;
+import org.springframework.data.mongodb.core.aggregation.AggregationResults;
+import org.springframework.data.mongodb.core.aggregation.MatchOperation;
+import org.springframework.data.mongodb.core.aggregation.SortOperation;
+import org.springframework.data.mongodb.core.aggregation.LimitOperation;
+import org.springframework.data.mongodb.core.aggregation.ProjectionOperation;
+import org.springframework.data.mongodb.core.aggregation.UnwindOperation;
+import org.springframework.data.mongodb.core.aggregation.GroupOperation;
+import org.springframework.data.mongodb.core.query.Criteria;
+
+import java.util.*;
+import org.bson.types.ObjectId;
+import java.util.stream.Collectors;
+
+/**
+ * Servicio para el filtrado avanzado de contenidos
+ * Implementa las funcionalidades de TOP contenidos y TOP tags
+ */
+@Service
+public class FiltradoContenidosAvanzadoService {
+    private static final Logger logger = LoggerFactory.getLogger(FiltradoContenidosAvanzadoService.class);
+
+    private static final String FIELD_ESTADO = "estado";
+    private static final String FIELD_URL = "url";
+    private static final String FIELD_MIME_TYPE = "mimeType";
+    private static final String FIELD_EDAD_VISUALIZACION = "edadvisualizacion";
+    private static final String FIELD_NVISUALIZACIONES = "nvisualizaciones";
+    private static final String FIELD_TAGS = "tags";
+    private static final String FIELD_RESOLUCION = "resolucion";
+    private static final String FIELD_ID = "id";
+    private static final String FIELD_UNDERSCORE_ID = "_id";
+    private static final String FIELD_TITULO = "titulo";
+    private static final String FIELD_DESCRIPCION = "descripcion";
+    private static final String COLLECTION_CONTENIDOS = "contenidos";
+    private static final String TAG_ALIAS = "tag";
+    private static final String VIEWS_ALIAS = "views";
+    private static final String TOTAL_VIEWS_ALIAS = "totalViews";
+    private static final String TYPE_VIDEO = "video";
+    private static final String TYPE_AUDIO = "audio";
+    private static final String TYPE_ALL = "all";
+    private static final String TYPE_CONTENIDO = "contenido";
+    private final UsuarioRepository usuarioRepository;
+    private final MongoTemplate mongoTemplate;
+    private final ValoracionService valoracionService;
+    
+    public FiltradoContenidosAvanzadoService(UsuarioRepository usuarioRepository,
+                                             MongoTemplate mongoTemplate,
+                                             ValoracionService valoracionService) {
+        this.usuarioRepository = usuarioRepository;
+        this.mongoTemplate = mongoTemplate;
+        this.valoracionService = valoracionService;
+    }
+
+    /**
+     * Obtiene los TOP N contenidos mejor valorados (por promedio de valoraciones)
+     * Se basa en las valoraciones existentes. Contenidos sin valoraciones no se tienen en cuenta.
+     * El comportamiento de filtrado por edad sigue la misma aproximación que `getTopContents`:
+     * calculamos TOP global por promedio y luego aplicamos el post-filter de edad (puede devolver < limit).
+     */
+    public List<ContenidoDTO> getTopRatedContents(int limit, String contentType, String userId) {
+        boolean userIsAdult = isUserAdult(userId);
+
+        List<String> contenidoIds = fetchContenidoIdsWithRatings();
+        if (contenidoIds.isEmpty()) return Collections.emptyList();
+
+        List<Rated> averages = computeAverages(contenidoIds);
+        if (averages.isEmpty()) return Collections.emptyList();
+
+        List<String> topIds = averages.stream()
+            .sorted(Comparator.comparingDouble(Rated::avg).reversed())
+            .limit(limit)
+            .map(Rated::id)
+            .toList();
+
+        if (topIds.isEmpty()) return Collections.emptyList();
+
+        List<ContenidoDTO> contents = fetchContentsByIds(topIds, contentType);
+
+        // Mantener el orden según topIds
+        Map<String, ContenidoDTO> dtoMap = contents.stream()
+            .filter(Objects::nonNull)
+            .collect(Collectors.toMap(ContenidoDTO::getId, d -> d));
+
+        List<ContenidoDTO> finalList = new ArrayList<>();
+        for (String id : topIds) {
+            ContenidoDTO dto = dtoMap.get(id);
+            if (dto != null) finalList.add(dto);
+        }
+
+        if (!userIsAdult) {
+            finalList = finalList.stream().filter(c -> c.getEdadvisualizacion() <= 0).toList();
+        }
+
+        return finalList;
+    }
+
+    private record Rated(String id, double avg) {}
+
+    private List<String> fetchContenidoIdsWithRatings() {
+        MatchOperation matchValoradas = Aggregation.match(Criteria.where("valoracionFinal").ne(null));
+        GroupOperation groupByContenido = Aggregation.group("contenidoId");
+        Aggregation agg = Aggregation.newAggregation(matchValoradas, groupByContenido);
+
+        AggregationResults<Map<String, Object>> grouped = (AggregationResults<Map<String, Object>>) (AggregationResults<?>) mongoTemplate.aggregate(
+            agg, "valoraciones", Map.class
+        );
+
+        return grouped.getMappedResults().stream()
+            .map(row -> {
+                Object idObj = row.get("_id");
+                return idObj == null ? null : idObj.toString();
+            })
+            .filter(Objects::nonNull)
+            .toList();
+    }
+
+    private List<Rated> computeAverages(List<String> contenidoIds) {
+        List<Rated> out = new ArrayList<>();
+        for (String contenidoId : contenidoIds) {
+            try {
+                var avgDto = valoracionService.getAverageRating(contenidoId);
+                if (avgDto != null && avgDto.getRatingsCount() > 0 && avgDto.getAverageRating() != null) {
+                    out.add(new Rated(contenidoId, avgDto.getAverageRating()));
+                }
+            } catch (Exception e) {
+                if (logger.isDebugEnabled()) logger.debug("No se pudo calcular promedio para {}: {}", contenidoId, e.getMessage());
+            }
+        }
+        return out;
+    }
+
+    private List<ContenidoDTO> fetchContentsByIds(List<String> ids, String contentType) {
+        List<Object> idObjects = new ArrayList<>();
+        for (String id : ids) {
+            try {
+                idObjects.add(new ObjectId(id));
+            } catch (IllegalArgumentException ex) {
+                idObjects.add(id);
+            }
+        }
+
+        List<Criteria> criteria = new ArrayList<>();
+        criteria.add(Criteria.where(FIELD_UNDERSCORE_ID).in(idObjects));
+        criteria.add(Criteria.where(FIELD_ESTADO).is(true));
+
+        if (!TYPE_ALL.equals(contentType)) {
+            if (TYPE_VIDEO.equals(contentType)) {
+                criteria.add(Criteria.where(FIELD_URL).exists(true));
+            } else if (TYPE_AUDIO.equals(contentType)) {
+                criteria.add(Criteria.where(FIELD_MIME_TYPE).exists(true));
+            }
+        }
+
+        MatchOperation matchOperation = Aggregation.match(new Criteria().andOperator(criteria.toArray(new Criteria[0])));
+        ProjectionOperation projectionOperation = Aggregation.project()
+            .and(FIELD_UNDERSCORE_ID).as(FIELD_ID)
+            .and(FIELD_TITULO).as(FIELD_TITULO)
+            .and(FIELD_DESCRIPCION).as(FIELD_DESCRIPCION)
+            .and(FIELD_NVISUALIZACIONES).as(FIELD_NVISUALIZACIONES)
+            .and(FIELD_EDAD_VISUALIZACION).as(FIELD_EDAD_VISUALIZACION)
+            .and(FIELD_ESTADO).as(FIELD_ESTADO)
+            .and(FIELD_TAGS).as(FIELD_TAGS)
+            .and(FIELD_URL).as(FIELD_URL)
+            .and(FIELD_RESOLUCION).as(FIELD_RESOLUCION)
+            .and(FIELD_MIME_TYPE).as(FIELD_MIME_TYPE);
+
+        Aggregation aggContents = Aggregation.newAggregation(matchOperation, projectionOperation);
+        AggregationResults<Map<String, Object>> contentResults = (AggregationResults<Map<String, Object>>) (AggregationResults<?>) mongoTemplate.aggregate(
+            aggContents, COLLECTION_CONTENIDOS, Map.class
+        );
+
+        return contentResults.getMappedResults().stream()
+            .map(this::mapToContenidoDTO)
+            .filter(Objects::nonNull)
+            .toList();
+    }
+    
+    /**
+     * Obtiene los TOP N contenidos con más visualizaciones
+     * 
+     * @param limit Número máximo de contenidos a devolver
+     * @param contentType Tipo de contenido ("video", "audio", "all")
+     * @param userId ID del usuario (puede ser null para usuarios anónimos)
+     * @return Lista de ContenidoDTO ordenada por visualizaciones descendente
+     */
+    public List<ContenidoDTO> getTopContents(int limit, String contentType, String userId) {
+        
+        // Determinar si el usuario puede ver contenido +18
+        boolean userIsAdult = isUserAdult(userId);
+        
+        // Crear criterios de filtro
+        List<Criteria> criteria = new ArrayList<>();
+        
+        // Solo contenidos visibles
+        criteria.add(Criteria.where(FIELD_ESTADO).is(true));
+        
+        // Nota: no filtramos todavía por edad aquí; calculamos TOP5 global y luego
+        // aplicamos un post-filter para usuarios menores. Esto garantiza que
+        // los TOP5 se calculen siempre globalmente, y que el frontend vea
+        // sólo los contenidos permitidos para su edad.
+        
+        // Filtro por tipo de contenido
+        if (!TYPE_ALL.equals(contentType)) {
+            if (TYPE_VIDEO.equals(contentType)) {
+                criteria.add(Criteria.where(FIELD_URL).exists(true)); // Videos tienen campo url
+            } else if (TYPE_AUDIO.equals(contentType)) {
+                criteria.add(Criteria.where(FIELD_MIME_TYPE).exists(true)); // Audios tienen campo mimeType
+            }
+        }
+        
+        // Construir la agregación
+        MatchOperation matchOperation = Aggregation.match(
+            new Criteria().andOperator(criteria.toArray(new Criteria[0]))
+        );
+        
+        SortOperation sortOperation = Aggregation.sort(
+            org.springframework.data.domain.Sort.Direction.DESC, FIELD_NVISUALIZACIONES
+        );
+        
+        LimitOperation limitOperation = Aggregation.limit(limit);
+        
+        ProjectionOperation projectionOperation = Aggregation.project()
+            .and(FIELD_UNDERSCORE_ID).as(FIELD_ID)
+            .and(FIELD_TITULO).as(FIELD_TITULO)
+            .and(FIELD_DESCRIPCION).as(FIELD_DESCRIPCION)
+            .and(FIELD_NVISUALIZACIONES).as(FIELD_NVISUALIZACIONES)
+            .and(FIELD_EDAD_VISUALIZACION).as(FIELD_EDAD_VISUALIZACION)
+            .and(FIELD_ESTADO).as(FIELD_ESTADO)
+            .and(FIELD_TAGS).as(FIELD_TAGS)
+            .and(FIELD_URL).as(FIELD_URL)          // Para videos
+            .and(FIELD_RESOLUCION).as(FIELD_RESOLUCION) // Para videos
+            .and(FIELD_MIME_TYPE).as(FIELD_MIME_TYPE); // Para audios
+        
+        Aggregation aggregation = Aggregation.newAggregation(
+            matchOperation,
+            sortOperation,
+            limitOperation,
+            projectionOperation
+        );
+        
+        // Ejecutar agregación
+        AggregationResults<Map<String, Object>> results = (AggregationResults<Map<String, Object>>) (AggregationResults<?>) mongoTemplate.aggregate(
+            aggregation, COLLECTION_CONTENIDOS, Map.class
+        );
+
+        // Convertir resultados a DTOs
+        List<ContenidoDTO> contenidos = results.getMappedResults().stream()
+            .map(this::mapToContenidoDTO)
+            .collect(Collectors.toList());
+
+        // Log de los contenidos antes del filtrado por edad
+        // Si el usuario NO es adulto, ocultar los contenidos +18 del resultado
+        if (!userIsAdult) {
+            contenidos = contenidos.stream()
+                .filter(c -> c.getEdadvisualizacion() <= 0)
+                .collect(Collectors.toList());
+        }
+
+        return contenidos;
+    }
+    
+    /**
+     * Obtiene los TOP N tags con más visualizaciones acumuladas
+     * 
+     * @param limit Número máximo de tags a devolver
+     * @param contentType Tipo de contenido ("video", "audio", "all")
+     * @param userId ID del usuario (puede ser null para usuarios anónimos)
+     * @return Lista de TagStatDTO ordenada por visualizaciones descendente
+     */
+    public List<TagStatDTO> getTopTags(int limit, String contentType, String userId) {
+        
+        // Determinar si el usuario puede ver contenido +18
+        boolean userIsAdult = isUserAdult(userId);
+        
+        // Crear criterios de filtro
+        List<Criteria> criteria = new ArrayList<>();
+        
+        // Solo contenidos visibles
+        criteria.add(Criteria.where(FIELD_ESTADO).is(true));
+        
+        // Filtro por edad si el usuario no es adulto
+        if (!userIsAdult) {
+            criteria.add(Criteria.where(FIELD_EDAD_VISUALIZACION).lte(0));
+        }
+        
+        // Filtro por tipo de contenido
+        if (!TYPE_ALL.equals(contentType)) {
+            if (TYPE_VIDEO.equals(contentType)) {
+                criteria.add(Criteria.where(FIELD_URL).exists(true)); // Videos tienen campo url
+            } else if (TYPE_AUDIO.equals(contentType)) {
+                criteria.add(Criteria.where(FIELD_MIME_TYPE).exists(true)); // Audios tienen campo mimeType
+            }
+        }
+        
+        // Construir la agregación
+        MatchOperation matchOperation = Aggregation.match(
+            new Criteria().andOperator(criteria.toArray(new Criteria[0]))
+        );
+        
+        // Desenrollar los tags para procesar cada tag individualmente
+        UnwindOperation unwindOperation = Aggregation.unwind(FIELD_TAGS);
+
+        // Agrupar por tag y sumar las visualizaciones
+        GroupOperation groupOperation = Aggregation.group(FIELD_TAGS)
+            .sum(FIELD_NVISUALIZACIONES).as(TOTAL_VIEWS_ALIAS);
+
+        SortOperation sortOperation = Aggregation.sort(
+            org.springframework.data.domain.Sort.Direction.DESC, TOTAL_VIEWS_ALIAS
+        );
+        
+        LimitOperation limitOperation = Aggregation.limit(limit);
+        
+        ProjectionOperation projectionOperation = Aggregation.project()
+            .and(FIELD_UNDERSCORE_ID).as(TAG_ALIAS)
+            .and(TOTAL_VIEWS_ALIAS).as(VIEWS_ALIAS);
+        
+        Aggregation aggregation = Aggregation.newAggregation(
+            matchOperation,
+            unwindOperation,
+            groupOperation,
+            sortOperation,
+            limitOperation,
+            projectionOperation
+        );
+        
+        // Ejecutar agregación
+        AggregationResults<Map<String, Object>> results = (AggregationResults<Map<String, Object>>) (AggregationResults<?>) mongoTemplate.aggregate(
+            aggregation, COLLECTION_CONTENIDOS, Map.class
+        );
+        
+        // Convertir resultados a DTOs
+        return results.getMappedResults().stream()
+            .map(this::mapToTagStatDTO)
+            .collect(Collectors.toList());
+    }
+    
+    /**
+     * Determina si un usuario puede ver contenido +18
+     * Para usuarios anónimos (userId null), se asume que no pueden ver +18
+     */
+    private boolean isUserAdult(String userId) {
+        if (userId == null || userId.trim().isEmpty()) {
+            return false; // Usuario anónimo, política conservadora
+        }
+
+        try {
+            Optional<Usuario> usuarioOpt = usuarioRepository.findById(userId);
+            return usuarioOpt.map(this::isUsuarioAdult).orElse(false);
+        } catch (Exception e) {
+            logger.error("Error al verificar usuario: {}", e.getMessage(), e);
+            return false;
+        }
+    }
+
+    /**
+     * Comprueba si un `Usuario` encontrado en BD es adulto.
+     * - Si es `Visualizador` y tiene `fechaNac`, calcula edad.
+     */
+    private boolean isUsuarioAdult(Usuario usuario) {
+        if (usuario instanceof Visualizador visualizador) {
+            Date fechaNac = visualizador.getFechaNac();
+            if (fechaNac != null) {
+                java.time.LocalDate dob = fechaNac.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate();
+                int age = java.time.Period.between(dob, java.time.LocalDate.now()).getYears();
+                return age >= 18;
+            }
+        }
+        // Fallback: usuario registrado sin DOB => permitir +18 (comportamiento previo)
+        return true;
+    }
+    
+    /**
+     * Convierte un Map resultado de agregación a ContenidoDTO
+     */
+    private ContenidoDTO mapToContenidoDTO(Map<String, Object> map) {
+        ContenidoDTO dto = new ContenidoDTO();
+
+        dto.setId(extractId(map));
+        dto.setTitulo(toStringSafe(map, FIELD_TITULO));
+        dto.setDescripcion(toStringSafe(map, FIELD_DESCRIPCION));
+
+        if (map.get(FIELD_URL) != null) {
+            dto.setTipo(TYPE_VIDEO);
+            dto.setResolucion(toStringSafe(map, FIELD_RESOLUCION));
+        } else if (map.get(FIELD_MIME_TYPE) != null) {
+            dto.setTipo(TYPE_AUDIO);
+        } else {
+            dto.setTipo(TYPE_CONTENIDO);
+        }
+
+        dto.setNvisualizaciones(toIntSafe(map, FIELD_NVISUALIZACIONES));
+        dto.setEdadvisualizacion(toIntSafe(map, FIELD_EDAD_VISUALIZACION));
+        dto.setEstado(Boolean.TRUE.equals(map.get(FIELD_ESTADO)));
+        dto.setTags(normalizeTags(map, FIELD_TAGS));
+        dto.setThumbnailUrl(null);
+        return dto;
+    }
+
+    private String extractId(Map<String, Object> map) {
+        Object idObj = map.get(FIELD_ID);
+        if (idObj == null) idObj = map.get(FIELD_UNDERSCORE_ID);
+        if (idObj == null) return null;
+        if (idObj instanceof ObjectId objectId) return objectId.toHexString();
+        return idObj.toString();
+    }
+
+    private String toStringSafe(Map<String, Object> map, String key) {
+        Object o = map.get(key);
+        return o == null ? null : o.toString();
+    }
+
+    private int toIntSafe(Map<String, Object> map, String key) {
+        Object o = map.get(key);
+        if (o instanceof Number number) return number.intValue();
+        if (o != null) {
+            try {
+                return Integer.parseInt(o.toString());
+            } catch (NumberFormatException ex) {
+                // Si no se pudo parsear la representación a entero; retornamos 0 como fallback.
+                if (logger.isDebugEnabled()) {
+                    logger.debug("toIntSafe: no se pudo parsear '{}' para la clave '{}', usando 0", o, key, ex);
+                }
+            }
+        }
+        return 0;
+    }
+
+    private List<String> normalizeTags(Map<String, Object> map, String key) {
+        Object tagsObj = map.get(key);
+        List<String> normalized = new ArrayList<>();
+        if (tagsObj instanceof List) {
+            for (Object t : (List<?>) tagsObj) if (t != null) normalized.add(t.toString());
+        }
+        return normalized;
+    }
+    
+    /**
+     * Convierte un Map resultado de agregación a TagStatDTO
+     */
+    private TagStatDTO mapToTagStatDTO(Map<String, Object> map) {
+        Object tagObj = map.get(TAG_ALIAS);
+        String tag = tagObj == null ? null : tagObj.toString();
+        Object viewsObj = map.get(VIEWS_ALIAS);
+        long views;
+        if (viewsObj instanceof Number number) {
+            views = number.longValue();
+        } else if (viewsObj != null) {
+            try {
+                views = Long.parseLong(viewsObj.toString());
+            } catch (NumberFormatException ex) {
+                views = 0L;
+            }
+        } else {
+            views = 0L;
+        }
+
+        return new TagStatDTO(tag, views);
+    }
+}
