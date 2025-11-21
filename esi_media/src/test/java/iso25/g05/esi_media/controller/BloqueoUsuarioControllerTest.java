@@ -7,6 +7,7 @@ import iso25.g05.esi_media.model.Visualizador;
 import iso25.g05.esi_media.repository.UsuarioRepository;
 import iso25.g05.esi_media.service.LogService;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -207,6 +208,22 @@ public class BloqueoUsuarioControllerTest {
         assertTrue(response.getBody().get("error").contains("ya está bloqueado"));
         
         verify(usuarioRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("El administrador no puede bloquearse a sí mismo")
+    void testBloquearUsuario_NoPuedeAutobloquearse() {
+        when(usuarioRepository.findById("admin-id-123")).thenReturn(Optional.of(adminAutenticado));
+
+        ResponseEntity<Map<String, String>> response = bloqueoController.bloquearUsuario(
+            "admin-id-123", "admin-id-123"
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertTrue(response.getBody().get("error").toLowerCase().contains("bloquearse"));
+        verify(usuarioRepository, never()).save(any());
+        verify(logService, never()).registrarBloqueoUsuario(any(), any(), any(), any());
     }
 
     // ========== TESTS PARA DESBLOQUEAR USUARIO ==========
